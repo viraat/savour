@@ -1,0 +1,8 @@
+FoodLog is a modified work based on Dime (https://github.com/rafsoh/dimeApp).
+
+FoodLog modifications were created on 31 August 2026. The new application target
+replaces expense transactions and budgets with a neutral food-journal experience.
+It adds a FoodEntry data model, food/meal entry flow, search and filtering,
+descriptive pattern summaries, CSV export, and a new app icon.
+
+This repository remains licensed under GNU GPL version 3. See LICENSE.
