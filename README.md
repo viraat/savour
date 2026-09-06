@@ -33,6 +33,7 @@ the core experience is a neutral record.
 - CSV export
 - Light, dark, and system appearance
 - Fully local Core Data storage with no account required
+- Optional private iCloud sync through CloudKit
 
 ## Build
 
@@ -55,6 +56,14 @@ requests foreground location access only when you tap it.
 
 The Contacts button requests access only when you tap it and reads formatted
 names for autocomplete. FoodLog does not read phone numbers or email addresses.
+
+When iCloud is available, Core Data mirrors entries and photos to the user's
+private CloudKit database. The local store remains available offline. CloudKit
+sync requires an Apple Developer team and the `iCloud.com.viraat.foodlog`
+container configured for the app identifier. Changes and deletions synchronize
+across devices, so this is not a versioned archive. Before an App Store release,
+deploy the CloudKit schema from the development environment to production. The
+simulator uses local storage; CloudKit sync runs in signed device builds.
 
 ## Data model
 

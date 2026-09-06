@@ -28,6 +28,10 @@
     <string>FoodLog uses the camera when you add a photo to an entry.</string>
     <key>UILaunchScreen</key>
     <dict/>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+    </array>
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
