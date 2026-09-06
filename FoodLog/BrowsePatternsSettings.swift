@@ -315,7 +315,6 @@ struct FoodLogSettingsView: View {
     @State private var showingShareSheet = false
     @State private var exportURL: URL?
     @State private var confirmErase = false
-    @StateObject private var cloudStatus = CloudSyncStatus()
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -339,10 +338,6 @@ struct FoodLogSettingsView: View {
                 }
 
                 settingsSection("YOUR DATA") {
-                    settingsRow(icon: "icloud", title: "iCloud sync", detail: cloudStatus.label, showsChevron: false)
-
-                    Divider()
-
                     Button(action: exportCSV) {
                         settingsRow(icon: "square.and.arrow.up", title: "Export CSV", detail: "\(entries.count) entries")
                     }
@@ -373,7 +368,6 @@ struct FoodLogSettingsView: View {
             .padding(.bottom, 20)
         }
         .background(FoodTheme.background)
-        .onAppear { cloudStatus.refresh() }
         .sheet(isPresented: $showingShareSheet) {
             if let exportURL {
                 ShareSheet(activityItems: [exportURL])
@@ -396,13 +390,7 @@ struct FoodLogSettingsView: View {
         }
     }
 
-    private func settingsRow(
-        icon: String,
-        title: String,
-        detail: String?,
-        destructive: Bool = false,
-        showsChevron: Bool = true
-    ) -> some View {
+    private func settingsRow(icon: String, title: String, detail: String?, destructive: Bool = false) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .frame(width: 24)
@@ -414,11 +402,9 @@ struct FoodLogSettingsView: View {
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundColor(FoodTheme.secondaryText)
             }
-            if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(FoodTheme.secondaryText)
-            }
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(FoodTheme.secondaryText)
         }
         .foregroundColor(destructive ? .red : FoodTheme.ink)
     }

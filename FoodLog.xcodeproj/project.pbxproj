@@ -17,7 +17,6 @@
 		A00000000000000000000008 /* FoodLog.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* FoodLog.xcdatamodeld */; };
 		A00000000000000000000009 /* LocationSearchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* LocationSearchModel.swift */; };
 		A0000000000000000000000A /* ContactsSearchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* ContactsSearchModel.swift */; };
-		A0000000000000000000000B /* CloudSyncStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* CloudSyncStatus.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,8 +33,6 @@
 		B00000000000000000000012 /* LocationSearchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchModel.swift; sourceTree = "<group>"; };
 		B00000000000000000000013 /* ContactsSearchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsSearchModel.swift; sourceTree = "<group>"; };
 		B00000000000000000000014 /* FoodLogV2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV2.xcdatamodel; sourceTree = "<group>"; };
-		B00000000000000000000015 /* CloudSyncStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncStatus.swift; sourceTree = "<group>"; };
-		B00000000000000000000016 /* FoodLog.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FoodLog.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,11 +65,9 @@
 				B00000000000000000000002 /* PersistenceController.swift */,
 				B00000000000000000000012 /* LocationSearchModel.swift */,
 				B00000000000000000000013 /* ContactsSearchModel.swift */,
-				B00000000000000000000015 /* CloudSyncStatus.swift */,
 				B00000000000000000000008 /* FoodLog.xcdatamodeld */,
 				B00000000000000000000007 /* Assets.xcassets */,
 				B00000000000000000000010 /* Info.plist */,
-				B00000000000000000000016 /* FoodLog.entitlements */,
 			);
 			path = FoodLog;
 			sourceTree = "<group>";
@@ -117,11 +112,6 @@
 				TargetAttributes = {
 					E00000000000000000000001 = {
 						CreatedOnToolsVersion = 15.0;
-						SystemCapabilities = {
-							com.apple.iCloud = {
-								enabled = 1;
-							};
-						};
 					};
 				};
 			};
@@ -168,7 +158,6 @@
 				A00000000000000000000008 /* FoodLog.xcdatamodeld in Sources */,
 				A00000000000000000000009 /* LocationSearchModel.swift in Sources */,
 				A0000000000000000000000A /* ContactsSearchModel.swift in Sources */,
-				A0000000000000000000000B /* CloudSyncStatus.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -229,7 +218,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = FoodLog/FoodLog.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Z5K7SYFXP9;
@@ -253,7 +241,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = FoodLog/FoodLog.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Z5K7SYFXP9;
