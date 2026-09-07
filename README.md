@@ -22,7 +22,8 @@ the core experience is a neutral record.
 - Breakfast, lunch, dinner, snack, drink, and other categories
 - Optional place, companions, and free-form note
 - Optional current-location fill and place autocomplete
-- Optional companion-name autocomplete from Contacts
+- Individual companions with optional Contacts autocomplete
+- Frequent companion and named group quick fills
 - Optional photo from the camera or system photo picker
 - Suggestions from previously logged food
 - Journal grouped by day
@@ -53,8 +54,12 @@ Food entries stay in the app's local Core Data store. If you type in the place
 field, Apple MapKit may provide autocomplete results. The current-location button
 requests foreground location access only when you tap it.
 
-The Contacts button requests access only when you tap it and reads formatted
-names for autocomplete. FoodLog does not read phone numbers or email addresses.
+The Contacts button requests access only when you tap it and stays enabled for
+the rest of that entry. It reads formatted names for autocomplete. FoodLog does
+not read phone numbers or email addresses. Frequently selected people appear as
+quick fills. You can save two or more selected people as a named group; using a
+group adds its members individually so each person is counted separately in
+Patterns.
 
 ## Data model
 
@@ -66,7 +71,7 @@ Each `FoodEntry` stores:
 | Date/time | Yes | When it happened |
 | Meal type | Yes | A simple category |
 | Place | No | Typed location or venue |
-| People | No | Companions |
+| People | No | Individually stored companion records |
 | Note | No | Anything else worth remembering |
 | Photo | No | An image stored with the entry |
 

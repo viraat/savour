@@ -18,7 +18,8 @@ struct FoodEntryEditor: View {
     @State private var date: Date
     @State private var mealType: String
     @State private var place: String
-    @State private var people: String
+    @State private var selectedCompanions: [String]
+    @State private var companionQuery = ""
     @State private var note: String
     @State private var photoData: Data?
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -26,12 +27,15 @@ struct FoodEntryEditor: View {
     @State private var isLoadingPhoto = false
     @State private var photoMessage: String?
     @State private var confirmDelete = false
+    @State private var showingSaveGroup = false
+    @State private var groupName = ""
     @StateObject private var locationSearch = LocationSearchModel()
     @StateObject private var contactsSearch = ContactsSearchModel()
+    @StateObject private var companionGroups = CompanionGroupStore()
     @FocusState private var focusedField: Field?
 
     private enum Field {
-        case food, place, people, note
+        case food, place, companion, note
     }
 
     init(entry: FoodEntry?) {
@@ -41,7 +45,7 @@ struct FoodEntryEditor: View {
         _date = State(initialValue: initialDate)
         _mealType = State(initialValue: entry?.wrappedMealType ?? Self.suggestedMealType(for: initialDate))
         _place = State(initialValue: entry?.wrappedPlace ?? "")
-        _people = State(initialValue: entry?.wrappedPeople ?? "")
+        _selectedCompanions = State(initialValue: entry?.companionNames ?? [])
         _note = State(initialValue: entry?.wrappedNote ?? "")
         _photoData = State(initialValue: entry?.photoData)
     }
@@ -64,6 +68,39 @@ struct FoodEntryEditor: View {
         }
         .prefix(6)
         .map { $0 }
+    }
+
+    private var frequentPeople: [String] {
+        var counts: [String: (name: String, count: Int)] = [:]
+        for previousEntry in previousEntries {
+            for name in previousEntry.companionNames {
+                let key = name.lowercased()
+                let current = counts[key] ?? (name, 0)
+                counts[key] = (current.name, current.count + 1)
+            }
+        }
+
+        let selected = Set(selectedCompanions.map { $0.lowercased() })
+        return counts.values
+            .filter { !selected.contains($0.name.lowercased()) }
+            .sorted {
+                if $0.count != $1.count { return $0.count > $1.count }
+                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
+            .prefix(6)
+            .map(\.name)
+    }
+
+    private var contactSuggestions: [String] {
+        let selected = Set(selectedCompanions.map { $0.lowercased() })
+        return contactsSearch.suggestions.filter { !selected.contains($0.lowercased()) }
+    }
+
+    private var availableGroups: [CompanionGroup] {
+        let selected = Set(selectedCompanions.map { $0.lowercased() })
+        return companionGroups.frequentGroups.filter { group in
+            group.people.contains { !selected.contains($0.lowercased()) }
+        }
     }
 
     var body: some View {
@@ -125,6 +162,17 @@ struct FoodEntryEditor: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This cannot be undone.")
+        }
+        .alert("Name this group", isPresented: $showingSaveGroup) {
+            TextField("e.g. My parents", text: $groupName)
+            Button("Save") {
+                companionGroups.save(name: groupName, people: selectedCompanions)
+                groupName = ""
+            }
+            .disabled(groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            Button("Cancel", role: .cancel) { groupName = "" }
+        } message: {
+            Text("The group will fill these people into future entries.")
         }
     }
 
@@ -342,24 +390,53 @@ struct FoodEntryEditor: View {
     }
 
     private var contactsField: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
+            if !selectedCompanions.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(selectedCompanions, id: \.self) { name in
+                            HStack(spacing: 6) {
+                                Text(name)
+                                    .lineLimit(1)
+                                Button {
+                                    removeCompanion(name)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(FoodTheme.secondaryText)
+                                }
+                                .accessibilityLabel("Remove \(name)")
+                            }
+                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                            .foregroundColor(FoodTheme.ink)
+                            .padding(.leading, 11)
+                            .padding(.trailing, 8)
+                            .padding(.vertical, 8)
+                            .background(FoodTheme.field, in: Capsule())
+                        }
+                    }
+                }
+            }
+
             HStack(spacing: 12) {
                 Image(systemName: "person.2.fill")
                     .foregroundColor(FoodTheme.secondaryText)
                     .frame(width: 24)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("With whom?")
+                    Text("Add a companion")
                         .font(.system(.caption, design: .rounded).weight(.semibold))
                         .foregroundColor(FoodTheme.secondaryText)
-                    TextField("Friends, family…", text: $people)
+                    TextField("Name", text: $companionQuery)
                         .font(.system(.body, design: .rounded))
-                        .focused($focusedField, equals: .people)
-                        .onChange(of: people) { contactsSearch.updateQuery($0) }
+                        .textInputAutocapitalization(.words)
+                        .submitLabel(.done)
+                        .focused($focusedField, equals: .companion)
+                        .onChange(of: companionQuery) { contactsSearch.updateQuery($0) }
+                        .onSubmit(addTypedCompanion)
                 }
 
                 Button {
-                    contactsSearch.setEnabled(!contactsSearch.isEnabled, query: people)
+                    contactsSearch.setEnabled(true, query: companionQuery)
                 } label: {
                     Group {
                         if contactsSearch.isLoading {
@@ -372,18 +449,29 @@ struct FoodEntryEditor: View {
                     .frame(width: 36, height: 36)
                     .background(contactsSearch.isEnabled ? FoodTheme.ink : FoodTheme.field, in: Circle())
                 }
-                .accessibilityLabel(contactsSearch.isEnabled ? "Disable contact suggestions" : "Enable contact suggestions")
+                .disabled(contactsSearch.isEnabled || contactsSearch.isLoading)
+                .accessibilityLabel(contactsSearch.isEnabled ? "Contact suggestions enabled" : "Enable contact suggestions")
                 .accessibilityAddTraits(contactsSearch.isEnabled ? .isSelected : [])
             }
             .padding(14)
             .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-            if contactsSearch.isEnabled && focusedField == .people && !contactsSearch.suggestions.isEmpty {
+            if !companionQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Button(action: addTypedCompanion) {
+                    Label("Add \(companionQuery.trimmingCharacters(in: .whitespacesAndNewlines))", systemImage: "plus")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundColor(FoodTheme.ink)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 9)
+                        .background(FoodTheme.field, in: Capsule())
+                }
+            }
+
+            if contactsSearch.isEnabled && focusedField == .companion && !contactSuggestions.isEmpty {
                 VStack(spacing: 0) {
-                    ForEach(Array(contactsSearch.suggestions.enumerated()), id: \.offset) { index, name in
+                    ForEach(Array(contactSuggestions.enumerated()), id: \.offset) { index, name in
                         Button {
-                            people = contactsSearch.select(name, in: people)
-                            focusedField = nil
+                            addCompanion(name)
                         } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: "person.fill")
@@ -398,7 +486,7 @@ struct FoodEntryEditor: View {
                             .padding(.vertical, 11)
                             .contentShape(Rectangle())
                         }
-                        if index < contactsSearch.suggestions.count - 1 {
+                        if index < contactSuggestions.count - 1 {
                             Divider().padding(.leading, 46)
                         }
                     }
@@ -412,7 +500,108 @@ struct FoodEntryEditor: View {
                     .foregroundColor(FoodTheme.secondaryText)
                     .padding(.horizontal, 4)
             }
+
+            if !frequentPeople.isEmpty {
+                companionQuickFill(title: "FREQUENT", names: frequentPeople) { name in
+                    addCompanion(name)
+                }
+            }
+
+            if !availableGroups.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("GROUPS")
+                        .sectionLabel()
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(availableGroups) { group in
+                                Button {
+                                    group.people.forEach { addCompanion($0) }
+                                    companionGroups.markUsed(group)
+                                } label: {
+                                    Label(group.name, systemImage: "person.3.fill")
+                                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                        .foregroundColor(FoodTheme.ink)
+                                        .padding(.horizontal, 11)
+                                        .padding(.vertical, 8)
+                                        .background(FoodTheme.field, in: Capsule())
+                                }
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        companionGroups.remove(group)
+                                    } label: {
+                                        Label("Delete group", systemImage: "trash")
+                                    }
+                                }
+                                .accessibilityHint("Adds \(group.people.joined(separator: ", "))")
+                            }
+                        }
+                    }
+                }
+            }
+
+            if selectedCompanions.count >= 2 {
+                Button {
+                    focusedField = nil
+                    showingSaveGroup = true
+                } label: {
+                    Label("Save as group", systemImage: "person.3.sequence.fill")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundColor(FoodTheme.secondaryText)
+                }
+                .padding(.horizontal, 4)
+            }
         }
+    }
+
+    private func companionQuickFill(
+        title: String,
+        names: [String],
+        action: @escaping (String) -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .sectionLabel()
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(names, id: \.self) { name in
+                        Button { action(name) } label: {
+                            Text(name)
+                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                .foregroundColor(FoodTheme.ink)
+                                .padding(.horizontal, 11)
+                                .padding(.vertical, 8)
+                                .background(FoodTheme.field, in: Capsule())
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func addTypedCompanion() {
+        addCompanion(companionQuery)
+    }
+
+    private func addCompanion(_ name: String) {
+        let normalized = CompanionNames.normalized([name])
+        guard let name = normalized.first,
+              !selectedCompanions.contains(where: {
+                  $0.caseInsensitiveCompare(name) == .orderedSame
+              })
+        else {
+            companionQuery = ""
+            contactsSearch.updateQuery("")
+            return
+        }
+
+        selectedCompanions.append(name)
+        companionQuery = ""
+        contactsSearch.updateQuery("")
+        focusedField = .companion
+    }
+
+    private func removeCompanion(_ name: String) {
+        selectedCompanions.removeAll { $0.caseInsensitiveCompare(name) == .orderedSame }
     }
 
     private var locationField: some View {
@@ -535,7 +724,7 @@ struct FoodEntryEditor: View {
         target.date = date
         target.mealType = mealType
         target.place = place.trimmingCharacters(in: .whitespacesAndNewlines)
-        target.people = people.trimmingCharacters(in: .whitespacesAndNewlines)
+        target.replaceCompanions(with: selectedCompanions, in: context)
         target.note = note.trimmingCharacters(in: .whitespacesAndNewlines)
         target.photoData = photoData
 

@@ -17,6 +17,7 @@
 		A00000000000000000000008 /* FoodLog.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* FoodLog.xcdatamodeld */; };
 		A00000000000000000000009 /* LocationSearchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* LocationSearchModel.swift */; };
 		A0000000000000000000000A /* ContactsSearchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* ContactsSearchModel.swift */; };
+		A0000000000000000000000B /* CompanionGroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000016 /* CompanionGroupStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +34,8 @@
 		B00000000000000000000012 /* LocationSearchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchModel.swift; sourceTree = "<group>"; };
 		B00000000000000000000013 /* ContactsSearchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsSearchModel.swift; sourceTree = "<group>"; };
 		B00000000000000000000014 /* FoodLogV2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV2.xcdatamodel; sourceTree = "<group>"; };
+		B00000000000000000000015 /* FoodLogV3.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV3.xcdatamodel; sourceTree = "<group>"; };
+		B00000000000000000000016 /* CompanionGroupStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionGroupStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,6 +68,7 @@
 				B00000000000000000000002 /* PersistenceController.swift */,
 				B00000000000000000000012 /* LocationSearchModel.swift */,
 				B00000000000000000000013 /* ContactsSearchModel.swift */,
+				B00000000000000000000016 /* CompanionGroupStore.swift */,
 				B00000000000000000000008 /* FoodLog.xcdatamodeld */,
 				B00000000000000000000007 /* Assets.xcassets */,
 				B00000000000000000000010 /* Info.plist */,
@@ -158,6 +162,7 @@
 				A00000000000000000000008 /* FoodLog.xcdatamodeld in Sources */,
 				A00000000000000000000009 /* LocationSearchModel.swift in Sources */,
 				A0000000000000000000000A /* ContactsSearchModel.swift in Sources */,
+				A0000000000000000000000B /* CompanionGroupStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -288,8 +293,9 @@
 			children = (
 				B00000000000000000000009 /* FoodLog.xcdatamodel */,
 				B00000000000000000000014 /* FoodLogV2.xcdatamodel */,
+				B00000000000000000000015 /* FoodLogV3.xcdatamodel */,
 			);
-			currentVersion = B00000000000000000000014 /* FoodLogV2.xcdatamodel */;
+			currentVersion = B00000000000000000000015 /* FoodLogV3.xcdatamodel */;
 			path = FoodLog.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

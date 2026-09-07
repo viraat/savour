@@ -236,11 +236,11 @@ struct EntryRow: View {
 
             Spacer(minLength: 8)
 
-            if !entry.wrappedPeople.isEmpty {
+            if !entry.companionNames.isEmpty {
                 Image(systemName: "person.2.fill")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(FoodTheme.secondaryText)
-                    .accessibilityLabel("With \(entry.wrappedPeople)")
+                    .accessibilityLabel("With \(entry.companionDisplayText)")
             }
         }
         .padding(12)

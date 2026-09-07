@@ -20,7 +20,7 @@ struct BrowseView: View {
             let matchesQuery = trimmed.isEmpty
                 || entry.wrappedFood.localizedCaseInsensitiveContains(trimmed)
                 || entry.wrappedPlace.localizedCaseInsensitiveContains(trimmed)
-                || entry.wrappedPeople.localizedCaseInsensitiveContains(trimmed)
+                || entry.companionNames.contains { $0.localizedCaseInsensitiveContains(trimmed) }
                 || entry.wrappedNote.localizedCaseInsensitiveContains(trimmed)
             return matchesMeal && matchesQuery
         }
@@ -171,7 +171,7 @@ struct PatternsView: View {
     }
 
     private var peopleCounts: [(String, Int)] {
-        frequency(of: selectedEntries.map(\.wrappedPeople).filter { !$0.isEmpty })
+        frequency(of: selectedEntries.flatMap(\.companionNames))
     }
 
     var body: some View {
@@ -300,8 +300,20 @@ struct PatternsView: View {
     }
 
     private func frequency(of values: [String]) -> [(String, Int)] {
-        Dictionary(grouping: values, by: { $0 }).mapValues(\.count)
-            .sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
+        var counts: [String: (name: String, count: Int)] = [:]
+        for value in values {
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let key = trimmed.lowercased()
+            let current = counts[key] ?? (trimmed, 0)
+            counts[key] = (current.name, current.count + 1)
+        }
+        return counts.values
+            .sorted {
+                if $0.count != $1.count { return $0.count > $1.count }
+                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
+            .map { ($0.name, $0.count) }
     }
 }
 
@@ -435,7 +447,7 @@ private enum CSVExporter {
                 timeFormatter.string(from: entry.wrappedDate),
                 entry.wrappedMealType,
                 entry.wrappedPlace,
-                entry.wrappedPeople,
+                entry.companionDisplayText,
                 entry.wrappedNote
             ].map(escape)
             csv += fields.joined(separator: ",") + "\n"

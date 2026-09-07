@@ -39,27 +39,15 @@ final class ContactsSearchModel: ObservableObject {
             return
         }
 
-        let components = query.components(separatedBy: ",")
-        let fragment = components.last?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let fragment = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !fragment.isEmpty else {
             suggestions = []
             return
         }
 
-        let existingNames = Set(components.dropLast().map {
-            $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        })
         suggestions = names.filter {
-            $0.localizedCaseInsensitiveContains(fragment) && !existingNames.contains($0.lowercased())
+            $0.localizedCaseInsensitiveContains(fragment)
         }.prefix(5).map { $0 }
-    }
-
-    func select(_ name: String, in currentValue: String) -> String {
-        suggestions = []
-        guard let comma = currentValue.lastIndex(of: ",") else { return name }
-        let prefix = currentValue[...comma]
-        return "\(prefix) \(name)"
     }
 
     private func requestAccess() {
