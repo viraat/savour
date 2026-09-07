@@ -299,13 +299,13 @@ struct FoodEntryEditor: View {
                 .foregroundColor(FoodTheme.secondaryText)
 
             TextField("e.g. dosa and chutney", text: $food, axis: .vertical)
-                .font(.system(size: 36, weight: .semibold, design: .rounded))
+                .font(.system(size: 30, weight: .semibold, design: .rounded))
                 .foregroundColor(FoodTheme.ink)
                 .lineLimit(2 ... 4)
                 .textInputAutocapitalization(.sentences)
                 .focused($focusedField, equals: .food)
                 .padding(20)
-                .frame(minHeight: 132, alignment: .topLeading)
+                .frame(minHeight: 116, alignment: .topLeading)
                 .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
 
             if !suggestions.isEmpty && focusedField == .food {
