@@ -1,24 +1,31 @@
+import Combine
 import CoreLocation
 import MapKit
-import Combine
+
+struct LocationSelection: Equatable {
+    let displayName: String
+    let city: String
+    let latitude: Double
+    let longitude: Double
+}
 
 final class LocationSearchModel: NSObject, ObservableObject {
     @Published private(set) var suggestions: [MKLocalSearchCompletion] = []
     @Published private(set) var isLocating = false
     @Published private(set) var isEnabled = false
     @Published private(set) var message: String?
-    @Published private(set) var resolvedPlace: String?
+    @Published private(set) var resolvedSelection: LocationSelection?
 
     private let completer = MKLocalSearchCompleter()
     private let locationManager = CLLocationManager()
-    private let geocoder = CLGeocoder()
+    private var localSearch: MKLocalSearch?
     private var acceptedPlace: String?
     private var waitingForAuthorization = false
 
     override init() {
         super.init()
         completer.delegate = self
-        completer.resultTypes = [.address, .pointOfInterest]
+        completer.resultTypes = .pointOfInterest
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
     }
@@ -60,16 +67,45 @@ final class LocationSearchModel: NSObject, ObservableObject {
     }
 
     func select(_ completion: MKLocalSearchCompletion) -> String {
-        let value = [completion.title, completion.subtitle]
-            .filter { !$0.isEmpty }
-            .joined(separator: ", ")
-        acceptedPlace = value
+        let temporaryName = completion.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        acceptedPlace = temporaryName
         suggestions = []
         completer.cancel()
-        return value
+        localSearch?.cancel()
+        message = nil
+
+        let search = MKLocalSearch(request: MKLocalSearch.Request(completion: completion))
+        localSearch = search
+        search.start { [weak self, weak search] response, error in
+            DispatchQueue.main.async {
+                guard let self, self.localSearch === search else { return }
+                self.localSearch = nil
+
+                guard error == nil, let item = response?.mapItems.first else {
+                    self.message = "More details for this place could not be loaded."
+                    return
+                }
+
+                let city = Self.city(from: item.placemark)
+                let name = item.name?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let displayName = Self.conciseName(
+                    place: name?.isEmpty == false ? name! : temporaryName,
+                    city: city
+                )
+                self.acceptedPlace = displayName
+                self.resolvedSelection = LocationSelection(
+                    displayName: displayName,
+                    city: city,
+                    latitude: item.placemark.coordinate.latitude,
+                    longitude: item.placemark.coordinate.longitude
+                )
+            }
+        }
+
+        return temporaryName
     }
 
-    func requestCurrentPlace() {
+    func requestNearbyRegion() {
         guard isEnabled else { return }
         message = nil
         waitingForAuthorization = true
@@ -81,72 +117,40 @@ final class LocationSearchModel: NSObject, ObservableObject {
             requestLocation()
         case .denied:
             waitingForAuthorization = false
-            message = "Location access is disabled in Settings."
+            message = "Location access is disabled in Settings. Search still works."
         case .restricted:
             waitingForAuthorization = false
-            message = "Location access is unavailable."
+            message = "Location access is unavailable. Search still works."
         @unknown default:
             waitingForAuthorization = false
-            message = "Location access is unavailable."
+            message = "Location access is unavailable. Search still works."
         }
     }
 
     func stop() {
         completer.cancel()
-        geocoder.cancelGeocode()
+        localSearch?.cancel()
+        localSearch = nil
         locationManager.stopUpdatingLocation()
     }
 
     private func requestLocation() {
         guard CLLocationManager.locationServicesEnabled() else {
             waitingForAuthorization = false
-            message = "Location Services are turned off."
+            message = "Location Services are off. Search still works."
             return
         }
         isLocating = true
         locationManager.requestLocation()
     }
 
-    private func resolve(_ location: CLLocation) {
-        guard isEnabled else { return }
-        completer.region = MKCoordinateRegion(
-            center: location.coordinate,
-            latitudinalMeters: 20_000,
-            longitudinalMeters: 20_000
-        )
+    private static func city(from placemark: MKPlacemark) -> String {
+        placemark.locality ?? placemark.subAdministrativeArea ?? placemark.administrativeArea ?? ""
+    }
 
-        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.isLocating = false
-
-                guard error == nil, let placemark = placemarks?.first else {
-                    self.message = "The current place could not be found."
-                    return
-                }
-
-                let pieces = [
-                    placemark.name,
-                    placemark.locality,
-                    placemark.administrativeArea,
-                    placemark.country
-                ].compactMap { $0 }.reduce(into: [String]()) { result, piece in
-                    if !result.contains(where: { $0.caseInsensitiveCompare(piece) == .orderedSame }) {
-                        result.append(piece)
-                    }
-                }
-
-                guard !pieces.isEmpty else {
-                    self.message = "The current place could not be found."
-                    return
-                }
-                let place = pieces.joined(separator: ", ")
-                self.suggestions = []
-                self.completer.cancel()
-                self.acceptedPlace = place
-                self.resolvedPlace = place
-            }
-        }
+    private static func conciseName(place: String, city: String) -> String {
+        guard !city.isEmpty, place.caseInsensitiveCompare(city) != .orderedSame else { return place }
+        return "\(place), \(city)"
     }
 }
 
@@ -168,10 +172,10 @@ extension LocationSearchModel: CLLocationManagerDelegate {
             requestLocation()
         case .denied:
             waitingForAuthorization = false
-            message = "Location access is disabled in Settings."
+            message = "Location access is disabled in Settings. Search still works."
         case .restricted:
             waitingForAuthorization = false
-            message = "Location access is unavailable."
+            message = "Location access is unavailable. Search still works."
         case .notDetermined:
             break
         @unknown default:
@@ -181,19 +185,19 @@ extension LocationSearchModel: CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         waitingForAuthorization = false
-        guard isEnabled else { return }
-        guard let location = locations.last else {
-            isLocating = false
-            message = "The current location could not be found."
-            return
-        }
-        resolve(location)
+        isLocating = false
+        guard isEnabled, let location = locations.last else { return }
+        completer.region = MKCoordinateRegion(
+            center: location.coordinate,
+            latitudinalMeters: 20_000,
+            longitudinalMeters: 20_000
+        )
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         waitingForAuthorization = false
         isLocating = false
         guard isEnabled else { return }
-        message = "The current location could not be found."
+        message = "Nearby results are unavailable. Search still works."
     }
 }

@@ -83,8 +83,14 @@ extension FoodEntry {
     var wrappedDate: Date { date ?? Date() }
     var wrappedMealType: String { mealType ?? "Other" }
     var wrappedPlace: String { place ?? "" }
+    var wrappedPlaceCity: String { placeCity ?? "" }
     var wrappedPeople: String { people ?? "" }
     var wrappedNote: String { note ?? "" }
+
+    var placeCoordinates: (latitude: Double, longitude: Double)? {
+        guard hasPlaceCoordinates else { return nil }
+        return (placeLatitude, placeLongitude)
+    }
 
     var companionRecords: [FoodEntryCompanion] {
         let records = companions as? Set<FoodEntryCompanion> ?? []

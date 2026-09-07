@@ -34,6 +34,7 @@
 		B00000000000000000000013 /* ContactsSearchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsSearchModel.swift; sourceTree = "<group>"; };
 		B00000000000000000000014 /* FoodLogV2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV2.xcdatamodel; sourceTree = "<group>"; };
 		B00000000000000000000015 /* FoodLogV3.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV3.xcdatamodel; sourceTree = "<group>"; };
+		B00000000000000000000017 /* FoodLogV4.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV4.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -290,8 +291,9 @@
 				B00000000000000000000009 /* FoodLog.xcdatamodel */,
 				B00000000000000000000014 /* FoodLogV2.xcdatamodel */,
 				B00000000000000000000015 /* FoodLogV3.xcdatamodel */,
+				B00000000000000000000017 /* FoodLogV4.xcdatamodel */,
 			);
-			currentVersion = B00000000000000000000015 /* FoodLogV3.xcdatamodel */;
+			currentVersion = B00000000000000000000017 /* FoodLogV4.xcdatamodel */;
 			path = FoodLog.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

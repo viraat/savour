@@ -434,7 +434,7 @@ struct FoodLogSettingsView: View {
 
 private enum CSVExporter {
     static func makeFile(from entries: [FoodEntry]) -> URL? {
-        var csv = "food,date,time,meal,place,people,note\n"
+        var csv = "food,date,time,meal,place,city,latitude,longitude,people,note\n"
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let timeFormatter = DateFormatter()
@@ -447,6 +447,9 @@ private enum CSVExporter {
                 timeFormatter.string(from: entry.wrappedDate),
                 entry.wrappedMealType,
                 entry.wrappedPlace,
+                entry.wrappedPlaceCity,
+                entry.hasPlaceCoordinates ? String(entry.placeLatitude) : "",
+                entry.hasPlaceCoordinates ? String(entry.placeLongitude) : "",
                 entry.companionDisplayText,
                 entry.wrappedNote
             ].map(escape)

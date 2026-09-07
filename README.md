@@ -21,7 +21,7 @@ the core experience is a neutral record.
 - Automatic meal-type suggestion based on time of day
 - Breakfast, lunch, dinner, snack, drink, and other categories
 - Optional place, companions, and free-form note
-- Optional current-location fill and place autocomplete
+- Optional nearby MapKit suggestions and reusable place quick fills
 - Individual companions with optional Contacts autocomplete
 - Companion quick fills based on previously selected people
 - Optional photo from the camera or system photo picker
@@ -50,9 +50,11 @@ Dime's iCloud container, widgets, budgets, or intent extensions. This lightweigh
 port does not include Dime's original source; attribution and licensing details
 are retained in `NOTICE` and `LICENSE`.
 
-Food entries stay in the app's local Core Data store. If you type in the place
-field, Apple MapKit may provide autocomplete results. The current-location button
-requests foreground location access only when you tap it.
+Food entries stay in the app's local Core Data store. The location button enables
+MapKit suggestions and uses foreground location only to prioritize nearby results;
+it does not fill the field. MapKit choices are saved as place name and city, with
+coordinates stored separately for future map support. Free-text places continue
+to work and previously used places appear as quick fills.
 
 The Contacts button requests access only when you tap it and stays enabled for
 the rest of that entry. It reads formatted names for autocomplete. FoodLog does
@@ -69,6 +71,8 @@ Each `FoodEntry` stores:
 | Date/time | Yes | When it happened |
 | Meal type | Yes | A simple category |
 | Place | No | Typed location or venue |
+| Place city | No | City returned by MapKit |
+| Place coordinates | No | Latitude and longitude retained for future maps |
 | People | No | Individually stored companion records |
 | Note | No | Anything else worth remembering |
 | Photo | No | An image stored with the entry |

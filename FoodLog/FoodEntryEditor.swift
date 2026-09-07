@@ -3,6 +3,17 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
+private struct ReusablePlace: Identifiable {
+    let place: String
+    let city: String
+    let latitude: Double
+    let longitude: Double
+    let hasCoordinates: Bool
+    var count: Int
+
+    var id: String { place.lowercased() }
+}
+
 struct FoodEntryEditor: View {
     static let mealTypes = ["Breakfast", "Lunch", "Dinner", "Snack", "Drink", "Other"]
 
@@ -18,6 +29,11 @@ struct FoodEntryEditor: View {
     @State private var date: Date
     @State private var mealType: String
     @State private var place: String
+    @State private var placeCity: String
+    @State private var placeLatitude: Double
+    @State private var placeLongitude: Double
+    @State private var hasPlaceCoordinates: Bool
+    @State private var selectedPlaceLabel: String?
     @State private var selectedCompanions: [String]
     @State private var companionQuery = ""
     @State private var note: String
@@ -42,6 +58,11 @@ struct FoodEntryEditor: View {
         _date = State(initialValue: initialDate)
         _mealType = State(initialValue: entry?.wrappedMealType ?? Self.suggestedMealType(for: initialDate))
         _place = State(initialValue: entry?.wrappedPlace ?? "")
+        _placeCity = State(initialValue: entry?.wrappedPlaceCity ?? "")
+        _placeLatitude = State(initialValue: entry?.placeLatitude ?? 0)
+        _placeLongitude = State(initialValue: entry?.placeLongitude ?? 0)
+        _hasPlaceCoordinates = State(initialValue: entry?.hasPlaceCoordinates ?? false)
+        _selectedPlaceLabel = State(initialValue: entry?.hasPlaceCoordinates == true ? entry?.wrappedPlace : nil)
         _selectedCompanions = State(initialValue: entry?.companionNames ?? [])
         _note = State(initialValue: entry?.wrappedNote ?? "")
         _photoData = State(initialValue: entry?.photoData)
@@ -93,6 +114,48 @@ struct FoodEntryEditor: View {
         return contactsSearch.suggestions.filter { !selected.contains($0.lowercased()) }
     }
 
+    private var frequentPlaces: [ReusablePlace] {
+        var places: [String: ReusablePlace] = [:]
+
+        for previousEntry in previousEntries {
+            let name = previousEntry.wrappedPlace.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { continue }
+            let key = name.lowercased()
+
+            if var existing = places[key] {
+                existing.count += 1
+                if !existing.hasCoordinates, previousEntry.hasPlaceCoordinates {
+                    existing = ReusablePlace(
+                        place: existing.place,
+                        city: previousEntry.wrappedPlaceCity,
+                        latitude: previousEntry.placeLatitude,
+                        longitude: previousEntry.placeLongitude,
+                        hasCoordinates: true,
+                        count: existing.count
+                    )
+                }
+                places[key] = existing
+            } else {
+                places[key] = ReusablePlace(
+                    place: name,
+                    city: previousEntry.wrappedPlaceCity,
+                    latitude: previousEntry.placeLatitude,
+                    longitude: previousEntry.placeLongitude,
+                    hasCoordinates: previousEntry.hasPlaceCoordinates,
+                    count: 1
+                )
+            }
+        }
+
+        return places.values
+            .sorted {
+                if $0.count != $1.count { return $0.count > $1.count }
+                return $0.place.localizedCaseInsensitiveCompare($1.place) == .orderedAscending
+            }
+            .prefix(6)
+            .map { $0 }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             topBar
@@ -134,9 +197,9 @@ struct FoodEntryEditor: View {
                 }
             }
         }
-        .onChange(of: locationSearch.resolvedPlace) { resolvedPlace in
-            guard let resolvedPlace else { return }
-            place = resolvedPlace
+        .onChange(of: locationSearch.resolvedSelection) { selection in
+            guard let selection else { return }
+            applyLocationSelection(selection)
             focusedField = nil
         }
         .onDisappear { locationSearch.stop() }
@@ -538,14 +601,21 @@ struct FoodEntryEditor: View {
                     TextField("Home, restaurant, office…", text: $place)
                         .font(.system(.body, design: .rounded))
                         .focused($focusedField, equals: .place)
-                        .onChange(of: place) { locationSearch.updateQuery($0) }
+                        .onChange(of: place) { updatedPlace in
+                            locationSearch.updateQuery(updatedPlace)
+                            guard selectedPlaceLabel?.caseInsensitiveCompare(updatedPlace) != .orderedSame else {
+                                return
+                            }
+                            clearPlaceMetadata()
+                        }
                 }
 
                 Button {
                     let enabled = !locationSearch.isEnabled
                     locationSearch.setEnabled(enabled, query: place)
                     if enabled {
-                        locationSearch.requestCurrentPlace()
+                        focusedField = .place
+                        locationSearch.requestNearbyRegion()
                     }
                 } label: {
                     Group {
@@ -565,6 +635,28 @@ struct FoodEntryEditor: View {
             .padding(14)
             .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
+            if !frequentPlaces.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(frequentPlaces) { reusablePlace in
+                            let isSelected = place.caseInsensitiveCompare(reusablePlace.place) == .orderedSame
+                            Button {
+                                applyReusablePlace(reusablePlace)
+                            } label: {
+                                Text(reusablePlace.place)
+                                    .lineLimit(1)
+                                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                    .foregroundColor(isSelected ? FoodTheme.onInk : FoodTheme.ink)
+                                    .padding(.horizontal, 11)
+                                    .padding(.vertical, 8)
+                                    .background(isSelected ? FoodTheme.ink : FoodTheme.field, in: Capsule())
+                            }
+                            .accessibilityAddTraits(isSelected ? .isSelected : [])
+                        }
+                    }
+                }
+            }
+
             if locationSearch.isEnabled && focusedField == .place && !locationSearch.suggestions.isEmpty {
                 VStack(spacing: 0) {
                     ForEach(Array(locationSearch.suggestions.enumerated()), id: \.offset) { index, suggestion in
@@ -576,16 +668,9 @@ struct FoodEntryEditor: View {
                                 Image(systemName: "mappin")
                                     .foregroundColor(FoodTheme.secondaryText)
                                     .frame(width: 20)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(suggestion.title)
-                                        .font(.system(.body, design: .rounded).weight(.semibold))
-                                        .foregroundColor(FoodTheme.ink)
-                                    if !suggestion.subtitle.isEmpty {
-                                        Text(suggestion.subtitle)
-                                            .font(.system(.caption, design: .rounded))
-                                            .foregroundColor(FoodTheme.secondaryText)
-                                    }
-                                }
+                                Text(suggestion.title)
+                                    .font(.system(.body, design: .rounded).weight(.semibold))
+                                    .foregroundColor(FoodTheme.ink)
                                 Spacer()
                             }
                             .padding(.horizontal, 14)
@@ -607,6 +692,33 @@ struct FoodEntryEditor: View {
                     .padding(.horizontal, 4)
             }
         }
+    }
+
+    private func applyLocationSelection(_ selection: LocationSelection) {
+        placeCity = selection.city
+        placeLatitude = selection.latitude
+        placeLongitude = selection.longitude
+        hasPlaceCoordinates = true
+        selectedPlaceLabel = selection.displayName
+        place = selection.displayName
+    }
+
+    private func applyReusablePlace(_ reusablePlace: ReusablePlace) {
+        placeCity = reusablePlace.city
+        placeLatitude = reusablePlace.latitude
+        placeLongitude = reusablePlace.longitude
+        hasPlaceCoordinates = reusablePlace.hasCoordinates
+        selectedPlaceLabel = reusablePlace.place
+        place = reusablePlace.place
+        focusedField = nil
+    }
+
+    private func clearPlaceMetadata() {
+        placeCity = ""
+        placeLatitude = 0
+        placeLongitude = 0
+        hasPlaceCoordinates = false
+        selectedPlaceLabel = nil
     }
 
     private func detailField(
@@ -644,6 +756,10 @@ struct FoodEntryEditor: View {
         target.date = date
         target.mealType = mealType
         target.place = place.trimmingCharacters(in: .whitespacesAndNewlines)
+        target.placeCity = placeCity
+        target.placeLatitude = placeLatitude
+        target.placeLongitude = placeLongitude
+        target.hasPlaceCoordinates = hasPlaceCoordinates
         target.replaceCompanions(with: selectedCompanions, in: context)
         target.note = note.trimmingCharacters(in: .whitespacesAndNewlines)
         target.photoData = photoData
