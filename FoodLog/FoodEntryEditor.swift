@@ -391,32 +391,6 @@ struct FoodEntryEditor: View {
 
     private var contactsField: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if !selectedCompanions.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(selectedCompanions, id: \.self) { name in
-                            HStack(spacing: 6) {
-                                Text(name)
-                                    .lineLimit(1)
-                                Button {
-                                    removeCompanion(name)
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(FoodTheme.secondaryText)
-                                }
-                                .accessibilityLabel("Remove \(name)")
-                            }
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .foregroundColor(FoodTheme.ink)
-                            .padding(.leading, 11)
-                            .padding(.trailing, 8)
-                            .padding(.vertical, 8)
-                            .background(FoodTheme.field, in: Capsule())
-                        }
-                    }
-                }
-            }
-
             HStack(spacing: 12) {
                 Image(systemName: "person.2.fill")
                     .foregroundColor(FoodTheme.secondaryText)
@@ -455,6 +429,20 @@ struct FoodEntryEditor: View {
             }
             .padding(14)
             .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+            if !selectedCompanions.isEmpty || !frequentPeople.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(selectedCompanions, id: \.self) { name in
+                            companionChip(name, isSelected: true)
+                        }
+
+                        ForEach(frequentPeople, id: \.self) { name in
+                            companionChip(name, isSelected: false)
+                        }
+                    }
+                }
+            }
 
             if !companionQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Button(action: addTypedCompanion) {
@@ -499,12 +487,6 @@ struct FoodEntryEditor: View {
                     .font(.system(.caption, design: .rounded))
                     .foregroundColor(FoodTheme.secondaryText)
                     .padding(.horizontal, 4)
-            }
-
-            if !frequentPeople.isEmpty {
-                companionQuickFill(title: "FREQUENT", names: frequentPeople) { name in
-                    addCompanion(name)
-                }
             }
 
             if !availableGroups.isEmpty {
@@ -553,29 +535,31 @@ struct FoodEntryEditor: View {
         }
     }
 
-    private func companionQuickFill(
-        title: String,
-        names: [String],
-        action: @escaping (String) -> Void
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .sectionLabel()
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(names, id: \.self) { name in
-                        Button { action(name) } label: {
-                            Text(name)
-                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                                .foregroundColor(FoodTheme.ink)
-                                .padding(.horizontal, 11)
-                                .padding(.vertical, 8)
-                                .background(FoodTheme.field, in: Capsule())
-                        }
-                    }
+    private func companionChip(_ name: String, isSelected: Bool) -> some View {
+        Button {
+            if isSelected {
+                removeCompanion(name)
+            } else {
+                addCompanion(name)
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(name)
+                    .lineLimit(1)
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
                 }
             }
+            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            .foregroundColor(isSelected ? FoodTheme.onInk : FoodTheme.ink)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 8)
+            .background(isSelected ? FoodTheme.ink : FoodTheme.field, in: Capsule())
         }
+        .accessibilityLabel(isSelected ? "\(name), selected" : name)
+        .accessibilityHint(isSelected ? "Removes companion" : "Adds companion")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private func addTypedCompanion() {
