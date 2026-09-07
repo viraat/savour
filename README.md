@@ -23,7 +23,7 @@ the core experience is a neutral record.
 - Optional place, companions, and free-form note
 - Optional current-location fill and place autocomplete
 - Individual companions with optional Contacts autocomplete
-- Frequent companion and named group quick fills
+- Companion quick fills based on previously selected people
 - Optional photo from the camera or system photo picker
 - Suggestions from previously logged food
 - Journal grouped by day
@@ -56,10 +56,8 @@ requests foreground location access only when you tap it.
 
 The Contacts button requests access only when you tap it and stays enabled for
 the rest of that entry. It reads formatted names for autocomplete. FoodLog does
-not read phone numbers or email addresses. Frequently selected people appear as
-quick fills. You can save two or more selected people as a named group; using a
-group adds its members individually so each person is counted separately in
-Patterns.
+not read phone numbers or email addresses. Previously selected people appear as
+quick fills, and each person is counted separately in Patterns.
 
 ## Data model
 

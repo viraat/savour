@@ -27,11 +27,8 @@ struct FoodEntryEditor: View {
     @State private var isLoadingPhoto = false
     @State private var photoMessage: String?
     @State private var confirmDelete = false
-    @State private var showingSaveGroup = false
-    @State private var groupName = ""
     @StateObject private var locationSearch = LocationSearchModel()
     @StateObject private var contactsSearch = ContactsSearchModel()
-    @StateObject private var companionGroups = CompanionGroupStore()
     @FocusState private var focusedField: Field?
 
     private enum Field {
@@ -96,13 +93,6 @@ struct FoodEntryEditor: View {
         return contactsSearch.suggestions.filter { !selected.contains($0.lowercased()) }
     }
 
-    private var availableGroups: [CompanionGroup] {
-        let selected = Set(selectedCompanions.map { $0.lowercased() })
-        return companionGroups.frequentGroups.filter { group in
-            group.people.contains { !selected.contains($0.lowercased()) }
-        }
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             topBar
@@ -162,17 +152,6 @@ struct FoodEntryEditor: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This cannot be undone.")
-        }
-        .alert("Name this group", isPresented: $showingSaveGroup) {
-            TextField("e.g. My parents", text: $groupName)
-            Button("Save") {
-                companionGroups.save(name: groupName, people: selectedCompanions)
-                groupName = ""
-            }
-            .disabled(groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            Button("Cancel", role: .cancel) { groupName = "" }
-        } message: {
-            Text("The group will fill these people into future entries.")
         }
     }
 
@@ -489,49 +468,6 @@ struct FoodEntryEditor: View {
                     .padding(.horizontal, 4)
             }
 
-            if !availableGroups.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("GROUPS")
-                        .sectionLabel()
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(availableGroups) { group in
-                                Button {
-                                    group.people.forEach { addCompanion($0) }
-                                    companionGroups.markUsed(group)
-                                } label: {
-                                    Label(group.name, systemImage: "person.3.fill")
-                                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                                        .foregroundColor(FoodTheme.ink)
-                                        .padding(.horizontal, 11)
-                                        .padding(.vertical, 8)
-                                        .background(FoodTheme.field, in: Capsule())
-                                }
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        companionGroups.remove(group)
-                                    } label: {
-                                        Label("Delete group", systemImage: "trash")
-                                    }
-                                }
-                                .accessibilityHint("Adds \(group.people.joined(separator: ", "))")
-                            }
-                        }
-                    }
-                }
-            }
-
-            if selectedCompanions.count >= 2 {
-                Button {
-                    focusedField = nil
-                    showingSaveGroup = true
-                } label: {
-                    Label("Save as group", systemImage: "person.3.sequence.fill")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .foregroundColor(FoodTheme.secondaryText)
-                }
-                .padding(.horizontal, 4)
-            }
         }
     }
 
