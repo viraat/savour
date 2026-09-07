@@ -23,9 +23,9 @@ the core experience is a neutral record.
 - Optional place, companions, and free-form note
 - Optional nearby MapKit suggestions and reusable place quick fills
 - Individual companions with optional Contacts autocomplete
-- Companion quick fills based on previously selected people
+- Companion quick fills and automatically inferred recurring groups
 - Optional photo from the camera or system photo picker
-- Suggestions from previously logged food
+- Meal-aware suggestions from previously logged food
 - Journal grouped by day
 - Search across food, place, people, and notes
 - Meal-category filtering
@@ -59,7 +59,8 @@ to work and previously used places appear as quick fills.
 The Contacts button requests access only when you tap it and stays enabled for
 the rest of that entry. It reads formatted names for autocomplete. FoodLog does
 not read phone numbers or email addresses. Previously selected people appear as
-quick fills, and each person is counted separately in Patterns.
+quick fills. Recurring combinations appear as group suggestions and expand into
+individual people, so each person is counted separately in Patterns.
 
 ## Data model
 

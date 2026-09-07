@@ -14,6 +14,13 @@ private struct ReusablePlace: Identifiable {
     var id: String { place.lowercased() }
 }
 
+private struct FrequentCompanionGroup: Identifiable {
+    let people: [String]
+    var count: Int
+
+    var id: String { people.map { $0.lowercased() }.sorted().joined(separator: "|") }
+}
+
 struct FoodEntryEditor: View {
     static let mealTypes = ["Breakfast", "Lunch", "Dinner", "Snack", "Drink", "Other"]
 
@@ -43,6 +50,7 @@ struct FoodEntryEditor: View {
     @State private var isLoadingPhoto = false
     @State private var photoMessage: String?
     @State private var confirmDelete = false
+    @State private var detailsExpanded: Bool
     @StateObject private var locationSearch = LocationSearchModel()
     @StateObject private var contactsSearch = ContactsSearchModel()
     @FocusState private var focusedField: Field?
@@ -66,6 +74,7 @@ struct FoodEntryEditor: View {
         _selectedCompanions = State(initialValue: entry?.companionNames ?? [])
         _note = State(initialValue: entry?.wrappedNote ?? "")
         _photoData = State(initialValue: entry?.photoData)
+        _detailsExpanded = State(initialValue: Self.hasDetails(entry))
     }
 
     private var canSave: Bool {
@@ -77,7 +86,8 @@ struct FoodEntryEditor: View {
         var seen = Set<String>()
         return previousEntries.compactMap { item in
             let candidate = item.wrappedFood
-            guard !candidate.isEmpty,
+            guard item.wrappedMealType == mealType,
+                  !candidate.isEmpty,
                   candidate.caseInsensitiveCompare(query) != .orderedSame,
                   query.isEmpty || candidate.localizedCaseInsensitiveContains(query),
                   seen.insert(candidate.lowercased()).inserted
@@ -112,6 +122,34 @@ struct FoodEntryEditor: View {
     private var contactSuggestions: [String] {
         let selected = Set(selectedCompanions.map { $0.lowercased() })
         return contactsSearch.suggestions.filter { !selected.contains($0.lowercased()) }
+    }
+
+    private var frequentCompanionGroups: [FrequentCompanionGroup] {
+        var groups: [String: FrequentCompanionGroup] = [:]
+
+        for previousEntry in previousEntries {
+            let people = previousEntry.companionNames
+            guard people.count >= 2 else { continue }
+            let key = people.map { $0.lowercased() }.sorted().joined(separator: "|")
+            if var group = groups[key] {
+                group.count += 1
+                groups[key] = group
+            } else {
+                groups[key] = FrequentCompanionGroup(people: people, count: 1)
+            }
+        }
+
+        let selected = Set(selectedCompanions.map { $0.lowercased() })
+        return groups.values
+            .filter { group in
+                group.count >= 2 && group.people.contains { !selected.contains($0.lowercased()) }
+            }
+            .sorted {
+                if $0.count != $1.count { return $0.count > $1.count }
+                return $0.id < $1.id
+            }
+            .prefix(4)
+            .map { $0 }
     }
 
     private var frequentPlaces: [ReusablePlace] {
@@ -161,13 +199,13 @@ struct FoodEntryEditor: View {
             topBar
 
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 26) {
                     whatSection
-                    mealSection
-                    whenSection
+                    mealAndTimeSection
                     optionalDetails
                 }
                 .padding(.horizontal, 20)
+                .padding(.top, 36)
                 .padding(.bottom, 28)
             }
 
@@ -255,18 +293,20 @@ struct FoodEntryEditor: View {
     }
 
     private var whatSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("WHAT DID YOU EAT?")
-                .sectionLabel()
+        VStack(alignment: .leading, spacing: 14) {
+            Text("What did you eat?")
+                .font(.system(.title3, design: .rounded).weight(.semibold))
+                .foregroundColor(FoodTheme.secondaryText)
 
             TextField("e.g. dosa and chutney", text: $food, axis: .vertical)
-                .font(.system(size: 27, weight: .bold, design: .rounded))
+                .font(.system(size: 36, weight: .semibold, design: .rounded))
                 .foregroundColor(FoodTheme.ink)
-                .lineLimit(1 ... 4)
+                .lineLimit(2 ... 4)
                 .textInputAutocapitalization(.sentences)
                 .focused($focusedField, equals: .food)
-                .padding(16)
-                .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .padding(20)
+                .frame(minHeight: 132, alignment: .topLeading)
+                .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
 
             if !suggestions.isEmpty && focusedField == .food {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -290,70 +330,81 @@ struct FoodEntryEditor: View {
         }
     }
 
-    private var mealSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("MEAL")
-                .sectionLabel()
+    private var mealAndTimeSection: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                mealMenu
+                dateTimePicker
+                Spacer(minLength: 0)
+            }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Self.mealTypes, id: \.self) { type in
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.15)) { mealType = type }
-                        } label: {
-                            HStack(spacing: 6) {
-                                Text(FoodTheme.emoji(for: type))
-                                Text(type)
-                            }
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .foregroundColor(mealType == type ? .white : FoodTheme.ink)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(
-                                mealType == type ? FoodTheme.color(for: type) : FoodTheme.surface,
-                                in: RoundedRectangle(cornerRadius: 11, style: .continuous)
-                            )
-                        }
-                    }
-                }
+            VStack(alignment: .leading, spacing: 10) {
+                mealMenu
+                dateTimePicker
             }
         }
     }
 
-    private var whenSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("WHEN")
-                .sectionLabel()
-            DatePicker("Date and time", selection: $date, displayedComponents: [.date, .hourAndMinute])
-                .datePickerStyle(.compact)
-                .font(.system(.body, design: .rounded).weight(.semibold))
-                .padding(14)
-                .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    private var mealMenu: some View {
+        Menu {
+            Picker("Meal type", selection: $mealType) {
+                ForEach(Self.mealTypes, id: \.self) { type in
+                    Text("\(FoodTheme.emoji(for: type))  \(type)").tag(type)
+                }
+            }
+        } label: {
+            HStack(spacing: 7) {
+                Text(FoodTheme.emoji(for: mealType))
+                Text(mealType)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(FoodTheme.secondaryText)
+            }
+            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            .foregroundColor(FoodTheme.ink)
+            .padding(.horizontal, 12)
+            .frame(height: 44)
+            .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
+    }
+
+    private var dateTimePicker: some View {
+        DatePicker("When", selection: $date, displayedComponents: [.date, .hourAndMinute])
+            .labelsHidden()
+            .datePickerStyle(.compact)
+            .font(.system(.subheadline, design: .rounded).weight(.semibold))
     }
 
     private var optionalDetails: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("OPTIONAL DETAILS")
-                .sectionLabel()
+        DisclosureGroup(isExpanded: $detailsExpanded) {
+            VStack(alignment: .leading, spacing: 12) {
+                locationField
+                contactsField
 
-            locationField
-            contactsField
-            photoSection
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "note.text")
+                        .foregroundColor(FoodTheme.secondaryText)
+                        .frame(width: 24)
+                        .padding(.top, 3)
+                    TextField("Anything you want to remember", text: $note, axis: .vertical)
+                        .lineLimit(2 ... 5)
+                        .focused($focusedField, equals: .note)
+                }
+                .font(.system(.body, design: .rounded))
+                .padding(14)
+                .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "note.text")
-                    .foregroundColor(FoodTheme.secondaryText)
-                    .frame(width: 24)
-                    .padding(.top, 3)
-                TextField("Anything you want to remember", text: $note, axis: .vertical)
-                    .lineLimit(2 ... 5)
-                    .focused($focusedField, equals: .note)
+                photoSection
             }
-            .font(.system(.body, design: .rounded))
-            .padding(14)
-            .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .padding(.top, 14)
+        } label: {
+            Text("Add details")
+                .font(.system(.body, design: .rounded).weight(.semibold))
+                .foregroundColor(FoodTheme.secondaryText)
         }
+        .tint(FoodTheme.secondaryText)
+        .padding(16)
+        .background(FoodTheme.surface.opacity(0.55), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private var photoSection: some View {
@@ -481,6 +532,27 @@ struct FoodEntryEditor: View {
 
                         ForEach(frequentPeople, id: \.self) { name in
                             companionChip(name, isSelected: false)
+                        }
+                    }
+                }
+            }
+
+            if !frequentCompanionGroups.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(frequentCompanionGroups) { group in
+                            Button {
+                                group.people.forEach(addCompanion)
+                            } label: {
+                                Label(group.people.joined(separator: " + "), systemImage: "person.2.fill")
+                                    .lineLimit(1)
+                                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                    .foregroundColor(FoodTheme.ink)
+                                    .padding(.horizontal, 11)
+                                    .padding(.vertical, 8)
+                                    .background(FoodTheme.field, in: Capsule())
+                            }
+                            .accessibilityHint("Adds each person")
                         }
                     }
                 }
@@ -783,6 +855,14 @@ struct FoodEntryEditor: View {
         case 18 ..< 23: return "Dinner"
         default: return "Snack"
         }
+    }
+
+    private static func hasDetails(_ entry: FoodEntry?) -> Bool {
+        guard let entry else { return false }
+        return !entry.wrappedPlace.isEmpty
+            || !entry.companionNames.isEmpty
+            || !entry.wrappedNote.isEmpty
+            || entry.photoData != nil
     }
 }
 
