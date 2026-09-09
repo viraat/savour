@@ -324,9 +324,11 @@ struct FoodLogSettingsView: View {
 
     @AppStorage("foodLogAppearance") private var appearance = 0
     @AppStorage("showMealLabels") private var showMealLabels = true
+    @AppStorage(BiometricAuthentication.settingKey) private var biometricLockEnabled = false
     @State private var showingShareSheet = false
     @State private var exportURL: URL?
     @State private var confirmErase = false
+    @State private var biometricAvailability = BiometricAuthentication.availability()
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -347,6 +349,21 @@ struct FoodLogSettingsView: View {
 
                     Toggle("Show meal labels in journal", isOn: $showMealLabels)
                         .font(.system(.body, design: .rounded).weight(.medium))
+                }
+
+                settingsSection("PRIVACY") {
+                    Toggle(isOn: $biometricLockEnabled) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("App lock")
+                                .font(.system(.body, design: .rounded).weight(.medium))
+                            Text(biometricAvailability.isAvailable
+                                 ? "Require \(biometricAvailability.name) when opening FoodLog"
+                                 : "Face ID or Touch ID is unavailable")
+                                .font(.system(.caption, design: .rounded))
+                                .foregroundColor(FoodTheme.secondaryText)
+                        }
+                    }
+                    .disabled(!biometricAvailability.isAvailable && !biometricLockEnabled)
                 }
 
                 settingsSection("YOUR DATA") {
@@ -380,6 +397,9 @@ struct FoodLogSettingsView: View {
             .padding(.bottom, 20)
         }
         .background(FoodTheme.background)
+        .onAppear {
+            biometricAvailability = BiometricAuthentication.availability()
+        }
         .sheet(isPresented: $showingShareSheet) {
             if let exportURL {
                 ShareSheet(activityItems: [exportURL])

@@ -21,11 +21,13 @@
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>FoodLog uses your location to fill in the place for an entry.</string>
+    <string>FoodLog uses your location to prioritize nearby place suggestions.</string>
     <key>NSContactsUsageDescription</key>
     <string>FoodLog uses your contacts to suggest companion names.</string>
     <key>NSCameraUsageDescription</key>
     <string>FoodLog uses the camera when you add a photo to an entry.</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>FoodLog uses Face ID to protect your private journal.</string>
     <key>UILaunchScreen</key>
     <dict/>
     <key>UISupportedInterfaceOrientations</key>

@@ -6,8 +6,10 @@ struct FoodLogApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(\.managedObjectContext, persistence.container.viewContext)
+            AppLockView {
+                ContentView()
+            }
+            .environment(\.managedObjectContext, persistence.container.viewContext)
         }
     }
 }

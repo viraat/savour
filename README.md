@@ -33,6 +33,7 @@ the core experience is a neutral record.
 - Common places and companions
 - CSV export
 - Light, dark, and system appearance
+- Optional biometric app lock with background privacy shielding
 - Fully local Core Data storage with no account required
 
 ## Build
