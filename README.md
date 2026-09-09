@@ -25,7 +25,7 @@ the core experience is a neutral record.
 - Individual companions with optional Contacts autocomplete
 - Companion quick fills and automatically inferred recurring groups
 - Optional photo from the camera or system photo picker
-- Meal-aware suggestions from previously logged food
+- Meal-aware suggestions ranked from comma-separated foods in previous entries
 - Journal grouped by day
 - Search across food, place, people, and notes
 - Meal-category filtering

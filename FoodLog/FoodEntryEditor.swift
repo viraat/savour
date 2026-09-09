@@ -82,20 +82,27 @@ struct FoodEntryEditor: View {
     }
 
     private var suggestions: [String] {
-        let query = food.trimmingCharacters(in: .whitespacesAndNewlines)
-        var seen = Set<String>()
-        return previousEntries.compactMap { item in
-            let candidate = item.wrappedFood
-            guard item.wrappedMealType == mealType,
-                  !candidate.isEmpty,
-                  candidate.caseInsensitiveCompare(query) != .orderedSame,
-                  query.isEmpty || candidate.localizedCaseInsensitiveContains(query),
-                  seen.insert(candidate.lowercased()).inserted
-            else { return nil }
-            return candidate
+        var counts: [String: (name: String, count: Int)] = [:]
+
+        for previousEntry in previousEntries where previousEntry.wrappedMealType == mealType {
+            var countedForEntry = Set<String>()
+            for item in Self.foodItems(in: previousEntry.wrappedFood) {
+                let key = item.lowercased()
+                guard countedForEntry.insert(key).inserted else { continue }
+                let current = counts[key] ?? (item, 0)
+                counts[key] = (current.name, current.count + 1)
+            }
         }
-        .prefix(6)
-        .map { $0 }
+
+        let currentItems = Set(Self.foodItems(in: food).map { $0.lowercased() })
+        return counts.values
+            .filter { !currentItems.contains($0.name.lowercased()) }
+            .sorted {
+                if $0.count != $1.count { return $0.count > $1.count }
+                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
+            .prefix(8)
+            .map(\.name)
     }
 
     private var frequentPeople: [String] {
@@ -313,8 +320,7 @@ struct FoodEntryEditor: View {
                     HStack(spacing: 8) {
                         ForEach(suggestions, id: \.self) { suggestion in
                             Button {
-                                food = suggestion
-                                focusedField = nil
+                                appendFoodSuggestion(suggestion)
                             } label: {
                                 Text(suggestion)
                                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
@@ -328,6 +334,17 @@ struct FoodEntryEditor: View {
                 }
             }
         }
+    }
+
+    private func appendFoodSuggestion(_ suggestion: String) {
+        let existingItems = Self.foodItems(in: food)
+        guard !existingItems.contains(where: {
+            $0.caseInsensitiveCompare(suggestion) == .orderedSame
+        }) else { return }
+
+        let current = food.trimmingCharacters(in: .whitespacesAndNewlines)
+        food = current.isEmpty ? suggestion : "\(current), \(suggestion)"
+        focusedField = .food
     }
 
     private var mealAndTimeSection: some View {
@@ -854,6 +871,13 @@ struct FoodEntryEditor: View {
         case 11 ..< 15: return "Lunch"
         case 18 ..< 23: return "Dinner"
         default: return "Snack"
+        }
+    }
+
+    private static func foodItems(in description: String) -> [String] {
+        description.split(separator: ",", omittingEmptySubsequences: true).compactMap { item in
+            let trimmed = item.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
         }
     }
 
