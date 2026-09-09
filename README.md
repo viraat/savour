@@ -19,7 +19,7 @@ the core experience is a neutral record.
 
 - Fast full-screen food entry and editing
 - Automatic meal-type suggestion based on time of day
-- Configurable default time for each meal type with five-minute adjustments
+- Configurable breakfast, lunch, and dinner times with five-minute adjustments
 - Breakfast, lunch, dinner, snack, drink, and other categories
 - Optional place, companions, and free-form note
 - Optional nearby MapKit suggestions and reusable place quick fills

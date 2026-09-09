@@ -51,6 +51,7 @@ struct FoodEntryEditor: View {
     @State private var photoMessage: String?
     @State private var confirmDelete = false
     @State private var detailsExpanded: Bool
+    @State private var isEditingTime = false
     @StateObject private var locationSearch = LocationSearchModel()
     @StateObject private var contactsSearch = ContactsSearchModel()
     @FocusState private var focusedField: Field?
@@ -352,25 +353,40 @@ struct FoodEntryEditor: View {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 10) {
                     mealMenu
-                    dateTimePicker
+                    datePicker
+                    timeButton
                     Spacer(minLength: 0)
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
                     mealMenu
-                    dateTimePicker
+                    HStack(spacing: 10) {
+                        datePicker
+                        timeButton
+                    }
                 }
             }
 
-            HStack(spacing: 8) {
-                Button("−5 min") { adjustTime(by: -5) }
-                    .accessibilityLabel("Subtract 5 minutes")
-                Button("+5 min") { adjustTime(by: 5) }
-                    .accessibilityLabel("Add 5 minutes")
+            if isEditingTime {
+                HStack(spacing: 8) {
+                    DatePicker("Time", selection: $date, displayedComponents: .hourAndMinute)
+                        .labelsHidden()
+                        .datePickerStyle(.compact)
+
+                    Spacer(minLength: 4)
+
+                    Button("−5 min") { adjustTime(by: -5) }
+                        .accessibilityLabel("Subtract 5 minutes")
+                    Button("+5 min") { adjustTime(by: 5) }
+                        .accessibilityLabel("Add 5 minutes")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .tint(FoodTheme.secondaryText)
+                .padding(10)
+                .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .tint(FoodTheme.secondaryText)
         }
     }
 
@@ -403,11 +419,30 @@ struct FoodEntryEditor: View {
         }
     }
 
-    private var dateTimePicker: some View {
-        DatePicker("When", selection: $date, displayedComponents: [.date, .hourAndMinute])
+    private var datePicker: some View {
+        DatePicker("Date", selection: $date, displayedComponents: .date)
             .labelsHidden()
             .datePickerStyle(.compact)
             .font(.system(.subheadline, design: .rounded).weight(.semibold))
+    }
+
+    private var timeButton: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.18)) {
+                isEditingTime.toggle()
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "clock")
+                Text(FoodLogFormatters.time.string(from: date))
+            }
+            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            .foregroundColor(FoodTheme.ink)
+            .padding(.horizontal, 10)
+            .frame(height: 44)
+            .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .accessibilityLabel("Change time, currently \(FoodLogFormatters.time.string(from: date))")
     }
 
     private func switchMealType(to newMealType: String) {

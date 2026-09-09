@@ -329,17 +329,16 @@ struct FoodLogSettingsView: View {
     @State private var exportURL: URL?
     @State private var confirmErase = false
     @State private var biometricAvailability = BiometricAuthentication.availability()
-    @State private var defaultMealTimes = Dictionary(
-        uniqueKeysWithValues: FoodEntryEditor.mealTypes.map { ($0, MealDefaultTimes.date(for: $0)) }
-    )
 
     var body: some View {
+        NavigationStack {
+            settingsContent
+        }
+    }
+
+    private var settingsContent: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Settings")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundColor(FoodTheme.ink)
-
                 settingsSection("APPEARANCE") {
                     Picker("Appearance", selection: $appearance) {
                         Text("System").tag(0)
@@ -354,24 +353,15 @@ struct FoodLogSettingsView: View {
                         .font(.system(.body, design: .rounded).weight(.medium))
                 }
 
-                settingsSection("DEFAULT MEAL TIMES") {
-                    ForEach(Array(FoodEntryEditor.mealTypes.enumerated()), id: \.element) { index, meal in
-                        HStack {
-                            Text("\(FoodTheme.emoji(for: meal))  \(meal)")
-                                .font(.system(.body, design: .rounded).weight(.medium))
-                            Spacer()
-                            DatePicker(
-                                meal,
-                                selection: defaultTimeBinding(for: meal),
-                                displayedComponents: .hourAndMinute
-                            )
-                            .labelsHidden()
-                            .accessibilityLabel("\(meal) default time")
-                        }
-
-                        if index < FoodEntryEditor.mealTypes.count - 1 {
-                            Divider()
-                        }
+                settingsSection("MEALS") {
+                    NavigationLink {
+                        MealDefaultTimesSettingsView()
+                    } label: {
+                        settingsRow(
+                            icon: "clock",
+                            title: "Default meal times",
+                            detail: nil
+                        )
                     }
                 }
 
@@ -417,10 +407,11 @@ struct FoodLogSettingsView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 24)
+            .padding(.top, 8)
             .padding(.bottom, 20)
         }
         .background(FoodTheme.background)
+        .navigationTitle("Settings")
         .onAppear {
             biometricAvailability = BiometricAuthentication.availability()
         }
@@ -444,16 +435,6 @@ struct FoodLogSettingsView: View {
                 .padding(16)
                 .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
-    }
-
-    private func defaultTimeBinding(for mealType: String) -> Binding<Date> {
-        Binding(
-            get: { defaultMealTimes[mealType] ?? MealDefaultTimes.date(for: mealType) },
-            set: { newTime in
-                defaultMealTimes[mealType] = newTime
-                MealDefaultTimes.set(newTime, for: mealType)
-            }
-        )
     }
 
     private func settingsRow(icon: String, title: String, detail: String?, destructive: Bool = false) -> some View {
@@ -483,6 +464,41 @@ struct FoodLogSettingsView: View {
     private func eraseAll() {
         entries.forEach { context.delete($0) }
         try? context.save()
+    }
+}
+
+private struct MealDefaultTimesSettingsView: View {
+    @State private var defaultMealTimes = Dictionary(
+        uniqueKeysWithValues: MealDefaultTimes.mealTypes.map { ($0, MealDefaultTimes.date(for: $0)) }
+    )
+
+    var body: some View {
+        Form {
+            Section {
+                ForEach(MealDefaultTimes.mealTypes, id: \.self) { meal in
+                    DatePicker(
+                        "\(FoodTheme.emoji(for: meal))  \(meal)",
+                        selection: defaultTimeBinding(for: meal),
+                        displayedComponents: .hourAndMinute
+                    )
+                    .font(.system(.body, design: .rounded).weight(.medium))
+                }
+            } footer: {
+                Text("Applied when you switch to a different meal type.")
+            }
+        }
+        .navigationTitle("Default meal times")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func defaultTimeBinding(for mealType: String) -> Binding<Date> {
+        Binding(
+            get: { defaultMealTimes[mealType] ?? MealDefaultTimes.date(for: mealType) },
+            set: { newTime in
+                defaultMealTimes[mealType] = newTime
+                MealDefaultTimes.set(newTime, for: mealType)
+            }
+        )
     }
 }
 
