@@ -329,6 +329,9 @@ struct FoodLogSettingsView: View {
     @State private var exportURL: URL?
     @State private var confirmErase = false
     @State private var biometricAvailability = BiometricAuthentication.availability()
+    @State private var defaultMealTimes = Dictionary(
+        uniqueKeysWithValues: FoodEntryEditor.mealTypes.map { ($0, MealDefaultTimes.date(for: $0)) }
+    )
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -349,6 +352,27 @@ struct FoodLogSettingsView: View {
 
                     Toggle("Show meal labels in journal", isOn: $showMealLabels)
                         .font(.system(.body, design: .rounded).weight(.medium))
+                }
+
+                settingsSection("DEFAULT MEAL TIMES") {
+                    ForEach(Array(FoodEntryEditor.mealTypes.enumerated()), id: \.element) { index, meal in
+                        HStack {
+                            Text("\(FoodTheme.emoji(for: meal))  \(meal)")
+                                .font(.system(.body, design: .rounded).weight(.medium))
+                            Spacer()
+                            DatePicker(
+                                meal,
+                                selection: defaultTimeBinding(for: meal),
+                                displayedComponents: .hourAndMinute
+                            )
+                            .labelsHidden()
+                            .accessibilityLabel("\(meal) default time")
+                        }
+
+                        if index < FoodEntryEditor.mealTypes.count - 1 {
+                            Divider()
+                        }
+                    }
                 }
 
                 settingsSection("PRIVACY") {
@@ -420,6 +444,16 @@ struct FoodLogSettingsView: View {
                 .padding(16)
                 .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
+    }
+
+    private func defaultTimeBinding(for mealType: String) -> Binding<Date> {
+        Binding(
+            get: { defaultMealTimes[mealType] ?? MealDefaultTimes.date(for: mealType) },
+            set: { newTime in
+                defaultMealTimes[mealType] = newTime
+                MealDefaultTimes.set(newTime, for: mealType)
+            }
+        )
     }
 
     private func settingsRow(icon: String, title: String, detail: String?, destructive: Bool = false) -> some View {

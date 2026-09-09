@@ -348,25 +348,43 @@ struct FoodEntryEditor: View {
     }
 
     private var mealAndTimeSection: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 10) {
-                mealMenu
-                dateTimePicker
-                Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: 10) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    mealMenu
+                    dateTimePicker
+                    Spacer(minLength: 0)
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    mealMenu
+                    dateTimePicker
+                }
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                mealMenu
-                dateTimePicker
+            HStack(spacing: 8) {
+                Button("−5 min") { adjustTime(by: -5) }
+                    .accessibilityLabel("Subtract 5 minutes")
+                Button("+5 min") { adjustTime(by: 5) }
+                    .accessibilityLabel("Add 5 minutes")
             }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(FoodTheme.secondaryText)
         }
     }
 
     private var mealMenu: some View {
         Menu {
-            Picker("Meal type", selection: $mealType) {
-                ForEach(Self.mealTypes, id: \.self) { type in
-                    Text("\(FoodTheme.emoji(for: type))  \(type)").tag(type)
+            ForEach(Self.mealTypes, id: \.self) { type in
+                Button {
+                    switchMealType(to: type)
+                } label: {
+                    if type == mealType {
+                        Label("\(FoodTheme.emoji(for: type))  \(type)", systemImage: "checkmark")
+                    } else {
+                        Text("\(FoodTheme.emoji(for: type))  \(type)")
+                    }
                 }
             }
         } label: {
@@ -390,6 +408,24 @@ struct FoodEntryEditor: View {
             .labelsHidden()
             .datePickerStyle(.compact)
             .font(.system(.subheadline, design: .rounded).weight(.semibold))
+    }
+
+    private func switchMealType(to newMealType: String) {
+        guard newMealType != mealType else { return }
+        mealType = newMealType
+        date = MealDefaultTimes.applyingDefault(for: newMealType, to: date)
+    }
+
+    private func adjustTime(by minuteOffset: Int) {
+        let calendar = Calendar.current
+        let time = calendar.dateComponents([.hour, .minute], from: date)
+        let currentMinutes = (time.hour ?? 0) * 60 + (time.minute ?? 0)
+        let adjustedMinutes = (currentMinutes + minuteOffset + 24 * 60) % (24 * 60)
+        var components = calendar.dateComponents([.era, .year, .month, .day], from: date)
+        components.hour = adjustedMinutes / 60
+        components.minute = adjustedMinutes % 60
+        components.second = 0
+        date = calendar.date(from: components) ?? date
     }
 
     private var optionalDetails: some View {
