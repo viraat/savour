@@ -216,7 +216,8 @@ struct EntryRow: View {
                 Text(entry.wrappedFood)
                     .font(.system(.body, design: .rounded).weight(.semibold))
                     .foregroundColor(FoodTheme.ink)
-                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
 
                 HStack(spacing: 7) {
                     Text(FoodLogFormatters.time.string(from: entry.wrappedDate))
@@ -233,6 +234,7 @@ struct EntryRow: View {
                 .font(.system(.caption, design: .rounded).weight(.medium))
                 .foregroundColor(FoodTheme.secondaryText)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer(minLength: 8)
 

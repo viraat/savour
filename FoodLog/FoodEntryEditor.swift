@@ -307,9 +307,9 @@ struct FoodEntryEditor: View {
                 .foregroundColor(FoodTheme.secondaryText)
 
             TextField("e.g. dosa and chutney", text: $food, axis: .vertical)
-                .font(.system(size: 30, weight: .semibold, design: .rounded))
+                .font(.system(size: 22, weight: .semibold, design: .rounded))
                 .foregroundColor(FoodTheme.ink)
-                .lineLimit(2 ... 4)
+                .lineLimit(2 ... 5)
                 .textInputAutocapitalization(.sentences)
                 .focused($focusedField, equals: .food)
                 .padding(20)
@@ -350,21 +350,11 @@ struct FoodEntryEditor: View {
 
     private var mealAndTimeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 10) {
-                    mealMenu
-                    datePicker
-                    timeButton
-                    Spacer(minLength: 0)
-                }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    mealMenu
-                    HStack(spacing: 10) {
-                        datePicker
-                        timeButton
-                    }
-                }
+            HStack(spacing: 6) {
+                mealMenu
+                datePicker
+                timeButton
+                Spacer(minLength: 0)
             }
 
             if isEditingTime {
@@ -409,14 +399,13 @@ struct FoodEntryEditor: View {
             HStack(spacing: 7) {
                 Text(FoodTheme.emoji(for: mealType))
                 Text(mealType)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption2.weight(.bold))
-                    .foregroundColor(FoodTheme.secondaryText)
             }
-            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            .font(.system(.caption, design: .rounded).weight(.semibold))
             .foregroundColor(FoodTheme.ink)
-            .padding(.horizontal, 12)
-            .frame(height: 44)
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+            .padding(.horizontal, 9)
+            .frame(height: 40)
             .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
@@ -425,7 +414,9 @@ struct FoodEntryEditor: View {
         DatePicker("Date", selection: $date, displayedComponents: .date)
             .labelsHidden()
             .datePickerStyle(.compact)
-            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            .controlSize(.small)
+            .font(.system(.caption, design: .rounded).weight(.semibold))
+            .fixedSize(horizontal: true, vertical: false)
     }
 
     private var timeButton: some View {
@@ -438,10 +429,10 @@ struct FoodEntryEditor: View {
                 Image(systemName: "clock")
                 Text(FoodLogFormatters.time.string(from: date))
             }
-            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            .font(.system(.caption, design: .rounded).weight(.semibold))
             .foregroundColor(FoodTheme.ink)
-            .padding(.horizontal, 10)
-            .frame(height: 44)
+            .padding(.horizontal, 8)
+            .frame(height: 40)
             .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .accessibilityLabel("Change time, currently \(FoodLogFormatters.time.string(from: date))")
