@@ -375,6 +375,8 @@ struct FoodEntryEditor: View {
 
                     Spacer(minLength: 4)
 
+                    Button("Now", action: setTimeToNow)
+                        .accessibilityLabel("Set time to now")
                     Button("−5 min") { adjustTime(by: -5) }
                         .accessibilityLabel("Subtract 5 minutes")
                     Button("+5 min") { adjustTime(by: 5) }
@@ -459,6 +461,16 @@ struct FoodEntryEditor: View {
         var components = calendar.dateComponents([.era, .year, .month, .day], from: date)
         components.hour = adjustedMinutes / 60
         components.minute = adjustedMinutes % 60
+        components.second = 0
+        date = calendar.date(from: components) ?? date
+    }
+
+    private func setTimeToNow() {
+        let calendar = Calendar.current
+        let currentTime = calendar.dateComponents([.hour, .minute], from: Date())
+        var components = calendar.dateComponents([.era, .year, .month, .day], from: date)
+        components.hour = currentTime.hour
+        components.minute = currentTime.minute
         components.second = 0
         date = calendar.date(from: components) ?? date
     }
