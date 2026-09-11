@@ -23,17 +23,20 @@ the core experience is a neutral record.
 - Breakfast, lunch, dinner, snack, drink, and other categories
 - Optional place, companions, and free-form note
 - Optional nearby MapKit suggestions and reusable place quick fills
-- Individual companions with optional Contacts autocomplete
+- Individual companions with optional Contacts autocomplete and photos in Patterns
 - Companion quick fills and automatically inferred recurring groups
 - Optional photo from the camera or system photo picker
 - Meal-aware suggestions ranked from comma-separated foods in previous entries
 - Journal grouped by day
 - Search across food, place, people, and notes
 - Meal-category filtering
-- Neutral 7-day, 30-day, and all-time pattern summaries
+- Neutral visual summaries for 7 days, 30 days, and all time
+- Current consecutive-day streak derived from journal entries
+- Eating-place map with optional coordinate backfill for older entries
 - Common places and companions
 - CSV export
-- Light, dark, and system appearance
+- Light, dark, and system appearance with five saved accent colors
+- Native navigation, sheets, bottom toolbars, and iOS 26 Liquid Glass styling
 - Optional biometric app lock with background privacy shielding
 - Fully local Core Data storage with no account required
 
@@ -52,17 +55,25 @@ Dime's iCloud container, widgets, budgets, or intent extensions. This lightweigh
 port does not include Dime's original source; attribution and licensing details
 are retained in `NOTICE` and `LICENSE`.
 
+On iOS 26, FoodLog uses the system Liquid Glass effects, glass button styles,
+a grouped bottom navigation toolbar, and a distinct trailing add action. Earlier
+supported iOS versions use native materials and bordered controls through
+availability-gated fallbacks.
+
 Food entries stay in the app's local Core Data store. The location button enables
 MapKit suggestions and uses foreground location only to prioritize nearby results;
 it does not fill the field. MapKit choices are saved as place name and city, with
-coordinates stored separately for future map support. Free-text places continue
-to work and previously used places appear as quick fills.
+coordinates stored separately for the eating-place map. Free-text places continue
+to work and previously used places appear as quick fills. Older free-text places
+can be located from Patterns through an explicit MapKit backfill action.
 
 The Contacts button requests access only when you tap it and stays enabled for
 the rest of that entry. It reads formatted names for autocomplete. FoodLog does
 not read phone numbers or email addresses. Previously selected people appear as
 quick fills. Recurring combinations appear as group suggestions and expand into
 individual people, so each person is counted separately in Patterns.
+When Contacts access is available, the People card matches saved companion names
+to contact thumbnails and falls back to initials when no photo is available.
 
 ## Data model
 
@@ -75,7 +86,7 @@ Each `FoodEntry` stores:
 | Meal type | Yes | A simple category |
 | Place | No | Typed location or venue |
 | Place city | No | City returned by MapKit |
-| Place coordinates | No | Latitude and longitude retained for future maps |
+| Place coordinates | No | Latitude and longitude used by the eating-place map |
 | People | No | Individually stored companion records |
 | Note | No | Anything else worth remembering |
 | Photo | No | An image stored with the entry |

@@ -97,7 +97,7 @@ struct AppLockView<Content: View>: View {
                 .font(.system(size: 34, weight: .semibold))
                 .foregroundColor(FoodTheme.ink)
                 .frame(width: 76, height: 76)
-                .background(FoodTheme.surface, in: Circle())
+                .foodGlass(cornerRadius: 38)
 
             VStack(spacing: 6) {
                 Text("FoodLog is locked")
@@ -114,10 +114,9 @@ struct AppLockView<Content: View>: View {
             } else {
                 Button("Unlock", action: authenticate)
                     .font(.system(.body, design: .rounded).weight(.bold))
-                    .foregroundColor(FoodTheme.onInk)
                     .padding(.horizontal, 28)
-                    .padding(.vertical, 13)
-                    .background(FoodTheme.ink, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                    .frame(height: 44)
+                    .foodPrimaryActionStyle()
             }
 
             if let message {

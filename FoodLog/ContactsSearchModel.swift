@@ -3,13 +3,36 @@ import Contacts
 
 final class ContactsSearchModel: ObservableObject {
     @Published private(set) var suggestions: [String] = []
+    @Published private(set) var photoDataByName: [String: Data] = [:]
     @Published private(set) var isEnabled = false
     @Published private(set) var isLoading = false
     @Published private(set) var message: String?
+    @Published private(set) var authorizationStatus: CNAuthorizationStatus
 
     private let store = CNContactStore()
+    private let includesImages: Bool
     private var names: [String] = []
     private var pendingQuery = ""
+
+    init(includesImages: Bool = false) {
+        self.includesImages = includesImages
+        authorizationStatus = CNContactStore.authorizationStatus(for: .contacts)
+    }
+
+    var canRequestAccess: Bool {
+        authorizationStatus == .notDetermined
+    }
+
+    func loadIfAuthorized() {
+        authorizationStatus = CNContactStore.authorizationStatus(for: .contacts)
+        guard hasAccess(authorizationStatus) else { return }
+        isEnabled = true
+        loadContactsIfNeeded()
+    }
+
+    func photoData(for name: String) -> Data? {
+        photoDataByName[name.lowercased()]
+    }
 
     func setEnabled(_ enabled: Bool, query: String) {
         isEnabled = enabled
@@ -22,6 +45,7 @@ final class ContactsSearchModel: ObservableObject {
         }
 
         let authorization = CNContactStore.authorizationStatus(for: .contacts)
+        authorizationStatus = authorization
         if hasAccess(authorization) {
             loadContactsIfNeeded()
         } else if authorization == .notDetermined {
@@ -57,6 +81,7 @@ final class ContactsSearchModel: ObservableObject {
                 guard let self else { return }
                 self.isLoading = false
                 let authorization = CNContactStore.authorizationStatus(for: .contacts)
+                self.authorizationStatus = authorization
                 guard error == nil, self.hasAccess(authorization) else {
                     self.isEnabled = false
                     self.message = "Contact access was not granted."
@@ -77,14 +102,22 @@ final class ContactsSearchModel: ObservableObject {
         let store = self.store
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             var fetchedNames: [String] = []
+            var fetchedPhotos: [String: Data] = [:]
             let nameDescriptor = CNContactFormatter.descriptorForRequiredKeys(for: .fullName)
-            let request = CNContactFetchRequest(keysToFetch: [nameDescriptor])
+            var keysToFetch: [CNKeyDescriptor] = [nameDescriptor]
+            if self?.includesImages == true {
+                keysToFetch.append(CNContactThumbnailImageDataKey as CNKeyDescriptor)
+            }
+            let request = CNContactFetchRequest(keysToFetch: keysToFetch)
             request.unifyResults = true
 
             do {
                 try store.enumerateContacts(with: request) { contact, _ in
                     if let name = CNContactFormatter.string(from: contact, style: .fullName), !name.isEmpty {
                         fetchedNames.append(name)
+                        if self?.includesImages == true, let photoData = contact.thumbnailImageData {
+                            fetchedPhotos[name.lowercased()] = photoData
+                        }
                     }
                 }
                 let uniqueNames = Dictionary(grouping: fetchedNames, by: { $0.lowercased() })
@@ -94,6 +127,7 @@ final class ContactsSearchModel: ObservableObject {
                 DispatchQueue.main.async {
                     guard let self else { return }
                     self.names = uniqueNames
+                    self.photoDataByName = fetchedPhotos
                     self.isLoading = false
                     self.updateQuery(self.pendingQuery)
                 }

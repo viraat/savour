@@ -203,9 +203,7 @@ struct FoodEntryEditor: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            topBar
-
+        NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 26) {
                     whatSection
@@ -216,24 +214,33 @@ struct FoodEntryEditor: View {
                 .padding(.top, 36)
                 .padding(.bottom, 28)
             }
-
-            Button(action: save) {
-                Text(entry == nil ? "Add to food log" : "Save changes")
-                    .font(.system(.body, design: .rounded).weight(.bold))
-                    .foregroundColor(FoodTheme.onInk)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(
-                        canSave ? FoodTheme.ink : FoodTheme.secondaryText.opacity(0.45),
-                        in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    )
-            }
-            .buttonStyle(PressButtonStyle())
-            .disabled(!canSave)
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
-            .padding(.bottom, 12)
             .background(FoodTheme.background)
+            .navigationTitle(entry == nil ? "New entry" : "Edit entry")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+
+                if entry != nil {
+                    ToolbarItem(placement: .secondaryAction) {
+                        Menu {
+                            Button("Delete entry", systemImage: "trash", role: .destructive) {
+                                confirmDelete = true
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                        }
+                        .accessibilityLabel("Entry actions")
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(entry == nil ? "Add" : "Save", action: save)
+                        .fontWeight(.semibold)
+                        .disabled(!canSave)
+                }
+            }
         }
         .background(FoodTheme.background.ignoresSafeArea())
         .onAppear {
@@ -264,42 +271,6 @@ struct FoodEntryEditor: View {
         }
     }
 
-    private var topBar: some View {
-        HStack {
-            Button { dismiss() } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(FoodTheme.secondaryText)
-                    .frame(width: 34, height: 34)
-                    .background(FoodTheme.surface, in: Circle())
-            }
-            .accessibilityLabel("Close")
-
-            Spacer()
-
-            Text(entry == nil ? "New entry" : "Edit entry")
-                .font(.system(.headline, design: .rounded).weight(.bold))
-                .foregroundColor(FoodTheme.ink)
-
-            Spacer()
-
-            if entry != nil {
-                Button { confirmDelete = true } label: {
-                    Image(systemName: "trash.fill")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.red)
-                        .frame(width: 34, height: 34)
-                        .background(Color.red.opacity(0.12), in: Circle())
-                }
-                .accessibilityLabel("Delete entry")
-            } else {
-                Color.clear.frame(width: 34, height: 34)
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-    }
-
     private var whatSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("What did you eat?")
@@ -314,7 +285,7 @@ struct FoodEntryEditor: View {
                 .focused($focusedField, equals: .food)
                 .padding(20)
                 .frame(minHeight: 116, alignment: .topLeading)
-                .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .foodPanel(cornerRadius: 22)
 
             if !suggestions.isEmpty && focusedField == .food {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -328,7 +299,7 @@ struct FoodEntryEditor: View {
                                     .foregroundColor(FoodTheme.ink)
                                     .padding(.horizontal, 11)
                                     .padding(.vertical, 8)
-                                    .background(FoodTheme.field, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    .foodGlass(cornerRadius: 10, interactive: true)
                             }
                         }
                     }
@@ -349,37 +320,73 @@ struct FoodEntryEditor: View {
     }
 
     private var mealAndTimeSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                mealMenu
-                datePicker
-                timeButton
-                Spacer(minLength: 0)
-            }
+        VStack(spacing: 0) {
+            whenRow
 
             if isEditingTime {
-                HStack(spacing: 8) {
-                    DatePicker("Time", selection: $date, displayedComponents: .hourAndMinute)
-                        .labelsHidden()
-                        .datePickerStyle(.compact)
-
-                    Spacer(minLength: 4)
-
-                    Button("Now", action: setTimeToNow)
-                        .accessibilityLabel("Set time to now")
-                    Button("−5 min") { adjustTime(by: -5) }
-                        .accessibilityLabel("Subtract 5 minutes")
-                    Button("+5 min") { adjustTime(by: 5) }
-                        .accessibilityLabel("Add 5 minutes")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .tint(FoodTheme.secondaryText)
-                .padding(10)
-                .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                Divider().padding(.leading, 16)
+                dateAndTimeEditor
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
+
+            Divider().padding(.leading, 16)
+            mealMenu
         }
+        .foodPanel(cornerRadius: 18)
+    }
+
+    private var whenRow: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.18)) {
+                isEditingTime.toggle()
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Text("Date & time")
+                    .foregroundStyle(FoodTheme.ink)
+                Spacer(minLength: 8)
+                Text("\(FoodLogFormatters.shortDate.string(from: date)) · \(FoodLogFormatters.time.string(from: date))")
+                    .foregroundStyle(FoodTheme.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Image(systemName: isEditingTime ? "chevron.down" : "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(FoodTheme.secondaryText)
+            }
+            .font(.system(.body, design: .rounded).weight(.medium))
+            .padding(.horizontal, 16)
+            .frame(minHeight: 58)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Date and time")
+        .accessibilityValue("\(FoodLogFormatters.shortDate.string(from: date)), \(FoodLogFormatters.time.string(from: date))")
+    }
+
+    private var dateAndTimeEditor: some View {
+        VStack(spacing: 12) {
+            DatePicker("Date", selection: $date, displayedComponents: .date)
+                .datePickerStyle(.compact)
+
+            DatePicker("Time", selection: $date, displayedComponents: .hourAndMinute)
+                .datePickerStyle(.compact)
+
+            HStack(spacing: 8) {
+                Spacer()
+                Button("Now", action: setTimeToNow)
+                    .accessibilityLabel("Set time to now")
+                Button("−5 min") { adjustTime(by: -5) }
+                    .accessibilityLabel("Subtract 5 minutes")
+                Button("+5 min") { adjustTime(by: 5) }
+                    .accessibilityLabel("Add 5 minutes")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(FoodTheme.secondaryText)
+        }
+        .font(.system(.body, design: .rounded).weight(.medium))
+        .padding(16)
+        .background(FoodTheme.field.opacity(0.55))
     }
 
     private var mealMenu: some View {
@@ -389,53 +396,34 @@ struct FoodEntryEditor: View {
                     switchMealType(to: type)
                 } label: {
                     if type == mealType {
-                        Label("\(FoodTheme.emoji(for: type))  \(type)", systemImage: "checkmark")
+                        Label(type, systemImage: "checkmark")
                     } else {
-                        Text("\(FoodTheme.emoji(for: type))  \(type)")
+                        Label(type, systemImage: FoodTheme.symbol(for: type))
                     }
                 }
             }
         } label: {
-            HStack(spacing: 7) {
-                Text(FoodTheme.emoji(for: mealType))
+            HStack(spacing: 10) {
+                Text("Meal type")
+                    .foregroundStyle(FoodTheme.ink)
+                Spacer(minLength: 8)
+                Image(systemName: FoodTheme.symbol(for: mealType))
+                    .foregroundStyle(FoodTheme.color(for: mealType))
                 Text(mealType)
+                    .foregroundStyle(FoodTheme.secondaryText)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(FoodTheme.secondaryText)
             }
-            .font(.system(.caption, design: .rounded).weight(.semibold))
-            .foregroundColor(FoodTheme.ink)
+            .font(.system(.body, design: .rounded).weight(.medium))
             .lineLimit(1)
-            .minimumScaleFactor(0.82)
-            .padding(.horizontal, 9)
-            .frame(height: 40)
-            .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(.horizontal, 16)
+            .frame(minHeight: 58)
+            .contentShape(Rectangle())
         }
-    }
-
-    private var datePicker: some View {
-        DatePicker("Date", selection: $date, displayedComponents: .date)
-            .labelsHidden()
-            .datePickerStyle(.compact)
-            .controlSize(.small)
-            .font(.system(.caption, design: .rounded).weight(.semibold))
-            .fixedSize(horizontal: true, vertical: false)
-    }
-
-    private var timeButton: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.18)) {
-                isEditingTime.toggle()
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "clock")
-                Text(FoodLogFormatters.time.string(from: date))
-            }
-            .font(.system(.caption, design: .rounded).weight(.semibold))
-            .foregroundColor(FoodTheme.ink)
-            .padding(.horizontal, 8)
-            .frame(height: 40)
-            .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        }
-        .accessibilityLabel("Change time, currently \(FoodLogFormatters.time.string(from: date))")
+        .buttonStyle(.plain)
+        .accessibilityLabel("Meal type")
+        .accessibilityValue(mealType)
     }
 
     private func switchMealType(to newMealType: String) {
@@ -483,7 +471,7 @@ struct FoodEntryEditor: View {
                 }
                 .font(.system(.body, design: .rounded))
                 .padding(14)
-                .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .foodPanel(cornerRadius: 14)
 
                 photoSection
             }
@@ -495,7 +483,7 @@ struct FoodEntryEditor: View {
         }
         .tint(FoodTheme.secondaryText)
         .padding(16)
-        .background(FoodTheme.surface.opacity(0.55), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .foodPanel(cornerRadius: 18)
     }
 
     private var photoSection: some View {
@@ -612,7 +600,7 @@ struct FoodEntryEditor: View {
                 .accessibilityAddTraits(contactsSearch.isEnabled ? .isSelected : [])
             }
             .padding(14)
-            .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .foodPanel(cornerRadius: 14)
 
             if !selectedCompanions.isEmpty || !frequentPeople.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -684,7 +672,7 @@ struct FoodEntryEditor: View {
                         }
                     }
                 }
-                .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .foodPanel(cornerRadius: 14)
             }
 
             if let message = contactsSearch.message {
@@ -796,7 +784,7 @@ struct FoodEntryEditor: View {
                 .accessibilityAddTraits(locationSearch.isEnabled ? .isSelected : [])
             }
             .padding(14)
-            .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .foodPanel(cornerRadius: 14)
 
             if !frequentPlaces.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -845,7 +833,7 @@ struct FoodEntryEditor: View {
                         }
                     }
                 }
-                .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .foodPanel(cornerRadius: 14)
             }
 
             if let message = locationSearch.message {
@@ -905,7 +893,7 @@ struct FoodEntryEditor: View {
             }
         }
         .padding(14)
-        .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .foodPanel(cornerRadius: 14)
     }
 
     private func save() {
@@ -971,7 +959,7 @@ private struct PhotoActionButtonStyle: ButtonStyle {
             .foregroundColor(FoodTheme.ink)
             .padding(.vertical, 11)
             .padding(.horizontal, 12)
-            .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .foodGlass(cornerRadius: 12, interactive: true)
             .opacity(configuration.isPressed ? 0.65 : 1)
     }
 }

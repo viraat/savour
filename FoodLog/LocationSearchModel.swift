@@ -9,6 +9,26 @@ struct LocationSelection: Equatable {
     let longitude: Double
 }
 
+enum PlaceFormatting {
+    static func city(from placemark: MKPlacemark) -> String {
+        placemark.locality ?? placemark.subAdministrativeArea ?? placemark.administrativeArea ?? ""
+    }
+
+    static func conciseName(place: String, city: String) -> String {
+        let trimmedPlace = place.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCity = city.trimmingCharacters(in: .whitespacesAndNewlines)
+        let placeName = trimmedPlace
+            .split(separator: ",", omittingEmptySubsequences: true)
+            .first?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? trimmedPlace
+
+        guard !trimmedCity.isEmpty,
+              placeName.caseInsensitiveCompare(trimmedCity) != .orderedSame
+        else { return placeName }
+        return "\(placeName), \(trimmedCity)"
+    }
+}
+
 final class LocationSearchModel: NSObject, ObservableObject {
     @Published private(set) var suggestions: [MKLocalSearchCompletion] = []
     @Published private(set) var isLocating = false
@@ -86,9 +106,9 @@ final class LocationSearchModel: NSObject, ObservableObject {
                     return
                 }
 
-                let city = Self.city(from: item.placemark)
+                let city = PlaceFormatting.city(from: item.placemark)
                 let name = item.name?.trimmingCharacters(in: .whitespacesAndNewlines)
-                let displayName = Self.conciseName(
+                let displayName = PlaceFormatting.conciseName(
                     place: name?.isEmpty == false ? name! : temporaryName,
                     city: city
                 )
@@ -144,14 +164,6 @@ final class LocationSearchModel: NSObject, ObservableObject {
         locationManager.requestLocation()
     }
 
-    private static func city(from placemark: MKPlacemark) -> String {
-        placemark.locality ?? placemark.subAdministrativeArea ?? placemark.administrativeArea ?? ""
-    }
-
-    private static func conciseName(place: String, city: String) -> String {
-        guard !city.isEmpty, place.caseInsensitiveCompare(city) != .orderedSame else { return place }
-        return "\(place), \(city)"
-    }
 }
 
 extension LocationSearchModel: MKLocalSearchCompleterDelegate {

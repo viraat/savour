@@ -9,9 +9,10 @@ struct JournalView: View {
         animation: .default
     ) private var entries: FetchedResults<FoodEntry>
 
-    let openBrowse: () -> Void
     @State private var selectedEntry: FoodEntry?
     @State private var entryToDelete: FoodEntry?
+    @State private var query = ""
+    @State private var mealFilter = "All"
 
     private var thisWeek: [FoodEntry] {
         guard let interval = Calendar.current.dateInterval(of: .weekOfYear, for: Date()) else {
@@ -20,8 +21,21 @@ struct JournalView: View {
         return entries.filter { interval.contains($0.wrappedDate) }
     }
 
-    private var recentGroups: [EntryDayGroup] {
-        Array(groupEntriesByDay(Array(entries)).prefix(7))
+    private var filteredEntries: [FoodEntry] {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return entries.filter { entry in
+            let matchesMeal = mealFilter == "All" || entry.wrappedMealType == mealFilter
+            let matchesQuery = trimmedQuery.isEmpty
+                || entry.wrappedFood.localizedCaseInsensitiveContains(trimmedQuery)
+                || entry.wrappedPlace.localizedCaseInsensitiveContains(trimmedQuery)
+                || entry.companionNames.contains { $0.localizedCaseInsensitiveContains(trimmedQuery) }
+                || entry.wrappedNote.localizedCaseInsensitiveContains(trimmedQuery)
+            return matchesMeal && matchesQuery
+        }
+    }
+
+    private var isFiltering: Bool {
+        mealFilter != "All" || !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var mealCounts: [(String, Int)] {
@@ -34,33 +48,51 @@ struct JournalView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             LazyVStack(alignment: .leading, spacing: 18) {
-                header
-                weeklySummary
+                if !isFiltering {
+                    weeklySummary
+                }
 
                 if entries.isEmpty {
                     emptyState
+                } else if filteredEntries.isEmpty {
+                    noResultsState
                 } else {
                     HStack {
-                        Text("RECENT")
+                        Text(isFiltering ? "RESULTS" : "JOURNAL")
                             .sectionLabel()
                         Spacer()
-                        Button("View all", action: openBrowse)
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .foregroundColor(FoodTheme.secondaryText)
+                        if isFiltering {
+                            Text("\(filteredEntries.count)")
+                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                .foregroundColor(FoodTheme.secondaryText)
+                        }
                     }
 
-                    ForEach(recentGroups) { group in
+                    ForEach(groupEntriesByDay(filteredEntries)) { group in
                         daySection(group)
                     }
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 24)
+            .padding(.top, 8)
             .padding(.bottom, 20)
         }
         .background(FoodTheme.background)
-        .fullScreenCover(item: $selectedEntry) { entry in
+        .navigationTitle("Food log")
+        .searchable(
+            text: $query,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Food, place, person, or note"
+        )
+        .textInputAutocapitalization(.never)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                mealFilterMenu
+            }
+        }
+        .sheet(item: $selectedEntry) { entry in
             FoodEntryEditor(entry: entry)
+                .presentationDragIndicator(.visible)
         }
         .alert("Delete this entry?", isPresented: Binding(
             get: { entryToDelete != nil },
@@ -77,13 +109,6 @@ struct JournalView: View {
         } message: {
             Text("This only removes the record from your food log.")
         }
-    }
-
-    private var header: some View {
-        Text("Food log")
-            .font(.system(size: 34, weight: .bold, design: .rounded))
-            .foregroundColor(FoodTheme.ink)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var weeklySummary: some View {
@@ -114,7 +139,7 @@ struct JournalView: View {
                             let meal = item.0
                             let count = item.1
                             HStack(spacing: 6) {
-                                Text(FoodTheme.emoji(for: meal))
+                                Image(systemName: FoodTheme.symbol(for: meal))
                                 Text(meal)
                                 Text("\(count)")
                                     .foregroundColor(FoodTheme.color(for: meal))
@@ -129,21 +154,17 @@ struct JournalView: View {
             }
         }
         .padding(18)
-        .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(FoodTheme.outline, lineWidth: 1)
-        }
+        .foodPanel(cornerRadius: 22)
     }
 
     private var emptyState: some View {
         VStack(spacing: 12) {
-            Text("🍜")
-                .font(.system(size: 44))
+            Image(systemName: "fork.knife.circle")
+                .font(.system(size: 44, weight: .regular))
             Text("No entries yet")
                 .font(.system(.title3, design: .rounded).weight(.bold))
                 .foregroundColor(FoodTheme.ink)
-            Text("Tap + to add your first entry.")
+            Text("Tap + to begin.")
                 .font(.system(.body, design: .rounded))
                 .foregroundColor(FoodTheme.secondaryText)
                 .multilineTextAlignment(.center)
@@ -151,6 +172,34 @@ struct JournalView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 42)
         .padding(.horizontal, 24)
+    }
+
+    private var noResultsState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 34, weight: .medium))
+            Text("Nothing found")
+                .font(.system(.title3, design: .rounded).weight(.bold))
+        }
+        .foregroundColor(FoodTheme.secondaryText)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 42)
+    }
+
+    private var mealFilterMenu: some View {
+        Menu {
+            Picker("Meal type", selection: $mealFilter) {
+                ForEach(["All"] + FoodEntryEditor.mealTypes, id: \.self) { meal in
+                    Text(meal).tag(meal)
+                }
+            }
+        } label: {
+            Image(systemName: mealFilter == "All"
+                  ? "line.3.horizontal.decrease.circle"
+                  : "line.3.horizontal.decrease.circle.fill")
+        }
+        .accessibilityLabel("Filter by meal type")
+        .accessibilityValue(mealFilter)
     }
 
     private func daySection(_ group: EntryDayGroup) -> some View {
@@ -178,7 +227,7 @@ struct JournalView: View {
                     }
                 }
             }
-            .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .foodPanel(cornerRadius: 18)
         }
     }
 
@@ -203,8 +252,9 @@ struct EntryRow: View {
                     .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                     .accessibilityLabel("Photo of \(entry.wrappedFood)")
             } else {
-                Text(FoodTheme.emoji(for: entry.wrappedMealType))
-                    .font(.system(size: 22))
+                Image(systemName: FoodTheme.symbol(for: entry.wrappedMealType))
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(FoodTheme.color(for: entry.wrappedMealType))
                     .frame(width: 42, height: 42)
                     .background(
                         FoodTheme.color(for: entry.wrappedMealType).opacity(0.16),

@@ -3,6 +3,7 @@ import UIKit
 
 struct ContentView: View {
     @AppStorage("foodLogAppearance") private var appearance = 0
+    @AppStorage(FoodAccentOption.settingKey) private var accentValue = FoodAccentOption.teal.rawValue
 
     private var preferredScheme: ColorScheme? {
         switch appearance {
@@ -12,128 +13,127 @@ struct ContentView: View {
         }
     }
 
+    private var accentColor: Color {
+        FoodAccentOption(rawValue: accentValue)?.color ?? FoodAccentOption.teal.color
+    }
+
     var body: some View {
         FoodLogRootView()
             .preferredColorScheme(preferredScheme)
+            .tint(accentColor)
+            .environment(\.foodAccentColor, accentColor)
     }
 }
 
 private enum FoodTab: String, CaseIterable {
     case journal = "Journal"
     case patterns = "Patterns"
-    case browse = "Browse"
     case settings = "Settings"
 
     var icon: String {
         switch self {
         case .journal: return "book.closed.fill"
         case .patterns: return "chart.bar.fill"
-        case .browse: return "magnifyingglass"
         case .settings: return "gearshape.fill"
         }
     }
 }
 
 struct FoodLogRootView: View {
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)],
-        animation: .default
-    ) private var entries: FetchedResults<FoodEntry>
-
     @State private var selectedTab: FoodTab = .journal
     @State private var addingEntry = false
 
+    @ViewBuilder
     var body: some View {
-        ZStack(alignment: .bottom) {
-            FoodTheme.background.ignoresSafeArea()
-
-            Group {
-                switch selectedTab {
-                case .journal:
-                    JournalView(openBrowse: { selectedTab = .browse })
-                case .patterns:
-                    PatternsView()
-                case .browse:
-                    BrowseView()
-                case .settings:
-                    FoodLogSettingsView()
-                }
-            }
-            .padding(.bottom, 82)
-
-            FoodTabBar(selectedTab: $selectedTab, addingEntry: $addingEntry, isEmpty: entries.isEmpty)
+        NavigationStack {
+            selectedContent
         }
-        .fullScreenCover(isPresented: $addingEntry) {
-            FoodEntryEditor(entry: nil)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            FoodBottomBar(selection: $selectedTab, addEntry: addEntry)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
         }
+        .sheet(isPresented: $addingEntry, content: entrySheet)
+    }
+
+    @ViewBuilder
+    private var selectedContent: some View {
+        switch selectedTab {
+        case .journal:
+            JournalView()
+        case .patterns:
+            PatternsView()
+        case .settings:
+            FoodLogSettingsView()
+        }
+    }
+
+    private func entrySheet() -> some View {
+        FoodEntryEditor(entry: nil)
+            .presentationDragIndicator(.visible)
+    }
+
+    private func addEntry() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        addingEntry = true
     }
 }
 
-private struct FoodTabBar: View {
-    @Binding var selectedTab: FoodTab
-    @Binding var addingEntry: Bool
-    let isEmpty: Bool
+private struct FoodBottomBar: View {
+    @Environment(\.foodAccentColor) private var accentColor
+    @Binding var selection: FoodTab
+    let addEntry: () -> Void
 
     var body: some View {
-        HStack(spacing: 3) {
-            tabButton(.journal)
-            tabButton(.patterns)
-
-            Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                addingEntry = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundColor(FoodTheme.onInk)
-                    .frame(width: 64, height: 40)
-                    .background(FoodTheme.ink, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay {
-                        if isEmpty {
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .stroke(FoodTheme.ink.opacity(0.16), lineWidth: 7)
-                                .scaleEffect(1.18)
-                        }
-                    }
+        HStack(spacing: 12) {
+            HStack(spacing: 2) {
+                ForEach(FoodTab.allCases, id: \.self) { tab in
+                    navigationButton(for: tab)
+                }
             }
-            .buttonStyle(PressButtonStyle())
-            .accessibilityLabel("Add food entry")
+            .padding(5)
+            .frame(maxWidth: .infinity)
+            .foodGlass(cornerRadius: 32)
 
-            tabButton(.browse)
-            tabButton(.settings)
+            addButton
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 10)
-        .padding(.bottom, 8)
-        .frame(maxWidth: .infinity)
-        .background(FoodTheme.background.shadow(color: .black.opacity(0.05), radius: 10, y: -2))
     }
 
-    private func tabButton(_ tab: FoodTab) -> some View {
+    private func navigationButton(for tab: FoodTab) -> some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.18)) {
-                selectedTab = tab
-            }
+            withAnimation(.easeInOut(duration: 0.2)) { selection = tab }
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: 3) {
                 Image(systemName: tab.icon)
                     .font(.system(size: 18, weight: .semibold))
                 Text(tab.rawValue)
-                    .font(.system(size: 9, weight: .semibold, design: .rounded))
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
             }
-            .foregroundColor(selectedTab == tab ? FoodTheme.ink : FoodTheme.secondaryText)
+            .foregroundStyle(selection == tab ? accentColor : FoodTheme.secondaryText)
             .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(
+                selection == tab ? Color(uiColor: .tertiarySystemFill) : .clear,
+                in: Capsule()
+            )
         }
-        .buttonStyle(PressButtonStyle())
-        .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
+        .buttonStyle(.plain)
+        .accessibilityLabel(tab.rawValue)
+        .accessibilityAddTraits(selection == tab ? .isSelected : [])
     }
-}
 
-struct PressButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.92 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    private var addButton: some View {
+        Button(action: addEntry) {
+            Image(systemName: "plus")
+                .font(.system(size: 24, weight: .medium))
+                .frame(width: 48, height: 48)
+        }
+        .foodPrimaryActionStyle()
+        .buttonBorderShape(.capsule)
+        .tint(accentColor)
+        .foregroundStyle(.white)
+        .accessibilityLabel("Add entry")
+        .accessibilityHint("Opens the food entry sheet")
     }
 }
 
@@ -145,7 +145,6 @@ enum FoodTheme {
     static let onInk = Color(uiColor: .systemBackground)
     static let secondaryText = Color(uiColor: .secondaryLabel)
     static let outline = Color(uiColor: .separator).opacity(0.35)
-
     static func color(for mealType: String) -> Color {
         switch mealType {
         case "Breakfast": return Color(hex: "E9A23B")
@@ -157,15 +156,122 @@ enum FoodTheme {
         }
     }
 
-    static func emoji(for mealType: String) -> String {
+    static func symbol(for mealType: String) -> String {
         switch mealType {
-        case "Breakfast": return "🌤️"
-        case "Lunch": return "🥗"
-        case "Dinner": return "🍽️"
-        case "Snack": return "🍎"
-        case "Drink": return "🥤"
-        default: return "📝"
+        case "Breakfast": return "sunrise.fill"
+        case "Lunch": return "leaf.fill"
+        case "Dinner": return "fork.knife"
+        case "Snack": return "takeoutbag.and.cup.and.straw.fill"
+        case "Drink": return "cup.and.saucer.fill"
+        default: return "ellipsis"
         }
+    }
+}
+
+enum FoodAccentOption: String, CaseIterable, Identifiable {
+    static let settingKey = "foodLogAccentColor"
+
+    case teal = "30BA8F"
+    case ocean = "3498B8"
+    case blue = "4E86D8"
+    case violet = "8A70C9"
+    case rose = "D56F8C"
+
+    var id: String { rawValue }
+    var color: Color { Color(hex: rawValue) }
+
+    var name: String {
+        switch self {
+        case .teal: return "Teal"
+        case .ocean: return "Ocean"
+        case .blue: return "Blue"
+        case .violet: return "Violet"
+        case .rose: return "Rose"
+        }
+    }
+}
+
+private struct FoodAccentColorKey: EnvironmentKey {
+    static let defaultValue = FoodAccentOption.teal.color
+}
+
+extension EnvironmentValues {
+    var foodAccentColor: Color {
+        get { self[FoodAccentColorKey.self] }
+        set { self[FoodAccentColorKey.self] = newValue }
+    }
+}
+
+private struct FoodPrimaryActionModifier: ViewModifier {
+    @Environment(\.foodAccentColor) private var accentColor
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+#if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content.buttonStyle(.glassProminent)
+        } else {
+            content.buttonStyle(.borderedProminent)
+                .tint(accentColor)
+        }
+#else
+        content.buttonStyle(.borderedProminent)
+            .tint(accentColor)
+#endif
+    }
+}
+
+private struct FoodGlassModifier: ViewModifier {
+    let cornerRadius: CGFloat
+    let interactive: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+#if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content.glassEffect(
+                interactive ? .regular.interactive() : .regular,
+                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            )
+        } else {
+            content.background(
+                .ultraThinMaterial,
+                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            )
+        }
+#else
+        content.background(
+            .ultraThinMaterial,
+            in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        )
+#endif
+    }
+}
+
+private struct FoodPanelModifier: ViewModifier {
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(FoodTheme.outline, lineWidth: 0.5)
+            }
+    }
+}
+
+extension View {
+    func foodPrimaryActionStyle() -> some View {
+        modifier(FoodPrimaryActionModifier())
+    }
+
+    func foodGlass(cornerRadius: CGFloat, interactive: Bool = false) -> some View {
+        modifier(FoodGlassModifier(cornerRadius: cornerRadius, interactive: interactive))
+    }
+
+    func foodPanel(cornerRadius: CGFloat) -> some View {
+        modifier(FoodPanelModifier(cornerRadius: cornerRadius))
     }
 }
 
