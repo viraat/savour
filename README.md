@@ -46,6 +46,9 @@ the core experience is a neutral record.
 2. Select the `FoodLog` scheme and an iPhone simulator.
 3. Press Run.
 
+The shared scheme also includes unit and UI reliability tests. See
+[`TESTING.md`](TESTING.md) for the simulator matrix and permission setup.
+
 For installation on a physical iPhone, select the FoodLog target, open
 Signing & Capabilities, choose your Apple developer team, and change the bundle
 identifier if Xcode asks for a unique one. The deployment target is iOS 16.

@@ -53,27 +53,7 @@ struct PatternsView: View {
     }
 
     private var currentStreak: Int {
-        let calendar = Calendar.current
-        let loggedDays = Set(entries.map { calendar.startOfDay(for: $0.wrappedDate) })
-        let today = calendar.startOfDay(for: Date())
-        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)
-
-        var day: Date
-        if loggedDays.contains(today) {
-            day = today
-        } else if let yesterday, loggedDays.contains(yesterday) {
-            day = yesterday
-        } else {
-            return 0
-        }
-
-        var count = 0
-        while loggedDays.contains(day) {
-            count += 1
-            guard let previousDay = calendar.date(byAdding: .day, value: -1, to: day) else { break }
-            day = previousDay
-        }
-        return count
+        FoodLogStatistics.currentStreak(entryDates: entries.map(\.wrappedDate))
     }
 
     private var mappedPlaces: [EatingPlacePoint] {
@@ -379,20 +359,7 @@ struct PatternsView: View {
     }
 
     private func frequency(of values: [String]) -> [(String, Int)] {
-        var counts: [String: (name: String, count: Int)] = [:]
-        for value in values {
-            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-            let key = trimmed.lowercased()
-            let current = counts[key] ?? (trimmed, 0)
-            counts[key] = (current.name, current.count + 1)
-        }
-        return counts.values
-            .sorted {
-                if $0.count != $1.count { return $0.count > $1.count }
-                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
-            }
-            .map { ($0.name, $0.count) }
+        FoodLogStatistics.frequencies(values).map { ($0.name, $0.count) }
     }
 }
 
@@ -805,16 +772,17 @@ private struct MealDefaultTimesSettingsView: View {
     }
 }
 
-private enum CSVExporter {
+enum CSVExporter {
     static func makeFile(from entries: [FoodEntry]) -> URL? {
-        var csv = "food,date,time,meal,place,city,latitude,longitude,people,note\n"
         let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let timeFormatter = DateFormatter()
+        timeFormatter.locale = Locale(identifier: "en_US_POSIX")
         timeFormatter.dateFormat = "HH:mm"
 
-        for entry in entries {
-            let fields = [
+        let rows = entries.map { entry in
+            [
                 entry.wrappedFood,
                 dateFormatter.string(from: entry.wrappedDate),
                 timeFormatter.string(from: entry.wrappedDate),
@@ -825,9 +793,9 @@ private enum CSVExporter {
                 entry.hasPlaceCoordinates ? String(entry.placeLongitude) : "",
                 entry.companionDisplayText,
                 entry.wrappedNote
-            ].map(escape)
-            csv += fields.joined(separator: ",") + "\n"
+            ]
         }
+        let csv = FoodLogCSVDocument.encode(dataRows: rows)
 
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("FoodLog.csv")
         do {
@@ -838,9 +806,6 @@ private enum CSVExporter {
         }
     }
 
-    private static func escape(_ value: String) -> String {
-        "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
-    }
 }
 
 private struct ShareSheet: UIViewControllerRepresentable {

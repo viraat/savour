@@ -5,11 +5,13 @@ final class PersistenceController {
 
     let container: NSPersistentContainer
 
-    init(inMemory: Bool = false) {
+    init(inMemory: Bool = false, storeURL: URL? = nil) {
         container = NSPersistentContainer(name: "FoodLog")
 
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+        } else if let storeURL {
+            container.persistentStoreDescriptions.first?.url = storeURL
         }
 
         container.persistentStoreDescriptions.first?.setOption(
@@ -41,21 +43,23 @@ final class PersistenceController {
 
     }
 
-    private static func migrateLegacyCompanions(in context: NSManagedObjectContext) {
+    @discardableResult
+    static func migrateLegacyCompanions(in context: NSManagedObjectContext) -> Int {
         let request = FoodEntry.fetchRequest()
-        guard let entries = try? context.fetch(request) else { return }
+        guard let entries = try? context.fetch(request) else { return 0 }
 
-        var changed = false
+        var migratedCount = 0
         for entry in entries where entry.companionRecords.isEmpty {
             let names = CompanionNames.parse(entry.wrappedPeople)
             guard !names.isEmpty else { continue }
             entry.replaceCompanions(with: names, in: context)
-            changed = true
+            migratedCount += 1
         }
 
-        if changed {
+        if migratedCount > 0 {
             try? context.save()
         }
+        return migratedCount
     }
 }
 

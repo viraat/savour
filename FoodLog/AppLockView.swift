@@ -148,6 +148,15 @@ struct AppLockView<Content: View>: View {
               !isAuthenticating
         else { return }
 
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--simulate-biometric-denied") {
+            isUnlocked = false
+            isAuthenticating = false
+            message = "Authentication was cancelled."
+            return
+        }
+#endif
+
         let context = LAContext()
         context.localizedCancelTitle = "Cancel"
         var policyError: NSError?

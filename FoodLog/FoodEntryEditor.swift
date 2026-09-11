@@ -65,7 +65,7 @@ struct FoodEntryEditor: View {
         let initialDate = entry?.wrappedDate ?? Date()
         _food = State(initialValue: entry?.wrappedFood ?? "")
         _date = State(initialValue: initialDate)
-        _mealType = State(initialValue: entry?.wrappedMealType ?? Self.suggestedMealType(for: initialDate))
+        _mealType = State(initialValue: entry?.wrappedMealType ?? MealTypeSuggestion.suggested(for: initialDate))
         _place = State(initialValue: entry?.wrappedPlace ?? "")
         _placeCity = State(initialValue: entry?.wrappedPlaceCity ?? "")
         _placeLatitude = State(initialValue: entry?.placeLatitude ?? 0)
@@ -83,27 +83,13 @@ struct FoodEntryEditor: View {
     }
 
     private var suggestions: [String] {
-        var counts: [String: (name: String, count: Int)] = [:]
-
-        for previousEntry in previousEntries where previousEntry.wrappedMealType == mealType {
-            var countedForEntry = Set<String>()
-            for item in Self.foodItems(in: previousEntry.wrappedFood) {
-                let key = item.lowercased()
-                guard countedForEntry.insert(key).inserted else { continue }
-                let current = counts[key] ?? (item, 0)
-                counts[key] = (current.name, current.count + 1)
-            }
-        }
-
-        let currentItems = Set(Self.foodItems(in: food).map { $0.lowercased() })
-        return counts.values
-            .filter { !currentItems.contains($0.name.lowercased()) }
-            .sorted {
-                if $0.count != $1.count { return $0.count > $1.count }
-                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
-            }
-            .prefix(8)
-            .map(\.name)
+        FoodSuggestionEngine.suggestions(
+            from: previousEntries.map {
+                FoodSuggestionSource(mealType: $0.wrappedMealType, food: $0.wrappedFood)
+            },
+            mealType: mealType,
+            currentFood: food
+        )
     }
 
     private var frequentPeople: [String] {
@@ -278,6 +264,7 @@ struct FoodEntryEditor: View {
                 .foregroundColor(FoodTheme.secondaryText)
 
             TextField("e.g. dosa and chutney", text: $food, axis: .vertical)
+                .accessibilityIdentifier("food-description")
                 .font(.system(size: 22, weight: .semibold, design: .rounded))
                 .foregroundColor(FoodTheme.ink)
                 .lineLimit(2 ... 5)
@@ -309,7 +296,7 @@ struct FoodEntryEditor: View {
     }
 
     private func appendFoodSuggestion(_ suggestion: String) {
-        let existingItems = Self.foodItems(in: food)
+        let existingItems = FoodItemParser.items(in: food)
         guard !existingItems.contains(where: {
             $0.caseInsensitiveCompare(suggestion) == .orderedSame
         }) else { return }
@@ -925,22 +912,6 @@ struct FoodEntryEditor: View {
         context.delete(entry)
         try? context.save()
         dismiss()
-    }
-
-    private static func suggestedMealType(for date: Date) -> String {
-        switch Calendar.current.component(.hour, from: date) {
-        case 5 ..< 11: return "Breakfast"
-        case 11 ..< 15: return "Lunch"
-        case 18 ..< 23: return "Dinner"
-        default: return "Snack"
-        }
-    }
-
-    private static func foodItems(in description: String) -> [String] {
-        description.split(separator: ",", omittingEmptySubsequences: true).compactMap { item in
-            let trimmed = item.trimmingCharacters(in: .whitespacesAndNewlines)
-            return trimmed.isEmpty ? nil : trimmed
-        }
     }
 
     private static func hasDetails(_ entry: FoodEntry?) -> Bool {
