@@ -54,6 +54,20 @@ struct FoodLogApp: App {
                     try? context.save()
                 }
             }
+            if arguments.contains("--seed-ui-test-navigation") {
+                let context = testPersistence.container.viewContext
+                context.performAndWait {
+                    for index in 0 ..< 20 {
+                        let entry = FoodEntry(context: context)
+                        entry.id = UUID()
+                        entry.createdAt = Date(timeIntervalSinceNow: TimeInterval(-index))
+                        entry.date = Date(timeIntervalSinceNow: TimeInterval(-index * 60))
+                        entry.food = "Navigation fixture \(index + 1)"
+                        entry.mealType = "Snack"
+                    }
+                    try? context.save()
+                }
+            }
             persistence = testPersistence
             return
         }

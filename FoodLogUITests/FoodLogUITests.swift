@@ -134,6 +134,26 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(dark.isSelected)
     }
 
+    func testBottomNavigationCapturesTouchesAcrossButtonEdges() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-navigation"])
+        XCTAssertTrue(app.navigationBars["Food log"].waitForExistence(timeout: 3))
+
+        let journal = app.buttons["Journal"]
+        XCTAssertTrue(journal.waitForExistence(timeout: 2))
+        journal.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: 0.12)).tap()
+        journal.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.88)).tap()
+        XCTAssertFalse(app.navigationBars["Edit entry"].exists)
+
+        let patterns = app.buttons["Patterns"]
+        patterns.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: 0.88)).tap()
+        XCTAssertTrue(app.navigationBars["Patterns"].waitForExistence(timeout: 2))
+
+        let journalAgain = app.buttons["Journal"]
+        journalAgain.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.12)).tap()
+        XCTAssertTrue(app.navigationBars["Food log"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.navigationBars["Edit entry"].exists)
+    }
+
     private func launch(resetStore: Bool, extraArguments: [String] = []) {
         let suppliesLockSetting = extraArguments.contains("-foodLogBiometricLockEnabled")
         app.launchArguments = ["--ui-testing"]

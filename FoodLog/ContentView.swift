@@ -52,6 +52,10 @@ struct FoodLogRootView: View {
             FoodBottomBar(selection: $selectedTab, addEntry: addEntry)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+                .simultaneousGesture(TapGesture().onEnded {})
+                .zIndex(10)
         }
         .sheet(isPresented: $addingEntry, content: entrySheet)
     }
@@ -112,11 +116,13 @@ private struct FoodBottomBar: View {
             .foregroundStyle(selection == tab ? accentColor : FoodTheme.secondaryText)
             .frame(maxWidth: .infinity)
             .frame(height: 50)
+            .contentShape(Rectangle())
             .background(
                 selection == tab ? Color(uiColor: .tertiarySystemFill) : .clear,
                 in: Capsule()
             )
         }
+        .frame(maxWidth: .infinity)
         .buttonStyle(.plain)
         .accessibilityLabel(tab.rawValue)
         .accessibilityAddTraits(selection == tab ? .isSelected : [])
