@@ -99,10 +99,18 @@ final class FoodLogUITests: XCTestCase {
     }
 
     func testMapPinAndAppearanceSetting() {
-        launch(resetStore: true, extraArguments: ["--seed-ui-test-map"])
+        launch(
+            resetStore: true,
+            extraArguments: ["--seed-ui-test-map", "--seed-ui-test-suggestions"]
+        )
         app.buttons["Patterns"].tap()
-        XCTAssertTrue(app.staticTexts["EATING PLACES"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["Roastery Coffee House, Hyderabad"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Eating places"].waitForExistence(timeout: 3))
+
+        for tile in ["Eating places", "Overview", "Foods noted", "People"] {
+            app.buttons[tile].tap()
+            XCTAssertTrue(app.navigationBars[tile].waitForExistence(timeout: 3))
+            app.buttons["Done"].tap()
+        }
 
         app.buttons["Settings"].tap()
         let dark = app.buttons["Dark"]

@@ -33,6 +33,7 @@ struct FoodLogApp: App {
                     entry.placeLatitude = 17.4239
                     entry.placeLongitude = 78.4485
                     entry.hasPlaceCoordinates = true
+                    entry.replaceCompanions(with: ["Ana", "Bob"], in: context)
                     try? context.save()
                 }
             }

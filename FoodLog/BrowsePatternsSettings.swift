@@ -17,6 +17,24 @@ private enum PatternRange: Int, CaseIterable {
     }
 }
 
+private enum PatternDetail: String, Identifiable {
+    case overview
+    case places
+    case foods
+    case people
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .overview: return "Overview"
+        case .places: return "Eating places"
+        case .foods: return "Foods noted"
+        case .people: return "People"
+        }
+    }
+}
+
 struct PatternsView: View {
     @Environment(\.managedObjectContext) private var context
     @Environment(\.foodAccentColor) private var accentColor
@@ -27,6 +45,7 @@ struct PatternsView: View {
     @State private var range: PatternRange = .week
     @State private var isBackfillingPlaces = false
     @State private var backfillMessage: String?
+    @State private var selectedDetail: PatternDetail?
     @StateObject private var contactPhotos = ContactsSearchModel(includesImages: true)
 
     private var selectedEntries: [FoodEntry] {
@@ -54,6 +73,15 @@ struct PatternsView: View {
 
     private var currentStreak: Int {
         FoodLogStatistics.currentStreak(entryDates: entries.map(\.wrappedDate))
+    }
+
+    private var dailyCounts: [(Date, Int)] {
+        Dictionary(
+            grouping: selectedEntries,
+            by: { Calendar.current.startOfDay(for: $0.wrappedDate) }
+        )
+        .map { ($0.key, $0.value.count) }
+        .sorted { $0.0 > $1.0 }
     }
 
     private var mappedPlaces: [EatingPlacePoint] {
@@ -115,6 +143,7 @@ struct PatternsView: View {
         .background(FoodTheme.background)
         .navigationTitle("Patterns")
         .onAppear(perform: contactPhotos.loadIfAuthorized)
+        .sheet(item: $selectedDetail, content: detailSheet)
     }
 
     private var rangePicker: some View {
@@ -127,39 +156,47 @@ struct PatternsView: View {
     }
 
     private var summaryCards: some View {
-        HStack(spacing: 0) {
-            overviewMetric(
-                value: selectedEntries.count,
-                label: "Entries",
-                symbol: "square.and.pencil"
-            )
+        Button {
+            selectedDetail = .overview
+        } label: {
+            HStack(spacing: 0) {
+                overviewMetric(
+                    value: selectedEntries.count,
+                    label: "Entries",
+                    symbol: "square.and.pencil"
+                )
 
-            Divider().frame(height: 54)
+                Divider().frame(height: 54)
 
-            overviewMetric(
-                value: daysRepresented,
-                label: "Days",
-                symbol: "calendar"
-            )
+                overviewMetric(
+                    value: daysRepresented,
+                    label: "Days",
+                    symbol: "calendar"
+                )
 
-            Divider().frame(height: 54)
+                Divider().frame(height: 54)
 
-            overviewMetric(
-                value: peopleCounts.count,
-                label: "People",
-                symbol: "person.2.fill"
-            )
+                overviewMetric(
+                    value: peopleCounts.count,
+                    label: "People",
+                    symbol: "person.2.fill"
+                )
 
-            Divider().frame(height: 54)
+                Divider().frame(height: 54)
 
-            overviewMetric(
-                value: currentStreak,
-                label: "Streak",
-                symbol: "flame.fill"
-            )
+                overviewMetric(
+                    value: currentStreak,
+                    label: "Streak",
+                    symbol: "flame.fill"
+                )
+            }
+            .padding(.vertical, 16)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 16)
+        .buttonStyle(.plain)
         .foodPanel(cornerRadius: 20)
+        .accessibilityLabel("Overview")
+        .accessibilityHint("Shows daily activity and summary details")
     }
 
     private func overviewMetric(value: Int, label: String, symbol: String) -> some View {
@@ -187,54 +224,26 @@ struct PatternsView: View {
                         .font(.system(.caption, design: .rounded).weight(.medium))
                         .foregroundStyle(FoodTheme.secondaryText)
                 }
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(FoodTheme.secondaryText)
             }
 
             if mappedPlaces.isEmpty {
-                VStack(spacing: 9) {
-                    Image(systemName: "mappin.slash")
-                        .font(.system(size: 28))
-                        .foregroundStyle(FoodTheme.secondaryText)
-                    Text(entriesWithoutCoordinates.isEmpty
-                         ? "Places selected from MapKit will appear here."
-                         : "Older places can be located for this map.")
-                        .font(.system(.subheadline, design: .rounded).weight(.medium))
-                        .foregroundStyle(FoodTheme.secondaryText)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 150)
+                placesEmptyState
             } else {
                 EatingPlacesMap(points: mappedPlaces)
-            }
-
-            if !entriesWithoutCoordinates.isEmpty {
-                Button {
-                    Task { await backfillOlderPlaces() }
-                } label: {
-                    HStack {
-                        Label("Locate older places", systemImage: "location.magnifyingglass")
-                        Spacer()
-                        if isBackfillingPlaces {
-                            ProgressView()
-                        } else {
-                            Text("\(entriesWithoutCoordinates.count)")
-                                .foregroundStyle(FoodTheme.secondaryText)
-                        }
-                    }
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                }
-                .buttonStyle(.bordered)
-                .disabled(isBackfillingPlaces)
-            }
-
-            if let backfillMessage {
-                Text(backfillMessage)
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(FoodTheme.secondaryText)
+                    .allowsHitTesting(false)
             }
         }
         .padding(17)
+        .contentShape(Rectangle())
+        .onTapGesture { selectedDetail = .places }
         .foodPanel(cornerRadius: 20)
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("Eating places")
+        .accessibilityHint("Shows a larger map and all eating places")
     }
 
     @MainActor
@@ -289,26 +298,253 @@ struct PatternsView: View {
     }
 
     private var peopleCard: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            Label("PEOPLE", systemImage: "person.2.fill")
-                .sectionLabel()
-
-            ForEach(Array(peopleCounts.prefix(5)), id: \.0) { item in
-                HStack(spacing: 12) {
-                    ContactAvatar(
-                        name: item.0,
-                        photoData: contactPhotos.photoData(for: item.0)
-                    )
-
-                    Text(item.0)
-                        .font(.system(.body, design: .rounded).weight(.semibold))
-                        .lineLimit(1)
+        Button {
+            selectedDetail = .people
+        } label: {
+            VStack(alignment: .leading, spacing: 13) {
+                HStack {
+                    Label("PEOPLE", systemImage: "person.2.fill")
+                        .sectionLabel()
                     Spacer()
-                    Text("\(item.1)")
-                        .font(.system(.body, design: .rounded).weight(.bold))
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
                         .foregroundStyle(FoodTheme.secondaryText)
                 }
+
+                ForEach(Array(peopleCounts.prefix(5)), id: \.0) { item in
+                    HStack(spacing: 12) {
+                        ContactAvatar(
+                            name: item.0,
+                            photoData: contactPhotos.photoData(for: item.0)
+                        )
+
+                        Text(item.0)
+                            .font(.system(.body, design: .rounded).weight(.semibold))
+                            .lineLimit(1)
+                        Spacer()
+                        Text("\(item.1)")
+                            .font(.system(.body, design: .rounded).weight(.bold))
+                            .foregroundStyle(FoodTheme.secondaryText)
+                    }
+                }
             }
+            .padding(17)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foodPanel(cornerRadius: 20)
+        .accessibilityLabel("People")
+        .accessibilityHint("Shows every person and their entry count")
+    }
+
+    private func frequencyCard(title: String, icon: String, items: [(String, Int)]) -> some View {
+        Button {
+            selectedDetail = .foods
+        } label: {
+            VStack(alignment: .leading, spacing: 13) {
+                HStack {
+                    Label(title, systemImage: icon)
+                        .sectionLabel()
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(FoodTheme.secondaryText)
+                }
+                ForEach(Array(items.prefix(5)), id: \.0) { item in
+                    HStack {
+                        Text(item.0)
+                            .font(.system(.body, design: .rounded).weight(.medium))
+                            .lineLimit(1)
+                        Spacer()
+                        Text("\(item.1)")
+                            .font(.system(.body, design: .rounded).weight(.bold))
+                            .foregroundColor(FoodTheme.secondaryText)
+                    }
+                }
+            }
+            .padding(17)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foodPanel(cornerRadius: 20)
+        .accessibilityLabel("Foods noted")
+        .accessibilityHint("Shows all foods noted in this range")
+    }
+
+    private var placesEmptyState: some View {
+        VStack(spacing: 9) {
+            Image(systemName: "mappin.slash")
+                .font(.system(size: 28))
+                .foregroundStyle(FoodTheme.secondaryText)
+            Text(entriesWithoutCoordinates.isEmpty
+                 ? "Places selected from MapKit will appear here."
+                 : "Older places can be located for this map.")
+                .font(.system(.subheadline, design: .rounded).weight(.medium))
+                .foregroundStyle(FoodTheme.secondaryText)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 150)
+    }
+
+    private func detailSheet(_ detail: PatternDetail) -> some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    detailRangeLabel
+                    detailContent(detail)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 32)
+            }
+            .background(FoodTheme.background)
+            .navigationTitle(detail.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { selectedDetail = nil }
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private var detailRangeLabel: some View {
+        Text(range.label.uppercased())
+            .sectionLabel()
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func detailContent(_ detail: PatternDetail) -> some View {
+        switch detail {
+        case .overview:
+            overviewDetail
+        case .places:
+            placesDetail
+        case .foods:
+            rankedDetail(items: individualFoodCounts, showsAvatars: false)
+        case .people:
+            peopleDetail
+        }
+    }
+
+    private var overviewDetail: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                expandedMetric(value: selectedEntries.count, label: "Entries", symbol: "square.and.pencil")
+                expandedMetric(value: daysRepresented, label: "Days", symbol: "calendar")
+                expandedMetric(value: peopleCounts.count, label: "People", symbol: "person.2.fill")
+                expandedMetric(value: currentStreak, label: "Current streak", symbol: "flame.fill")
+            }
+
+            if !dailyCounts.isEmpty {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("DAYS WITH ENTRIES").sectionLabel()
+                    ForEach(dailyCounts, id: \.0) { day, count in
+                        HStack(spacing: 12) {
+                            Text(day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
+                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                .frame(width: 82, alignment: .leading)
+                            ProgressView(value: Double(count), total: Double(dailyCounts.map(\.1).max() ?? 1))
+                                .tint(accentColor)
+                            Text("\(count)")
+                                .font(.system(.subheadline, design: .rounded).weight(.bold))
+                                .foregroundStyle(FoodTheme.secondaryText)
+                                .frame(minWidth: 20, alignment: .trailing)
+                        }
+                    }
+                }
+                .padding(17)
+                .foodPanel(cornerRadius: 20)
+            }
+
+            Text("A streak counts consecutive days with at least one entry. Today is optional until the day ends.")
+                .font(.system(.footnote, design: .rounded))
+                .foregroundStyle(FoodTheme.secondaryText)
+                .padding(.horizontal, 4)
+        }
+    }
+
+    private func expandedMetric(value: Int, label: String, symbol: String) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Image(systemName: symbol)
+                .foregroundStyle(accentColor)
+            Text("\(value)")
+                .font(.system(size: 32, weight: .bold, design: .rounded))
+            Text(label)
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .foregroundStyle(FoodTheme.secondaryText)
+        }
+        .frame(maxWidth: .infinity, minHeight: 118, alignment: .leading)
+        .padding(16)
+        .foodPanel(cornerRadius: 20)
+    }
+
+    private var placesDetail: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if mappedPlaces.isEmpty {
+                placesEmptyState
+                    .padding(17)
+                    .foodPanel(cornerRadius: 20)
+            } else {
+                EatingPlacesMap(points: mappedPlaces, height: 360)
+                    .padding(12)
+                    .foodPanel(cornerRadius: 20)
+
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("PLACES").sectionLabel()
+                    ForEach(mappedPlaces) { point in
+                        HStack(spacing: 12) {
+                            Image(systemName: "mappin.circle.fill")
+                                .foregroundStyle(accentColor)
+                            Text(point.displayName)
+                                .font(.system(.body, design: .rounded).weight(.semibold))
+                            Spacer()
+                            Text("\(point.count)")
+                                .font(.system(.body, design: .rounded).weight(.bold))
+                                .foregroundStyle(FoodTheme.secondaryText)
+                        }
+                    }
+                }
+                .padding(17)
+                .foodPanel(cornerRadius: 20)
+            }
+
+            if !entriesWithoutCoordinates.isEmpty {
+                Button {
+                    Task { await backfillOlderPlaces() }
+                } label: {
+                    HStack {
+                        Label("Locate older places", systemImage: "location.magnifyingglass")
+                        Spacer()
+                        if isBackfillingPlaces {
+                            ProgressView()
+                        } else {
+                            Text("\(entriesWithoutCoordinates.count)")
+                                .foregroundStyle(FoodTheme.secondaryText)
+                        }
+                    }
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(isBackfillingPlaces)
+            }
+
+            if let backfillMessage {
+                Text(backfillMessage)
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(FoodTheme.secondaryText)
+            }
+        }
+    }
+
+    private var peopleDetail: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            rankedDetail(items: peopleCounts, showsAvatars: true)
 
             if contactPhotos.canRequestAccess {
                 Button {
@@ -334,23 +570,28 @@ struct PatternsView: View {
                     .foregroundStyle(FoodTheme.secondaryText)
             }
         }
-        .padding(17)
-        .foodPanel(cornerRadius: 20)
     }
 
-    private func frequencyCard(title: String, icon: String, items: [(String, Int)]) -> some View {
-        VStack(alignment: .leading, spacing: 13) {
-            Label(title, systemImage: icon)
-                .sectionLabel()
-            ForEach(Array(items.prefix(5)), id: \.0) { item in
-                HStack {
-                    Text(item.0)
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .lineLimit(1)
-                    Spacer()
-                    Text("\(item.1)")
-                        .font(.system(.body, design: .rounded).weight(.bold))
-                        .foregroundColor(FoodTheme.secondaryText)
+    private func rankedDetail(items: [(String, Int)], showsAvatars: Bool) -> some View {
+        let maximum = max(items.map(\.1).max() ?? 1, 1)
+        return VStack(alignment: .leading, spacing: 16) {
+            ForEach(items, id: \.0) { item in
+                HStack(spacing: 12) {
+                    if showsAvatars {
+                        ContactAvatar(name: item.0, photoData: contactPhotos.photoData(for: item.0))
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(item.0)
+                                .font(.system(.body, design: .rounded).weight(.semibold))
+                            Spacer()
+                            Text("\(item.1)")
+                                .font(.system(.body, design: .rounded).weight(.bold))
+                                .foregroundStyle(FoodTheme.secondaryText)
+                        }
+                        ProgressView(value: Double(item.1), total: Double(maximum))
+                            .tint(accentColor)
+                    }
                 }
             }
         }
@@ -416,12 +657,14 @@ private struct EatingPlacePoint: Identifiable {
 private struct EatingPlacesMap: View {
     @Environment(\.foodAccentColor) private var accentColor
     let points: [EatingPlacePoint]
+    let height: CGFloat
 
     @State private var region: MKCoordinateRegion
     @State private var selectedPointID: String?
 
-    init(points: [EatingPlacePoint]) {
+    init(points: [EatingPlacePoint], height: CGFloat = 205) {
         self.points = points
+        self.height = height
         _region = State(initialValue: Self.region(containing: points))
         _selectedPointID = State(initialValue: points.first?.id)
     }
@@ -451,7 +694,7 @@ private struct EatingPlacesMap: View {
                     .accessibilityValue("\(point.count) \(point.count == 1 ? "entry" : "entries")")
                 }
             }
-            .frame(height: 205)
+            .frame(height: height)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
             if let selectedPoint {
