@@ -4,6 +4,7 @@ import MapKit
 
 struct LocationSelection: Equatable {
     let displayName: String
+    let fullAddress: String
     let city: String
     let latitude: Double
     let longitude: Double
@@ -26,6 +27,66 @@ enum PlaceFormatting {
               placeName.caseInsensitiveCompare(trimmedCity) != .orderedSame
         else { return placeName }
         return "\(placeName), \(trimmedCity)"
+    }
+
+    static func fullAddress(placeName: String, addressParts: [String]) -> String {
+        var seen = Set<String>()
+        let parts = ([placeName] + addressParts).compactMap { value -> String? in
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted else { return nil }
+            return trimmed
+        }
+        return parts.joined(separator: ", ")
+    }
+
+    static func fullAddress(placeName: String, placemark: MKPlacemark) -> String {
+        let street = [placemark.subThoroughfare, placemark.thoroughfare]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return fullAddress(
+            placeName: placeName,
+            addressParts: [
+                street,
+                placemark.subLocality ?? "",
+                placemark.locality ?? "",
+                placemark.administrativeArea ?? "",
+                placemark.postalCode ?? "",
+                placemark.country ?? ""
+            ]
+        )
+    }
+
+    static func isConfidentBackfillMatch(query: String, resultName: String) -> Bool {
+        let queryName = query.split(separator: ",", maxSplits: 1).first.map(String.init) ?? query
+        let normalizedQuery = normalizedName(queryName)
+        let genericLabels: Set<String> = [
+            "home", "myhome", "myplace", "work", "office", "school", "gym",
+            "restaurant", "cafe", "coffeeshop", "friendshouse", "parentshouse"
+        ]
+        guard !genericLabels.contains(normalizedQuery) else { return false }
+        return normalizedQuery == normalizedName(resultName)
+    }
+
+    static func savedPlaceName(
+        typedValue: String,
+        selectedDisplayName: String?,
+        hasCoordinates: Bool
+    ) -> String {
+        let typed = typedValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard hasCoordinates,
+              let selectedDisplayName,
+              !selectedDisplayName.isEmpty
+        else { return typed }
+        return selectedDisplayName
+    }
+
+    private static func normalizedName(_ value: String) -> String {
+        value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .unicodeScalars
+            .filter { CharacterSet.alphanumerics.contains($0) }
+            .map(String.init)
+            .joined()
     }
 }
 
@@ -112,9 +173,14 @@ final class LocationSearchModel: NSObject, ObservableObject {
                     place: name?.isEmpty == false ? name! : temporaryName,
                     city: city
                 )
-                self.acceptedPlace = displayName
+                let fullAddress = PlaceFormatting.fullAddress(
+                    placeName: name?.isEmpty == false ? name! : temporaryName,
+                    placemark: item.placemark
+                )
+                self.acceptedPlace = fullAddress
                 self.resolvedSelection = LocationSelection(
                     displayName: displayName,
+                    fullAddress: fullAddress,
                     city: city,
                     latitude: item.placemark.coordinate.latitude,
                     longitude: item.placemark.coordinate.longitude

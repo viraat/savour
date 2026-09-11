@@ -276,7 +276,6 @@ struct PatternsView: View {
             }
 
             guard let selection else { continue }
-            entry.place = selection.displayName
             entry.placeCity = selection.city
             entry.placeLatitude = selection.latitude
             entry.placeLongitude = selection.longitude
@@ -286,9 +285,14 @@ struct PatternsView: View {
 
         do {
             if context.hasChanges { try context.save() }
-            backfillMessage = updatedCount == 0
-                ? "No matching places were found."
-                : "Located \(updatedCount) older \(updatedCount == 1 ? "entry" : "entries")."
+            let skippedCount = candidates.count - updatedCount
+            if updatedCount == 0 {
+                backfillMessage = "No exact place matches were found. Your entries were left unchanged."
+            } else if skippedCount > 0 {
+                backfillMessage = "Located \(updatedCount) older \(updatedCount == 1 ? "entry" : "entries"). Left \(skippedCount) ambiguous \(skippedCount == 1 ? "place" : "places") unchanged."
+            } else {
+                backfillMessage = "Located \(updatedCount) older \(updatedCount == 1 ? "entry" : "entries")."
+            }
         } catch {
             context.rollback()
             backfillMessage = "The older places could not be saved."
@@ -763,12 +767,20 @@ private enum PlaceCoordinateBackfill {
 
                 let city = PlaceFormatting.city(from: item.placemark)
                 let placeName = item.name?.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard let placeName,
+                      !placeName.isEmpty,
+                      PlaceFormatting.isConfidentBackfillMatch(query: query, resultName: placeName)
+                else {
+                    continuation.resume(returning: nil)
+                    return
+                }
                 let displayName = PlaceFormatting.conciseName(
-                    place: placeName?.isEmpty == false ? placeName! : query,
+                    place: placeName,
                     city: city
                 )
                 continuation.resume(returning: LocationSelection(
                     displayName: displayName,
+                    fullAddress: PlaceFormatting.fullAddress(placeName: placeName, placemark: item.placemark),
                     city: city,
                     latitude: item.placemark.coordinate.latitude,
                     longitude: item.placemark.coordinate.longitude

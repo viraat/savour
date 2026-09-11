@@ -225,6 +225,51 @@ final class FoodLogLogicTests: XCTestCase {
             "Roastery Coffee House, Hyderabad"
         )
         XCTAssertEqual(PlaceFormatting.conciseName(place: "Hyderabad", city: "Hyderabad"), "Hyderabad")
+        XCTAssertEqual(
+            PlaceFormatting.fullAddress(
+                placeName: "Roastery Coffee House",
+                addressParts: ["Road No. 14", "Banjara Hills", "Hyderabad", "Telangana", "500034"]
+            ),
+            "Roastery Coffee House, Road No. 14, Banjara Hills, Hyderabad, Telangana, 500034"
+        )
+    }
+
+    func testBackfillOnlyAcceptsSpecificExactPlaceNames() {
+        XCTAssertTrue(PlaceFormatting.isConfidentBackfillMatch(
+            query: "Roastery Coffee House, Hyderabad",
+            resultName: "Roastery Coffee House"
+        ))
+        XCTAssertFalse(PlaceFormatting.isConfidentBackfillMatch(
+            query: "Home",
+            resultName: "Myhome Mandala"
+        ))
+        XCTAssertFalse(PlaceFormatting.isConfidentBackfillMatch(
+            query: "Home",
+            resultName: "Home"
+        ))
+        XCTAssertFalse(PlaceFormatting.isConfidentBackfillMatch(
+            query: "Starbucks",
+            resultName: "Starbucks Reserve"
+        ))
+    }
+
+    func testSelectedLocationSavesConciseNameWhileFreeTextIsPreserved() {
+        XCTAssertEqual(
+            PlaceFormatting.savedPlaceName(
+                typedValue: "Roastery Coffee House, Road No. 14, Banjara Hills, Hyderabad, Telangana, 500034",
+                selectedDisplayName: "Roastery Coffee House, Hyderabad",
+                hasCoordinates: true
+            ),
+            "Roastery Coffee House, Hyderabad"
+        )
+        XCTAssertEqual(
+            PlaceFormatting.savedPlaceName(
+                typedValue: "  Home  ",
+                selectedDisplayName: nil,
+                hasCoordinates: false
+            ),
+            "Home"
+        )
     }
 
     func testLegacyCompanionMigrationCreatesIndividualsAndIsIdempotent() throws {

@@ -239,7 +239,7 @@ struct JournalView: View {
 }
 
 struct EntryRow: View {
-    let entry: FoodEntry
+    @ObservedObject var entry: FoodEntry
     @AppStorage("showMealLabels") private var showMealLabels = true
 
     var body: some View {

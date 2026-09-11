@@ -41,6 +41,7 @@ struct FoodEntryEditor: View {
     @State private var placeLongitude: Double
     @State private var hasPlaceCoordinates: Bool
     @State private var selectedPlaceLabel: String?
+    @State private var selectedPlaceSavedName: String?
     @State private var selectedCompanions: [String]
     @State private var companionQuery = ""
     @State private var note: String
@@ -72,6 +73,7 @@ struct FoodEntryEditor: View {
         _placeLongitude = State(initialValue: entry?.placeLongitude ?? 0)
         _hasPlaceCoordinates = State(initialValue: entry?.hasPlaceCoordinates ?? false)
         _selectedPlaceLabel = State(initialValue: entry?.hasPlaceCoordinates == true ? entry?.wrappedPlace : nil)
+        _selectedPlaceSavedName = State(initialValue: entry?.hasPlaceCoordinates == true ? entry?.wrappedPlace : nil)
         _selectedCompanions = State(initialValue: entry?.companionNames ?? [])
         _note = State(initialValue: entry?.wrappedNote ?? "")
         _photoData = State(initialValue: entry?.photoData)
@@ -806,9 +808,17 @@ struct FoodEntryEditor: View {
                                 Image(systemName: "mappin")
                                     .foregroundColor(FoodTheme.secondaryText)
                                     .frame(width: 20)
-                                Text(suggestion.title)
-                                    .font(.system(.body, design: .rounded).weight(.semibold))
-                                    .foregroundColor(FoodTheme.ink)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(suggestion.title)
+                                        .font(.system(.body, design: .rounded).weight(.semibold))
+                                        .foregroundColor(FoodTheme.ink)
+                                    if !suggestion.subtitle.isEmpty {
+                                        Text(suggestion.subtitle)
+                                            .font(.system(.caption, design: .rounded))
+                                            .foregroundColor(FoodTheme.secondaryText)
+                                            .lineLimit(2)
+                                    }
+                                }
                                 Spacer()
                             }
                             .padding(.horizontal, 14)
@@ -837,8 +847,9 @@ struct FoodEntryEditor: View {
         placeLatitude = selection.latitude
         placeLongitude = selection.longitude
         hasPlaceCoordinates = true
-        selectedPlaceLabel = selection.displayName
-        place = selection.displayName
+        selectedPlaceSavedName = selection.displayName
+        selectedPlaceLabel = selection.fullAddress
+        place = selection.fullAddress
     }
 
     private func applyReusablePlace(_ reusablePlace: ReusablePlace) {
@@ -846,6 +857,7 @@ struct FoodEntryEditor: View {
         placeLatitude = reusablePlace.latitude
         placeLongitude = reusablePlace.longitude
         hasPlaceCoordinates = reusablePlace.hasCoordinates
+        selectedPlaceSavedName = reusablePlace.place
         selectedPlaceLabel = reusablePlace.place
         place = reusablePlace.place
         focusedField = nil
@@ -856,6 +868,7 @@ struct FoodEntryEditor: View {
         placeLatitude = 0
         placeLongitude = 0
         hasPlaceCoordinates = false
+        selectedPlaceSavedName = nil
         selectedPlaceLabel = nil
     }
 
@@ -893,7 +906,11 @@ struct FoodEntryEditor: View {
         target.food = trimmedFood
         target.date = date
         target.mealType = mealType
-        target.place = place.trimmingCharacters(in: .whitespacesAndNewlines)
+        target.place = PlaceFormatting.savedPlaceName(
+            typedValue: place,
+            selectedDisplayName: selectedPlaceSavedName,
+            hasCoordinates: hasPlaceCoordinates
+        )
         target.placeCity = placeCity
         target.placeLatitude = placeLatitude
         target.placeLongitude = placeLongitude

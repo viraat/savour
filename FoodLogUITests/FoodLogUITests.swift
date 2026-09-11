@@ -85,6 +85,21 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(app.textFields["Home, restaurant, office…"].exists)
     }
 
+    func testEditedLocationUpdatesJournalImmediately() {
+        launch(resetStore: true)
+        addEntry(named: "Location refresh")
+        app.staticTexts["Location refresh"].tap()
+        app.buttons["Add details"].tap()
+
+        let placeField = app.textFields["Home, restaurant, office…"]
+        XCTAssertTrue(placeField.waitForExistence(timeout: 2))
+        placeField.tap()
+        placeField.typeText("Home")
+        app.buttons["Save"].tap()
+
+        XCTAssertTrue(app.staticTexts["Home"].waitForExistence(timeout: 3))
+    }
+
     func testUnavailableBiometricsNeverRevealsJournal() {
         launch(
             resetStore: true,
