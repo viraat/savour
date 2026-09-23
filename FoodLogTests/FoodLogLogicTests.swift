@@ -180,6 +180,81 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertEqual(rows[0][2], "08:15")
         XCTAssertEqual(rows[0][8], "Ana, Bob")
         XCTAssertEqual(rows[0][9], "Quiet table")
+        XCTAssertEqual(rows[0][10], entry.id?.uuidString)
+        XCTAssertEqual(try JSONDecoder().decode([String].self, from: Data(rows[0][11].utf8)), ["Ana", "Bob"])
+    }
+
+    func testExportImportRestoresTextFieldsAndSkipsRepeatImport() throws {
+        let source = PersistenceController(inMemory: true).container.viewContext
+        let original = FoodEntry(context: source)
+        original.id = UUID()
+        original.createdAt = Date()
+        original.food = "Soup, bread and \"tea\"\nwith cake"
+        original.date = Calendar.current.date(from: DateComponents(
+            year: 2026, month: 9, day: 11, hour: 12, minute: 5, second: 17
+        ))!
+        original.mealType = "Lunch"
+        original.place = "Corner \"Cafe\", Hyderabad"
+        original.placeCity = "Hyderabad"
+        original.hasPlaceCoordinates = true
+        original.placeLatitude = 17.385
+        original.placeLongitude = 78.4867
+        original.note = "First line, \"quoted\"\nSecond line"
+        original.replaceCompanions(with: ["Smith, Jane", "Ana \"Ace\"\nLee"], in: source)
+        try source.save()
+
+        let url = try XCTUnwrap(CSVExporter.makeFile(from: [original]))
+        defer { try? FileManager.default.removeItem(at: url) }
+        let csv = try String(contentsOf: url, encoding: .utf8)
+        let destination = PersistenceController(inMemory: true).container.viewContext
+        let preview = try FoodLogCSVImporter.preview(csv, fileName: "FoodLog.csv", existingEntries: [])
+        XCTAssertEqual(preview.importableCount, 1)
+        XCTAssertTrue(preview.issues.isEmpty)
+        XCTAssertEqual(try FoodLogCSVImporter.commit(preview, to: destination), 1)
+
+        let restored = try XCTUnwrap(destination.fetch(FoodEntry.fetchRequest()).first)
+        XCTAssertEqual(restored.id, original.id)
+        XCTAssertEqual(restored.food, original.food)
+        XCTAssertEqual(restored.date, original.date)
+        XCTAssertEqual(restored.mealType, original.mealType)
+        XCTAssertEqual(restored.place, original.place)
+        XCTAssertEqual(restored.placeCity, original.placeCity)
+        XCTAssertEqual(restored.placeLatitude, original.placeLatitude)
+        XCTAssertEqual(restored.placeLongitude, original.placeLongitude)
+        XCTAssertEqual(restored.companionNames, original.companionNames)
+        XCTAssertEqual(restored.note, original.note)
+        XCTAssertEqual(CSVExporter.row(for: restored), CSVExporter.row(for: original))
+
+        let repeatPreview = try FoodLogCSVImporter.preview(
+            csv, fileName: "FoodLog.csv", existingEntries: [restored]
+        )
+        XCTAssertEqual(repeatPreview.duplicateCount, 1)
+        XCTAssertEqual(try FoodLogCSVImporter.commit(repeatPreview, to: destination), 0)
+        XCTAssertEqual(try destination.count(for: FoodEntry.fetchRequest()), 1)
+    }
+
+    func testLegacyCSVImportsAndPreviewSkipsInvalidAndDuplicateRows() throws {
+        let valid = ["Toast, jam", "2026-09-11", "08:00", "Breakfast", "Home", "", "", "", "Ana, Bob", "A note\nwith a quote \"here\""]
+        var invalidDate = valid
+        invalidDate[1] = "September 11"
+        var invalidCoordinates = valid
+        invalidCoordinates[6] = "91"
+        invalidCoordinates[7] = "78"
+        let csv = FoodLogCSVDocument.encode(dataRows: [valid, invalidDate, valid, invalidCoordinates])
+        let context = PersistenceController(inMemory: true).container.viewContext
+
+        let preview = try FoodLogCSVImporter.preview(csv, fileName: "old.csv", existingEntries: [])
+        XCTAssertTrue(preview.isLegacyFormat)
+        XCTAssertEqual(preview.importableCount, 1)
+        XCTAssertEqual(preview.duplicateCount, 1)
+        XCTAssertEqual(preview.issues.map(\.rowNumber), [3, 5])
+        XCTAssertEqual(try FoodLogCSVImporter.commit(preview, to: context), 1)
+
+        let restored = try XCTUnwrap(context.fetch(FoodEntry.fetchRequest()).first)
+        XCTAssertEqual(restored.food, valid[0])
+        XCTAssertEqual(restored.companionNames, ["Ana", "Bob"])
+        XCTAssertEqual(restored.note, valid[9])
+        XCTAssertEqual(Array(CSVExporter.row(for: restored).prefix(10)), valid)
     }
 
     func testMalformedCSVIsRejected() {
@@ -213,6 +288,18 @@ final class FoodLogLogicTests: XCTestCase {
         assertDocumentError(
             FoodLogCSVDocument.encode(dataRows: [["Toast", "2026-09-11", "08:00", "Breakfast", "", "", "17", "", "", ""]]),
             equals: .invalidCoordinate(row: 2)
+        )
+        assertDocumentError(
+            FoodLogCSVDocument.encodeExtended(dataRows: [valid + ["bad-id", "[]", "1789113600"]]),
+            equals: .invalidID(row: 2)
+        )
+        assertDocumentError(
+            FoodLogCSVDocument.encodeExtended(dataRows: [valid + [UUID().uuidString, "not-json", "1789113600"]]),
+            equals: .invalidPeople(row: 2)
+        )
+        assertDocumentError(
+            FoodLogCSVDocument.encodeExtended(dataRows: [valid + [UUID().uuidString, "[]", "not-a-time"]]),
+            equals: .invalidTimestamp(row: 2)
         )
     }
 

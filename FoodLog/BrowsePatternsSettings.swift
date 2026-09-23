@@ -2,6 +2,7 @@ import CoreData
 import MapKit
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 private enum PatternRange: Int, CaseIterable {
     case week = 7
@@ -801,6 +802,9 @@ struct FoodLogSettingsView: View {
     @AppStorage(BiometricAuthentication.settingKey) private var biometricLockEnabled = false
     @State private var showingShareSheet = false
     @State private var exportURL: URL?
+    @State private var showingFileImporter = false
+    @State private var importPreview: FoodLogCSVImportPreview?
+    @State private var importMessage: String?
     @State private var confirmErase = false
     @State private var biometricAvailability = BiometricAuthentication.availability()
 
@@ -864,6 +868,12 @@ struct FoodLogSettingsView: View {
 
                     Divider()
 
+                    Button { showingFileImporter = true } label: {
+                        settingsRow(icon: "square.and.arrow.down", title: "Import CSV", detail: nil)
+                    }
+
+                    Divider()
+
                     Button { confirmErase = true } label: {
                         settingsRow(icon: "trash", title: "Erase all entries", detail: nil, destructive: true)
                     }
@@ -895,6 +905,43 @@ struct FoodLogSettingsView: View {
             if let exportURL {
                 ShareSheet(activityItems: [exportURL])
             }
+        }
+        .fileImporter(
+            isPresented: $showingFileImporter,
+            allowedContentTypes: [.commaSeparatedText, .plainText]
+        ) { result in
+            switch result {
+            case let .success(url):
+                let hasAccess = url.startAccessingSecurityScopedResource()
+                defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
+                do {
+                    let csv = try String(contentsOf: url, encoding: .utf8)
+                    importPreview = try FoodLogCSVImporter.preview(
+                        csv,
+                        fileName: url.lastPathComponent,
+                        existingEntries: Array(entries)
+                    )
+                } catch {
+                    importMessage = "Could not preview the CSV: \(error.localizedDescription)"
+                }
+            case let .failure(error):
+                importMessage = "Could not open the CSV: \(error.localizedDescription)"
+            }
+        }
+        .sheet(item: $importPreview) { preview in
+            FoodLogCSVImportPreviewView(preview: preview) {
+                let importedCount = try FoodLogCSVImporter.commit(preview, to: context)
+                importPreview = nil
+                importMessage = "Imported \(importedCount) \(importedCount == 1 ? "entry" : "entries")."
+            }
+        }
+        .alert("CSV import", isPresented: Binding(
+            get: { importMessage != nil },
+            set: { if !$0 { importMessage = nil } }
+        )) {
+            Button("OK") { importMessage = nil }
+        } message: {
+            Text(importMessage ?? "")
         }
         .alert("Erase every entry?", isPresented: $confirmErase) {
             Button("Erase all", role: .destructive, action: eraseAll)
@@ -1029,28 +1076,8 @@ private struct MealDefaultTimesSettingsView: View {
 
 enum CSVExporter {
     static func makeFile(from entries: [FoodEntry]) -> URL? {
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let timeFormatter = DateFormatter()
-        timeFormatter.locale = Locale(identifier: "en_US_POSIX")
-        timeFormatter.dateFormat = "HH:mm"
-
-        let rows = entries.map { entry in
-            [
-                entry.wrappedFood,
-                dateFormatter.string(from: entry.wrappedDate),
-                timeFormatter.string(from: entry.wrappedDate),
-                entry.wrappedMealType,
-                entry.wrappedPlace,
-                entry.wrappedPlaceCity,
-                entry.hasPlaceCoordinates ? String(entry.placeLatitude) : "",
-                entry.hasPlaceCoordinates ? String(entry.placeLongitude) : "",
-                entry.companionDisplayText,
-                entry.wrappedNote
-            ]
-        }
-        let csv = FoodLogCSVDocument.encode(dataRows: rows)
+        let rows = entries.map(row(for:))
+        let csv = FoodLogCSVDocument.encodeExtended(dataRows: rows)
 
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("FoodLog.csv")
         do {
@@ -1061,6 +1088,121 @@ enum CSVExporter {
         }
     }
 
+    static func row(for entry: FoodEntry) -> [String] {
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.calendar = Calendar(identifier: .gregorian)
+        dateFormatter.timeZone = .current
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let timeFormatter = DateFormatter()
+        timeFormatter.locale = Locale(identifier: "en_US_POSIX")
+        timeFormatter.calendar = Calendar(identifier: .gregorian)
+        timeFormatter.timeZone = .current
+        timeFormatter.dateFormat = "HH:mm"
+        let names = entry.companionNames
+        let peopleJSON = (try? JSONEncoder().encode(names)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+        return [
+            entry.wrappedFood,
+            dateFormatter.string(from: entry.wrappedDate),
+            timeFormatter.string(from: entry.wrappedDate),
+            entry.wrappedMealType,
+            entry.wrappedPlace,
+            entry.wrappedPlaceCity,
+            entry.hasPlaceCoordinates ? String(entry.placeLatitude) : "",
+            entry.hasPlaceCoordinates ? String(entry.placeLongitude) : "",
+            entry.companionDisplayText,
+            entry.wrappedNote,
+            entry.id?.uuidString ?? "",
+            peopleJSON,
+            String(entry.wrappedDate.timeIntervalSince1970)
+        ]
+    }
+
+}
+
+private struct FoodLogCSVImportPreviewView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var errorMessage: String?
+    let preview: FoodLogCSVImportPreview
+    let onImport: () throws -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Text("\(preview.importableCount) to import · \(preview.duplicateCount) duplicates · \(preview.issues.count) errors")
+                    Text("Review \(preview.fileName) before adding entries to your journal.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    if preview.isLegacyFormat {
+                        Text("Older CSV files store people as one text field. Names containing commas may be split into separate people.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if !preview.issues.isEmpty {
+                    Section("Validation errors · skipped") {
+                        ForEach(preview.issues) { issue in
+                            Text(issue.message)
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+
+                if !preview.rows.isEmpty {
+                    Section("Entries") {
+                        ForEach(preview.rows) { row in
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(row.food).font(.headline)
+                                    Spacer()
+                                    if row.isDuplicate {
+                                        Text("Duplicate").font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
+                                Text("Row \(row.rowNumber) · \(row.dateText) · \(row.meal)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                if !row.place.isEmpty { Text("Place: \(row.place)") }
+                                if !row.people.isEmpty { Text("People: \(row.people)") }
+                                if !row.note.isEmpty { Text("Note: \(row.note)") }
+                            }
+                            .padding(.vertical, 3)
+                        }
+                    }
+                }
+
+                Section {
+                    Text("CSV exports do not contain photos.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Import preview")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Import \(preview.importableCount)") {
+                        do { try onImport() }
+                        catch { errorMessage = error.localizedDescription }
+                    }
+                        .disabled(preview.importableCount == 0)
+                }
+            }
+            .alert("Import failed", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("OK") { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
+        }
+    }
 }
 
 private struct ShareSheet: UIViewControllerRepresentable {

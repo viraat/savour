@@ -34,7 +34,7 @@ the core experience is a neutral record.
 - Current consecutive-day streak derived from journal entries
 - Eating-place map with optional coordinate backfill for older entries
 - Common places and companions
-- CSV export
+- CSV export and import with a preview of entries, duplicate detection, and row errors
 - Light, dark, and system appearance with five saved accent colors
 - Native navigation, sheets, bottom toolbars, and iOS 26 Liquid Glass styling
 - Optional biometric app lock with background privacy shielding
@@ -57,6 +57,12 @@ The FoodLog target has no third-party package dependencies and does not use
 Dime's iCloud container, widgets, budgets, or intent extensions. This lightweight
 port does not include Dime's original source; attribution and licensing details
 are retained in `NOTICE` and `LICENSE`.
+
+CSV import accepts older FoodLog exports and the current format. New exports
+include entry IDs, exact timestamps, and structured companion names so repeat
+imports can be skipped and names containing commas can be restored. Older
+exports store people as one text field, so names containing commas may be split
+on import. CSV files do not contain photos.
 
 On iOS 26, FoodLog uses the system Liquid Glass effects, glass button styles,
 a grouped bottom navigation toolbar, and a distinct trailing add action. Earlier

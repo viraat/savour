@@ -3,7 +3,7 @@
 FoodLog has two XCTest targets:
 
 - `FoodLogTests` checks parsing, meal suggestions, statistics, default times,
-  CSV validation and round-trips, concise place formatting, and Core Data
+  CSV validation, import round-trips and duplicate handling, concise place formatting, and Core Data
   migration.
 - `FoodLogUITests` checks add, edit, delete, relaunch persistence, explicit meal
   defaults, time controls, denied Contacts and Location behavior, biometric
@@ -59,10 +59,11 @@ Some system integrations need a real device or direct Simulator interaction:
    name and city. Revoke access and confirm free-text place entry and MapKit text
    search remain available.
 5. Take a photo and choose one from Photos, relaunch, then edit and remove it.
-6. Export CSV and inspect it in Numbers or another CSV reader.
+6. Export CSV and inspect it in Numbers or another CSV reader. Import it into a
+   fresh app store, review the preview, and verify the entries. Import it again
+   and confirm the entries are marked as duplicates.
 
-FoodLog currently exports CSV but does not import it. Automated round-trip and
-malformed-file tests exercise the shared CSV codec so exported values—including
-commas, quotes, and line breaks—can be decoded without loss and invalid rows are
-rejected safely. An import screen would need separate product approval and UI
-testing.
+Automated tests cover export to a fresh Core Data store, repeat imports,
+legacy CSV, mixed valid and invalid rows, and text with commas, quotes, and line
+breaks. The file picker and preview sheet should also receive a manual device
+check because they use system UI.

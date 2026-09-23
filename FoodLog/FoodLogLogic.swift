@@ -118,6 +118,9 @@ enum CSVCodecError: Error, Equatable, LocalizedError {
     case emptyFood(row: Int)
     case invalidDate(row: Int)
     case invalidTime(row: Int)
+    case invalidID(row: Int)
+    case invalidPeople(row: Int)
+    case invalidTimestamp(row: Int)
 
     var errorDescription: String? {
         switch self {
@@ -132,6 +135,9 @@ enum CSVCodecError: Error, Equatable, LocalizedError {
         case let .emptyFood(row): return "Row \(row) has no food description."
         case let .invalidDate(row): return "Row \(row) has an invalid date."
         case let .invalidTime(row): return "Row \(row) has an invalid time."
+        case let .invalidID(row): return "Row \(row) has an invalid entry ID."
+        case let .invalidPeople(row): return "Row \(row) has invalid companion data."
+        case let .invalidTimestamp(row): return "Row \(row) has an invalid timestamp."
         }
     }
 }
@@ -223,15 +229,36 @@ enum FoodLogCSVDocument {
         "food", "date", "time", "meal", "place", "city",
         "latitude", "longitude", "people", "note"
     ]
+    static let extendedHeader = header + ["entry_id", "people_json", "timestamp_unix"]
 
     static func encode(dataRows: [[String]]) -> String {
         CSVCodec.encode(rows: [header] + dataRows)
     }
 
+    static func encodeExtended(dataRows: [[String]]) -> String {
+        CSVCodec.encode(rows: [extendedHeader] + dataRows)
+    }
+
     static func decode(_ text: String) throws -> [[String]] {
         let rows = try CSVCodec.decode(text)
         guard let first = rows.first else { throw CSVCodecError.missingHeader }
-        guard first == header else { throw CSVCodecError.invalidHeader }
+        guard first == header || first == extendedHeader else { throw CSVCodecError.invalidHeader }
+
+        for (index, row) in rows.dropFirst().enumerated() {
+            try validate(row, rowNumber: index + 2, columnCount: first.count)
+        }
+
+        return Array(rows.dropFirst())
+    }
+
+    static func validate(_ row: [String], rowNumber: Int, columnCount: Int) throws {
+        guard row.count == columnCount else {
+            throw CSVCodecError.wrongColumnCount(
+                row: rowNumber,
+                expected: columnCount,
+                actual: row.count
+            )
+        }
 
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
@@ -244,33 +271,37 @@ enum FoodLogCSVDocument {
         timeFormatter.dateFormat = "HH:mm"
         timeFormatter.isLenient = false
 
-        for (index, row) in rows.dropFirst().enumerated() {
-            let rowNumber = index + 2
-            guard row.count == header.count else {
-                throw CSVCodecError.wrongColumnCount(
-                    row: rowNumber,
-                    expected: header.count,
-                    actual: row.count
-                )
-            }
-            guard !row[0].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                throw CSVCodecError.emptyFood(row: rowNumber)
-            }
-            guard dateFormatter.date(from: row[1]) != nil else {
-                throw CSVCodecError.invalidDate(row: rowNumber)
-            }
-            guard timeFormatter.date(from: row[2]) != nil else {
-                throw CSVCodecError.invalidTime(row: rowNumber)
-            }
-
-            let latitude = row[6]
-            let longitude = row[7]
-            let bothEmpty = latitude.isEmpty && longitude.isEmpty
-            let validPair = Double(latitude).map { (-90 ... 90).contains($0) } == true
-                && Double(longitude).map { (-180 ... 180).contains($0) } == true
-            guard bothEmpty || validPair else { throw CSVCodecError.invalidCoordinate(row: rowNumber) }
+        guard !row[0].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw CSVCodecError.emptyFood(row: rowNumber)
+        }
+        guard dateFormatter.date(from: row[1]) != nil else {
+            throw CSVCodecError.invalidDate(row: rowNumber)
+        }
+        guard timeFormatter.date(from: row[2]) != nil else {
+            throw CSVCodecError.invalidTime(row: rowNumber)
         }
 
-        return Array(rows.dropFirst())
+        let latitude = row[6]
+        let longitude = row[7]
+        let bothEmpty = latitude.isEmpty && longitude.isEmpty
+        let validPair = Double(latitude).map { (-90 ... 90).contains($0) } == true
+            && Double(longitude).map { (-180 ... 180).contains($0) } == true
+        guard bothEmpty || validPair else { throw CSVCodecError.invalidCoordinate(row: rowNumber) }
+
+        if columnCount == extendedHeader.count {
+            guard row[10].isEmpty || UUID(uuidString: row[10]) != nil else {
+                throw CSVCodecError.invalidID(row: rowNumber)
+            }
+            guard let data = row[11].data(using: .utf8),
+                  let names = try? JSONDecoder().decode([String].self, from: data),
+                  names.joined(separator: ", ") == row[8],
+                  names == CompanionNames.normalized(names) else {
+                throw CSVCodecError.invalidPeople(row: rowNumber)
+            }
+            guard let timestamp = Double(row[12]), timestamp.isFinite,
+                  (-62_135_596_800 ... 253_402_300_799).contains(timestamp) else {
+                throw CSVCodecError.invalidTimestamp(row: rowNumber)
+            }
+        }
     }
 }
