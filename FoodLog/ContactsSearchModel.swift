@@ -16,7 +16,7 @@ final class ContactsSearchModel: ObservableObject {
 
     init(includesImages: Bool = false) {
         self.includesImages = includesImages
-        authorizationStatus = CNContactStore.authorizationStatus(for: .contacts)
+        authorizationStatus = Self.currentAuthorizationStatus()
     }
 
     var canRequestAccess: Bool {
@@ -24,7 +24,7 @@ final class ContactsSearchModel: ObservableObject {
     }
 
     func loadIfAuthorized() {
-        authorizationStatus = CNContactStore.authorizationStatus(for: .contacts)
+        authorizationStatus = Self.currentAuthorizationStatus()
         guard hasAccess(authorizationStatus) else { return }
         isEnabled = true
         loadContactsIfNeeded()
@@ -44,7 +44,7 @@ final class ContactsSearchModel: ObservableObject {
             return
         }
 
-        let authorization = CNContactStore.authorizationStatus(for: .contacts)
+        let authorization = Self.currentAuthorizationStatus()
         authorizationStatus = authorization
         if hasAccess(authorization) {
             loadContactsIfNeeded()
@@ -146,5 +146,14 @@ final class ContactsSearchModel: ObservableObject {
         if authorization == .authorized { return true }
         if #available(iOS 18.0, *), authorization == .limited { return true }
         return false
+    }
+
+    private static func currentAuthorizationStatus() -> CNAuthorizationStatus {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--simulate-contacts-denied") {
+            return .denied
+        }
+#endif
+        return CNContactStore.authorizationStatus(for: .contacts)
     }
 }

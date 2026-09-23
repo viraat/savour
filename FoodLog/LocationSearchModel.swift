@@ -196,6 +196,14 @@ final class LocationSearchModel: NSObject, ObservableObject {
         message = nil
         waitingForAuthorization = true
 
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--simulate-location-denied") {
+            waitingForAuthorization = false
+            message = "Location access is disabled in Settings. Search still works."
+            return
+        }
+#endif
+
         switch locationManager.authorizationStatus {
         case .notDetermined:
             locationManager.requestWhenInUseAuthorization()

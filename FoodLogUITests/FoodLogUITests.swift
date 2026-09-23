@@ -67,7 +67,9 @@ final class FoodLogUITests: XCTestCase {
     }
 
     func testDeniedContactsAndLocationRemainUsable() {
-        launch(resetStore: true)
+        launch(resetStore: true, extraArguments: [
+            "--simulate-contacts-denied", "--simulate-location-denied"
+        ])
         app.buttons["Add entry"].tap()
         app.buttons["Add details"].tap()
 
@@ -124,6 +126,12 @@ final class FoodLogUITests: XCTestCase {
         for tile in ["Eating places", "Overview", "Foods noted", "People"] {
             app.buttons[tile].tap()
             XCTAssertTrue(app.navigationBars[tile].waitForExistence(timeout: 3))
+            if tile == "Eating places" {
+                let pin = app.buttons["eating-place-map-pin"].firstMatch
+                XCTAssertTrue(pin.waitForExistence(timeout: 3))
+                pin.tap()
+                XCTAssertTrue(app.staticTexts["Roastery Coffee House, Hyderabad"].exists)
+            }
             app.buttons["Done"].tap()
         }
 
@@ -152,6 +160,29 @@ final class FoodLogUITests: XCTestCase {
         journalAgain.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.12)).tap()
         XCTAssertTrue(app.navigationBars["Food log"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.navigationBars["Edit entry"].exists)
+    }
+
+    func testCSVPreviewImportsValidRowsAndReportsDuplicatesAndErrors() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-map", "--ui-test-csv-fixture"])
+        app.buttons["Settings"].tap()
+        app.scrollViews.firstMatch.swipeUp()
+        app.buttons["Preview CSV fixture"].tap()
+
+        XCTAssertTrue(app.navigationBars["Import preview"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["1 to import · 1 duplicates · 1 errors"].exists)
+        XCTAssertTrue(app.staticTexts["Row 4 has an invalid date."].exists)
+        XCTAssertTrue(app.staticTexts["Imported CSV fixture"].exists)
+        app.buttons["Import 1"].tap()
+
+        let successAlert = app.alerts["CSV import"]
+        if successAlert.waitForExistence(timeout: 2) { successAlert.buttons["OK"].tap() }
+        app.buttons["Journal"].tap()
+        XCTAssertTrue(app.staticTexts["Imported CSV fixture"].waitForExistence(timeout: 3))
+
+        app.buttons["Settings"].tap()
+        app.scrollViews.firstMatch.swipeUp()
+        app.buttons["Preview CSV fixture"].tap()
+        XCTAssertTrue(app.staticTexts["0 to import · 2 duplicates · 1 errors"].waitForExistence(timeout: 3))
     }
 
     private func launch(resetStore: Bool, extraArguments: [String] = []) {

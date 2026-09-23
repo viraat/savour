@@ -697,6 +697,7 @@ private struct EatingPlacesMap: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel(point.displayName)
                     .accessibilityValue("\(point.count) \(point.count == 1 ? "entry" : "entries")")
+                    .accessibilityIdentifier("eating-place-map-pin")
                 }
             }
             .frame(height: height)
@@ -874,6 +875,13 @@ struct FoodLogSettingsView: View {
 
                     Divider()
 
+#if DEBUG
+                    if ProcessInfo.processInfo.arguments.contains("--ui-test-csv-fixture") {
+                        Button("Preview CSV fixture", action: previewCSVFixture)
+                        Divider()
+                    }
+#endif
+
                     Button { confirmErase = true } label: {
                         settingsRow(icon: "trash", title: "Erase all entries", detail: nil, destructive: true)
                     }
@@ -1032,6 +1040,23 @@ struct FoodLogSettingsView: View {
         exportURL = CSVExporter.makeFile(from: Array(entries))
         showingShareSheet = exportURL != nil
     }
+
+#if DEBUG
+    private func previewCSVFixture() {
+        guard let existing = entries.first else { return }
+        let duplicate = CSVExporter.row(for: existing)
+        var imported = duplicate
+        imported[0] = "Imported CSV fixture"
+        imported[9] = "A note, with \"quotes\"\nand a new line"
+        imported[10] = UUID().uuidString
+        var invalid = imported
+        invalid[1] = "invalid-date"
+        let csv = FoodLogCSVDocument.encodeExtended(dataRows: [duplicate, imported, invalid])
+        importPreview = try? FoodLogCSVImporter.preview(
+            csv, fileName: "fixture.csv", existingEntries: Array(entries)
+        )
+    }
+#endif
 
     private func eraseAll() {
         entries.forEach { context.delete($0) }
