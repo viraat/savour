@@ -359,69 +359,119 @@ final class FoodLogLogicTests: XCTestCase {
         )
     }
 
-    func testLegacyCompanionMigrationCreatesIndividualsAndIsIdempotent() throws {
+    func testLegacyEntryMigrationPreservesRawDataAndIsIdempotent() throws {
         let controller = PersistenceController(inMemory: true)
         let context = controller.container.viewContext
         let entry = FoodEntry(context: context)
-        entry.id = UUID()
         entry.food = "Dinner"
         entry.date = date(2026, 9, 11)
         entry.mealType = "Dinner"
         entry.people = "Ana and Bob, ana"
+        entry.place = "Old Cafe, Hyderabad"
+        entry.hasPlaceCoordinates = true
+        entry.placeLatitude = 120
+        entry.placeLongitude = 78
         try context.save()
 
-        XCTAssertEqual(PersistenceController.migrateLegacyCompanions(in: context), 1)
+        let report = try PersistenceController.migrateLegacyEntries(in: context)
+        XCTAssertEqual(report.assignedIDs, 1)
+        XCTAssertEqual(report.assignedCreationDates, 1)
+        XCTAssertEqual(report.structuredPeople, 1)
+        XCTAssertEqual(report.invalidCoordinatesDisabled, 1)
         XCTAssertEqual(entry.companionNames, ["Ana", "Bob"])
         XCTAssertEqual(entry.companionRecords.map(\.sortIndex), [0, 1])
-        XCTAssertEqual(PersistenceController.migrateLegacyCompanions(in: context), 0)
+        XCTAssertEqual(entry.wrappedPeople, "Ana and Bob, ana")
+        XCTAssertEqual(entry.wrappedPlace, "Old Cafe, Hyderabad")
+        XCTAssertNil(entry.placeCoordinates)
+        XCTAssertEqual(try PersistenceController.migrateLegacyEntries(in: context), .init())
         XCTAssertEqual(entry.companionRecords.count, 2)
     }
 
-    func testLegacyPersistentStoreMigratesToCurrentSchema() throws {
+    func testEveryHistoricalStoreVersionMigratesWithoutLosingEntries() throws {
         let modelDirectory = try XCTUnwrap(
             Bundle(for: FoodEntry.self).url(forResource: "FoodLog", withExtension: "momd")
         )
-        let legacyModelURL = modelDirectory.appendingPathComponent("FoodLog.mom")
-        let legacyModel = try XCTUnwrap(NSManagedObjectModel(contentsOf: legacyModelURL))
-        let storeURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("FoodLogMigration-\(UUID().uuidString).sqlite")
-        defer {
-            for suffix in ["", "-shm", "-wal"] {
-                try? FileManager.default.removeItem(atPath: storeURL.path + suffix)
+        for version in ["FoodLog", "FoodLogV2", "FoodLogV3", "FoodLogV4"] {
+            let modelURL = modelDirectory.appendingPathComponent("\(version).mom")
+            let model = try XCTUnwrap(NSManagedObjectModel(contentsOf: modelURL))
+            let storeURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("FoodLogMigration-\(UUID().uuidString).sqlite")
+            defer {
+                for suffix in ["", "-shm", "-wal"] {
+                    try? FileManager.default.removeItem(atPath: storeURL.path + suffix)
+                }
             }
+
+            let originalID = UUID()
+            let coordinator = NSPersistentStoreCoordinator(managedObjectModel: model)
+            let legacyStore = try coordinator.addPersistentStore(
+                ofType: NSSQLiteStoreType,
+                configurationName: nil,
+                at: storeURL
+            )
+            let legacyContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+            legacyContext.persistentStoreCoordinator = coordinator
+            try legacyContext.performAndWait {
+                for index in 0 ..< 2 {
+                    let entry = NSEntityDescription.insertNewObject(forEntityName: "FoodEntry", into: legacyContext)
+                    entry.setValue(originalID, forKey: "id")
+                    entry.setValue("Legacy meal \(index)", forKey: "food")
+                    entry.setValue(date(2026, 9, 8 + index, 19), forKey: "date")
+                    entry.setValue("Dinner", forKey: "mealType")
+                    entry.setValue(index == 0 ? "Ana and Bob" : "Cara", forKey: "people")
+                    entry.setValue("Old Cafe \(index)", forKey: "place")
+                    entry.setValue("Note \(index)", forKey: "note")
+                    if version != "FoodLog" {
+                        entry.setValue(Data([1, 2, UInt8(index)]), forKey: "photoData")
+                    }
+                    if version == "FoodLogV4" && index == 0 {
+                        entry.setValue("Hyderabad", forKey: "placeCity")
+                        entry.setValue(17.385, forKey: "placeLatitude")
+                        entry.setValue(78.4867, forKey: "placeLongitude")
+                        entry.setValue(true, forKey: "hasPlaceCoordinates")
+                    }
+                }
+                try legacyContext.save()
+            }
+            try coordinator.remove(legacyStore)
+
+            let migratedController = PersistenceController(storeURL: storeURL)
+            let context = migratedController.container.viewContext
+            let entries = try context.fetch(FoodEntry.fetchRequest())
+            XCTAssertEqual(entries.count, 2, version)
+            XCTAssertEqual(Set(entries.compactMap(\.id)).count, 2, version)
+            XCTAssertTrue(entries.compactMap(\.id).contains(originalID), version)
+
+            let first = try XCTUnwrap(entries.first { $0.food == "Legacy meal 0" })
+            let second = try XCTUnwrap(entries.first { $0.food == "Legacy meal 1" })
+            XCTAssertEqual(first.companionNames, ["Ana", "Bob"], version)
+            XCTAssertEqual(second.companionNames, ["Cara"], version)
+            XCTAssertEqual(first.wrappedPeople, "Ana and Bob", version)
+            XCTAssertEqual(first.wrappedPlace, "Old Cafe 0", version)
+            XCTAssertEqual(second.wrappedNote, "Note 1", version)
+            XCTAssertEqual(first.createdAt, first.date, version)
+            if version == "FoodLog" {
+                XCTAssertNil(first.photoData)
+            } else {
+                XCTAssertEqual(first.photoData, Data([1, 2, 0]), version)
+            }
+            if version == "FoodLogV4" {
+                XCTAssertEqual(first.wrappedPlaceCity, "Hyderabad")
+                XCTAssertEqual(first.placeCoordinates?.latitude, 17.385)
+                XCTAssertEqual(first.placeCoordinates?.longitude, 78.4867)
+            } else {
+                XCTAssertEqual(first.wrappedPlaceCity, "", version)
+                XCTAssertNil(first.placeCoordinates)
+            }
+            let oldCSV = FoodLogCSVDocument.encode(dataRows: [Array(CSVExporter.row(for: first).prefix(10))])
+            let importPreview = try FoodLogCSVImporter.preview(
+                oldCSV, fileName: "old.csv", existingEntries: entries
+            )
+            XCTAssertEqual(importPreview.duplicateCount, 1, version)
+            XCTAssertEqual(try FoodLogCSVImporter.commit(importPreview, to: context), 0, version)
+            XCTAssertEqual(try context.count(for: FoodEntry.fetchRequest()), 2, version)
+            XCTAssertEqual(try PersistenceController.migrateLegacyEntries(in: context), .init(), version)
         }
-
-        let coordinator = NSPersistentStoreCoordinator(managedObjectModel: legacyModel)
-        let legacyStore = try coordinator.addPersistentStore(
-            ofType: NSSQLiteStoreType,
-            configurationName: nil,
-            at: storeURL
-        )
-        let legacyContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
-        legacyContext.persistentStoreCoordinator = coordinator
-        try legacyContext.performAndWait {
-            let entry = NSEntityDescription.insertNewObject(forEntityName: "FoodEntry", into: legacyContext)
-            entry.setValue(UUID(), forKey: "id")
-            entry.setValue("Legacy meal", forKey: "food")
-            entry.setValue(date(2026, 9, 8, 19), forKey: "date")
-            entry.setValue("Dinner", forKey: "mealType")
-            entry.setValue("Ana and Bob", forKey: "people")
-            entry.setValue("Old Cafe", forKey: "place")
-            try legacyContext.save()
-        }
-        try coordinator.remove(legacyStore)
-
-        let migratedController = PersistenceController(storeURL: storeURL)
-        let context = migratedController.container.viewContext
-        let entries = try context.fetch(FoodEntry.fetchRequest())
-        let migrated = try XCTUnwrap(entries.first)
-        PersistenceController.migrateLegacyCompanions(in: context)
-
-        XCTAssertEqual(migrated.wrappedFood, "Legacy meal")
-        XCTAssertEqual(migrated.wrappedPlace, "Old Cafe")
-        XCTAssertEqual(migrated.wrappedPlaceCity, "")
-        XCTAssertFalse(migrated.hasPlaceCoordinates)
-        XCTAssertEqual(migrated.companionNames, ["Ana", "Bob"])
     }
 
     private func assertCSVError(

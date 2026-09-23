@@ -75,6 +75,11 @@ it does not fill the field. MapKit choices are saved as place name and city, wit
 coordinates stored separately for the eating-place map. Free-text places continue
 to work and previously used places appear as quick fills. Older free-text places
 can be located from Patterns through an explicit MapKit backfill action.
+On upgrade, FoodLog keeps the original place text and any valid saved coordinates.
+It leaves unknown city and coordinate fields empty until an exact place match is
+chosen; it does not guess a location from free text. Legacy entries also receive
+stable IDs and structured companion records without changing their original
+people text.
 
 The Contacts button requests access only when you tap it and stays enabled for
 the rest of that entry. It reads formatted names for autocomplete. FoodLog does

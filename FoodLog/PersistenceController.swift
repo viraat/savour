@@ -13,6 +13,7 @@ final class PersistenceController {
         } else if let storeURL {
             container.persistentStoreDescriptions.first?.url = storeURL
         }
+        container.persistentStoreDescriptions.first?.shouldAddStoreAsynchronously = false
 
         container.persistentStoreDescriptions.first?.setOption(
             true as NSNumber,
@@ -36,30 +37,84 @@ final class PersistenceController {
             }
 
             guard let context = container?.viewContext else { return }
-            context.perform {
-                Self.migrateLegacyCompanions(in: context)
+            context.performAndWait {
+                do {
+                    try Self.migrateLegacyEntries(in: context)
+                } catch {
+                    NSLog("FoodLog could not finish migrating legacy entries: %@", error.localizedDescription)
+                }
             }
         }
 
     }
 
+    struct MigrationReport: Equatable {
+        var assignedIDs = 0
+        var assignedCreationDates = 0
+        var structuredPeople = 0
+        var invalidCoordinatesDisabled = 0
+    }
+
     @discardableResult
-    static func migrateLegacyCompanions(in context: NSManagedObjectContext) -> Int {
-        let request = FoodEntry.fetchRequest()
-        guard let entries = try? context.fetch(request) else { return 0 }
+    static func migrateLegacyEntries(in context: NSManagedObjectContext) throws -> MigrationReport {
+        let request: NSFetchRequest<FoodEntry> = FoodEntry.fetchRequest()
+        let entries = try context.fetch(request)
+        var seenIDs = Set<UUID>()
+        var report = MigrationReport()
 
-        var migratedCount = 0
-        for entry in entries where entry.companionRecords.isEmpty {
-            let names = CompanionNames.parse(entry.wrappedPeople)
-            guard !names.isEmpty else { continue }
-            entry.replaceCompanions(with: names, in: context)
-            migratedCount += 1
+        for entry in entries {
+            if let id = entry.id, seenIDs.insert(id).inserted {
+                // Keep the original identity when it is unique.
+            } else {
+                let id = UUID()
+                entry.id = id
+                seenIDs.insert(id)
+                report.assignedIDs += 1
+            }
+
+            if entry.createdAt == nil {
+                entry.createdAt = entry.date ?? Date()
+                report.assignedCreationDates += 1
+            }
+
+            if entry.companionRecords.isEmpty {
+                let names = CompanionNames.parse(entry.wrappedPeople)
+                if !names.isEmpty {
+                    for (index, name) in names.enumerated() {
+                        let companion = FoodEntryCompanion(context: context)
+                        companion.id = UUID()
+                        companion.name = name
+                        companion.sortIndex = Int16(clamping: index)
+                        companion.entry = entry
+                    }
+                    report.structuredPeople += 1
+                }
+            }
+
+            if entry.hasPlaceCoordinates && !Self.validCoordinates(
+                latitude: entry.placeLatitude,
+                longitude: entry.placeLongitude
+            ) {
+                entry.hasPlaceCoordinates = false
+                report.invalidCoordinatesDisabled += 1
+            }
         }
 
-        if migratedCount > 0 {
-            try? context.save()
+        if context.hasChanges {
+            do {
+                try context.save()
+            } catch {
+                context.rollback()
+                throw error
+            }
         }
-        return migratedCount
+        return report
+    }
+
+    static func validCoordinates(latitude: Double, longitude: Double) -> Bool {
+        latitude.isFinite && longitude.isFinite
+            && (-90 ... 90).contains(latitude)
+            && (-180 ... 180).contains(longitude)
     }
 }
 
@@ -92,7 +147,9 @@ extension FoodEntry {
     var wrappedNote: String { note ?? "" }
 
     var placeCoordinates: (latitude: Double, longitude: Double)? {
-        guard hasPlaceCoordinates else { return nil }
+        guard hasPlaceCoordinates,
+              PersistenceController.validCoordinates(latitude: placeLatitude, longitude: placeLongitude)
+        else { return nil }
         return (placeLatitude, placeLongitude)
     }
 
