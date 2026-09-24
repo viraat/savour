@@ -53,6 +53,7 @@ struct FoodLogRootView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity)
+                .background(FoodTheme.background)
                 .contentShape(Rectangle())
                 .simultaneousGesture(TapGesture().onEnded {})
                 .zIndex(10)
@@ -85,6 +86,7 @@ struct FoodLogRootView: View {
 
 private struct FoodBottomBar: View {
     @Environment(\.foodAccentColor) private var accentColor
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Binding var selection: FoodTab
     let addEntry: () -> Void
 
@@ -110,12 +112,14 @@ private struct FoodBottomBar: View {
             VStack(spacing: 3) {
                 Image(systemName: tab.icon)
                     .font(.system(size: 18, weight: .semibold))
-                Text(tab.rawValue)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Text(tab.rawValue)
+                        .font(.system(.caption2, design: .rounded).weight(.semibold))
+                }
             }
-            .foregroundStyle(selection == tab ? accentColor : FoodTheme.secondaryText)
+            .foregroundStyle(selection == tab ? FoodTheme.ink : FoodTheme.secondaryText)
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .frame(minHeight: 50)
             .contentShape(Rectangle())
             .background(
                 selection == tab ? Color(uiColor: .tertiarySystemFill) : .clear,
@@ -137,7 +141,7 @@ private struct FoodBottomBar: View {
         .foodPrimaryActionStyle()
         .buttonBorderShape(.capsule)
         .tint(accentColor)
-        .foregroundStyle(.white)
+        .foregroundStyle(FoodTheme.onAccent)
         .accessibilityLabel("Add entry")
         .accessibilityHint("Opens the food entry sheet")
     }
@@ -149,7 +153,10 @@ enum FoodTheme {
     static let field = Color(uiColor: .tertiarySystemGroupedBackground)
     static let ink = Color(uiColor: .label)
     static let onInk = Color(uiColor: .systemBackground)
-    static let secondaryText = Color(uiColor: .secondaryLabel)
+    static let onAccent = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark ? .black : .white
+    })
+    static let secondaryText = Color(uiColor: .label).opacity(0.75)
     static let outline = Color(uiColor: .separator).opacity(0.35)
     static func color(for mealType: String) -> Color {
         switch mealType {
@@ -184,7 +191,29 @@ enum FoodAccentOption: String, CaseIterable, Identifiable {
     case rose = "D56F8C"
 
     var id: String { rawValue }
-    var color: Color { Color(hex: rawValue) }
+    var color: Color {
+        Color(uiColor: UIColor { traits in
+            let hex: String
+            if traits.userInterfaceStyle == .dark {
+                switch self {
+                case .teal: hex = "65DDB7"
+                case .ocean: hex = "73C8E2"
+                case .blue: hex = "9AC1FF"
+                case .violet: hex = "C6A8FF"
+                case .rose: hex = "FFADC4"
+                }
+            } else {
+                switch self {
+                case .teal: hex = "087A5B"
+                case .ocean: hex = "006C89"
+                case .blue: hex = "2B5FAB"
+                case .violet: hex = "6947A3"
+                case .rose: hex = "A74162"
+                }
+            }
+            return UIColor(Color(hex: hex))
+        })
+    }
 
     var name: String {
         switch self {
@@ -259,7 +288,7 @@ private struct FoodPanelModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .background(FoodTheme.surface, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(FoodTheme.outline, lineWidth: 0.5)

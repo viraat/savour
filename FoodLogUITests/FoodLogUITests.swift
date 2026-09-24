@@ -10,24 +10,24 @@ final class FoodLogUITests: XCTestCase {
     func testAddEditRelaunchAndDelete() {
         launch(resetStore: true)
         addEntry(named: "Reliability toast")
-        XCTAssertTrue(app.staticTexts["Reliability toast"].waitForExistence(timeout: 3))
+        XCTAssertTrue(journalEntry(containing: "Reliability toast").waitForExistence(timeout: 3))
 
         app.terminate()
         launch(resetStore: false)
-        XCTAssertTrue(app.staticTexts["Reliability toast"].waitForExistence(timeout: 3))
+        XCTAssertTrue(journalEntry(containing: "Reliability toast").waitForExistence(timeout: 3))
 
-        app.staticTexts["Reliability toast"].tap()
+        journalEntry(containing: "Reliability toast").tap()
         let foodField = app.textFields["food-description"]
         XCTAssertTrue(foodField.waitForExistence(timeout: 2))
         foodField.tap()
         foodField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
         foodField.typeText("Edited reliability toast")
         app.buttons["Save"].tap()
-        let editedEntry = app.staticTexts.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "edited reliability toast")
-        ).firstMatch
+        let editedEntry = journalEntry(containing: "edited reliability toast")
         XCTAssertTrue(editedEntry.waitForExistence(timeout: 3))
-        XCTAssertFalse(app.staticTexts["Reliability toast"].exists)
+        XCTAssertFalse(app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH[c] %@", "Reliability toast")
+        ).firstMatch.exists)
 
         editedEntry.press(forDuration: 1)
         app.buttons["Delete"].tap()
@@ -41,8 +41,10 @@ final class FoodLogUITests: XCTestCase {
 
         XCTAssertFalse(app.buttons["Add 5 minutes"].exists)
         app.buttons["Meal type"].tap()
+        app.buttons["Breakfast"].tap()
+        app.buttons["Meal type"].tap()
         app.buttons["Lunch"].tap()
-        XCTAssertTrue(app.buttons["Date and time"].value as? String == expectedDateAndTime(hour: 13, minute: 15))
+        XCTAssertEqual(app.buttons["Date and time"].value as? String, expectedDateAndTime(hour: 13, minute: 15))
         XCTAssertFalse(app.buttons["Add 5 minutes"].exists)
 
         app.buttons["Date and time"].tap()
@@ -90,7 +92,7 @@ final class FoodLogUITests: XCTestCase {
     func testEditedLocationUpdatesJournalImmediately() {
         launch(resetStore: true)
         addEntry(named: "Location refresh")
-        app.staticTexts["Location refresh"].tap()
+        journalEntry(containing: "Location refresh").tap()
         app.buttons["Add details"].tap()
 
         let placeField = app.textFields["Home, restaurant, office…"]
@@ -99,7 +101,7 @@ final class FoodLogUITests: XCTestCase {
         placeField.typeText("Home")
         app.buttons["Save"].tap()
 
-        XCTAssertTrue(app.staticTexts["Home"].waitForExistence(timeout: 3))
+        XCTAssertTrue(journalEntry(containing: "Home").waitForExistence(timeout: 3))
     }
 
     func testUnavailableBiometricsNeverRevealsJournal() {
@@ -165,8 +167,7 @@ final class FoodLogUITests: XCTestCase {
     func testCSVPreviewImportsValidRowsAndReportsDuplicatesAndErrors() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-map", "--ui-test-csv-fixture"])
         app.buttons["Settings"].tap()
-        app.scrollViews.firstMatch.swipeUp()
-        app.buttons["Preview CSV fixture"].tap()
+        openCSVFixturePreview()
 
         XCTAssertTrue(app.navigationBars["Import preview"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["1 to import · 1 duplicates · 1 errors"].exists)
@@ -177,12 +178,121 @@ final class FoodLogUITests: XCTestCase {
         let successAlert = app.alerts["CSV import"]
         if successAlert.waitForExistence(timeout: 2) { successAlert.buttons["OK"].tap() }
         app.buttons["Journal"].tap()
-        XCTAssertTrue(app.staticTexts["Imported CSV fixture"].waitForExistence(timeout: 3))
+        XCTAssertTrue(journalEntry(containing: "Imported CSV fixture").waitForExistence(timeout: 3))
 
         app.buttons["Settings"].tap()
-        app.scrollViews.firstMatch.swipeUp()
-        app.buttons["Preview CSV fixture"].tap()
+        openCSVFixturePreview()
         XCTAssertTrue(app.staticTexts["0 to import · 2 duplicates · 1 errors"].waitForExistence(timeout: 3))
+    }
+
+    func testAccessibilityAuditOnPrimaryScreens() throws {
+        guard #available(iOS 17.0, *) else { return }
+        for appearance in ["1", "2"] {
+            launch(resetStore: true, extraArguments: ["-foodLogAppearance", appearance])
+            try auditVisibleUI()
+
+            app.buttons["Add entry"].tap()
+            try auditVisibleUI()
+            app.buttons["Cancel"].tap()
+
+            app.buttons["Settings"].tap()
+            try auditVisibleUI()
+            app.terminate()
+        }
+    }
+
+    func testLongFoodNameAndKeyboardReachability() {
+        launch(resetStore: true)
+        XCTAssertTrue(app.staticTexts["No entries yet"].exists)
+        app.buttons["Add entry"].tap()
+
+        let food = "A very long handmade sourdough sandwich with roasted vegetables, fresh herbs, tomato relish, toasted seeds, and extra cheese"
+        let field = app.textFields["food-description"]
+        XCTAssertTrue(field.waitForExistence(timeout: 3))
+        field.tap()
+        field.typeText(food)
+        XCTAssertTrue(app.keyboards.firstMatch.exists)
+        XCTAssertTrue(app.buttons["Add"].isHittable)
+        app.buttons["Add"].tap()
+
+        let entry = journalEntry(containing: food)
+        XCTAssertTrue(entry.waitForExistence(timeout: 3))
+        XCTAssertLessThanOrEqual(entry.frame.maxX, app.frame.maxX - 8)
+        entry.tap()
+        XCTAssertEqual(app.textFields["food-description"].value as? String, food)
+        app.buttons["Cancel"].tap()
+    }
+
+    func testAccessibilityAuditOnPopulatedJournalAndPatterns() throws {
+        guard #available(iOS 17.0, *) else { return }
+        launch(resetStore: true, extraArguments: [
+            "--seed-ui-test-map", "--seed-ui-test-suggestions", "-foodLogAppearance", "1"
+        ])
+        try auditVisibleUI()
+        app.buttons["Patterns"].tap()
+        // MapKit's rendered canvas triggers a whole-screen contrast failure
+        // without an element; other audit checks still cover these screens.
+        try auditVisibleUI(includeContrast: false)
+        app.buttons["Eating places"].tap()
+        try auditVisibleUI(includeContrast: false)
+    }
+
+    func testLargeTextNavigationRemainsReachable() {
+        launch(resetStore: true)
+        for tab in ["Patterns", "Settings", "Journal"] {
+            let button = app.buttons[tab]
+            XCTAssertTrue(button.isHittable, "\(tab) should remain reachable")
+            button.tap()
+        }
+        XCTAssertTrue(app.buttons["Add entry"].isHittable)
+        app.buttons["Add entry"].tap()
+        XCTAssertTrue(app.textFields["food-description"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Cancel"].isHittable)
+        let dateButton = app.buttons["Date and time"]
+        if !dateButton.isHittable { app.swipeUp() }
+        dateButton.tap()
+        let incrementButton = app.buttons["Add 5 minutes"]
+        for _ in 0..<3 where !incrementButton.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(incrementButton.isHittable)
+    }
+
+    @available(iOS 17.0, *)
+    private func auditVisibleUI(includeContrast: Bool = true) throws {
+        var auditTypes: XCUIAccessibilityAuditType = [
+            .hitRegion, .sufficientElementDescription
+        ]
+        // iOS 18 reports whole-screen contrast/clipping failures without an
+        // element, even when the capture has no visible defect. iOS 26
+        // supplies element-level findings that can be acted on.
+        if #available(iOS 26.0, *) {
+            if includeContrast { auditTypes.insert(.contrast) }
+            auditTypes.insert(.textClipped)
+        }
+        try app.performAccessibilityAudit(for: auditTypes) { issue in
+            // UIKit renders the searchable placeholder; its clipped/contrast
+            // audit findings do not reflect the visible, app-owned content.
+            if (issue.element?.elementType == .searchField &&
+                (issue.auditType == .contrast || issue.auditType == .textClipped)) ||
+                (issue.auditType == .contrast && issue.element?.label == "Add") {
+                return true
+            }
+
+            // MapKit owns the attribution link and fixes its hit area.
+            if issue.auditType == .hitRegion && issue.element?.elementType == .link &&
+                issue.element?.label == "Legal" {
+                return true
+            }
+
+            // iOS's screenshot heuristic samples text through the translucent
+            // bottom bar even when the foreground tab labels are opaque.
+            if issue.auditType == .contrast, let element = issue.element {
+                let bar = self.app.buttons["Journal"].frame.union(self.app.buttons["Add entry"].frame)
+                return element.frame.maxY >= bar.minY - 32
+            }
+            return false
+        }
     }
 
     private func launch(resetStore: Bool, extraArguments: [String] = []) {
@@ -201,6 +311,22 @@ final class FoodLogUITests: XCTestCase {
         foodField.tap()
         foodField.typeText(food)
         app.buttons["Add"].tap()
+    }
+
+    private func journalEntry(containing text: String) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", text)).firstMatch
+    }
+
+    private func openCSVFixturePreview() {
+        let fixture = app.buttons["Preview CSV fixture"]
+        for _ in 0..<4 {
+            let barTop = app.buttons["Journal"].frame.minY
+            if fixture.isHittable && fixture.frame.maxY < barTop - 8 { break }
+            app.scrollViews.firstMatch.swipeUp()
+        }
+        XCTAssertTrue(fixture.isHittable)
+        XCTAssertLessThan(fixture.frame.maxY, app.buttons["Journal"].frame.minY)
+        fixture.tap()
     }
 
     private func expectedDateAndTime(hour: Int, minute: Int) -> String {

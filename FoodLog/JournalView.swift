@@ -4,6 +4,7 @@ import UIKit
 
 struct JournalView: View {
     @Environment(\.managedObjectContext) private var context
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)],
         animation: .default
@@ -82,7 +83,7 @@ struct JournalView: View {
         .searchable(
             text: $query,
             placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "Food, place, person, or note"
+            prompt: "Search entries"
         )
         .textInputAutocapitalization(.never)
         .toolbar {
@@ -113,25 +114,34 @@ struct JournalView: View {
 
     private var weeklySummary: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .lastTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("THIS WEEK")
-                        .sectionLabel()
-                    Text("\(thisWeek.count)")
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
-                        .foregroundColor(FoodTheme.ink)
+            if dynamicTypeSize.isAccessibilitySize {
+                Text("THIS WEEK")
+                    .sectionLabel()
+                Text("\(thisWeek.count) \(thisWeek.count == 1 ? "entry" : "entries") logged")
+                    .font(.system(.title3, design: .rounded).weight(.bold))
+                    .foregroundColor(FoodTheme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                HStack(alignment: .lastTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("THIS WEEK")
+                            .sectionLabel()
+                        Text("\(thisWeek.count)")
+                            .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                            .foregroundColor(FoodTheme.ink)
+                    }
+                    Spacer()
+                    Text(thisWeek.count == 1 ? "entry logged" : "entries logged")
+                        .font(.system(.body, design: .rounded).weight(.medium))
+                        .foregroundColor(FoodTheme.secondaryText)
+                        .padding(.bottom, 8)
                 }
-                Spacer()
-                Text(thisWeek.count == 1 ? "entry logged" : "entries logged")
-                    .font(.system(.body, design: .rounded).weight(.medium))
-                    .foregroundColor(FoodTheme.secondaryText)
-                    .padding(.bottom, 8)
             }
 
             if mealCounts.isEmpty {
                 Text("Your meal categories will appear here.")
                     .font(.system(.subheadline, design: .rounded))
-                    .foregroundColor(FoodTheme.secondaryText)
+                    .foregroundColor(FoodTheme.ink)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -142,7 +152,7 @@ struct JournalView: View {
                                 Image(systemName: FoodTheme.symbol(for: meal))
                                 Text(meal)
                                 Text("\(count)")
-                                    .foregroundColor(FoodTheme.color(for: meal))
+                                    .foregroundColor(FoodTheme.ink)
                             }
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
                             .padding(.horizontal, 10)
@@ -161,6 +171,7 @@ struct JournalView: View {
         VStack(spacing: 12) {
             Image(systemName: "fork.knife.circle")
                 .font(.system(size: 44, weight: .regular))
+                .accessibilityHidden(true)
             Text("No entries yet")
                 .font(.system(.title3, design: .rounded).weight(.bold))
                 .foregroundColor(FoodTheme.ink)
@@ -178,6 +189,7 @@ struct JournalView: View {
         VStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 34, weight: .medium))
+                .accessibilityHidden(true)
             Text("Nothing found")
                 .font(.system(.title3, design: .rounded).weight(.bold))
         }
@@ -210,17 +222,20 @@ struct JournalView: View {
 
             VStack(spacing: 0) {
                 ForEach(Array(group.entries.enumerated()), id: \.element.objectID) { index, entry in
-                    EntryRow(entry: entry)
-                        .contentShape(Rectangle())
-                        .onTapGesture { selectedEntry = entry }
-                        .contextMenu {
-                            Button { selectedEntry = entry } label: {
-                                Label("Edit", systemImage: "pencil")
-                            }
-                            Button(role: .destructive) { entryToDelete = entry } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
+                    Button { selectedEntry = entry } label: {
+                        EntryRow(entry: entry)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Opens this entry for editing")
+                    .contextMenu {
+                        Button { selectedEntry = entry } label: {
+                            Label("Edit", systemImage: "pencil")
                         }
+                        Button(role: .destructive) { entryToDelete = entry } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
 
                     if index < group.entries.count - 1 {
                         Divider().padding(.leading, 55)
@@ -260,6 +275,7 @@ struct EntryRow: View {
                         FoodTheme.color(for: entry.wrappedMealType).opacity(0.16),
                         in: RoundedRectangle(cornerRadius: 13, style: .continuous)
                     )
+                    .accessibilityHidden(true)
             }
 
             VStack(alignment: .leading, spacing: 5) {
@@ -269,16 +285,17 @@ struct EntryRow: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .layoutPriority(1)
 
-                HStack(spacing: 7) {
-                    Text(FoodLogFormatters.time.string(from: entry.wrappedDate))
-                    if showMealLabels {
-                        Text("•")
-                        Text(entry.wrappedMealType)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 7) {
+                        Text(FoodLogFormatters.time.string(from: entry.wrappedDate))
+                        if showMealLabels {
+                            Text("•")
+                            Text(entry.wrappedMealType)
+                        }
                     }
                     if !entry.wrappedPlace.isEmpty {
-                        Text("•")
                         Label(entry.wrappedPlace, systemImage: "mappin")
-                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .font(.system(.caption, design: .rounded).weight(.medium))
@@ -301,8 +318,8 @@ struct EntryRow: View {
 
 extension View {
     func sectionLabel() -> some View {
-        font(.system(size: 12, weight: .bold, design: .rounded))
+        font(.system(.caption, design: .rounded).weight(.bold))
             .tracking(0.8)
-            .foregroundColor(FoodTheme.secondaryText)
+            .foregroundColor(FoodTheme.ink)
     }
 }

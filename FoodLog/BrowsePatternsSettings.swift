@@ -39,6 +39,7 @@ private enum PatternDetail: String, Identifiable {
 struct PatternsView: View {
     @Environment(\.managedObjectContext) private var context
     @Environment(\.foodAccentColor) private var accentColor
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)]
     ) private var entries: FetchedResults<FoodEntry>
@@ -147,49 +148,46 @@ struct PatternsView: View {
         .sheet(item: $selectedDetail, content: detailSheet)
     }
 
+    @ViewBuilder
     private var rangePicker: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            rangePickerControl.pickerStyle(.menu)
+        } else {
+            rangePickerControl.pickerStyle(.segmented)
+        }
+    }
+
+    private var rangePickerControl: some View {
         Picker("Range", selection: $range) {
             ForEach(PatternRange.allCases, id: \.rawValue) { option in
                 Text(option.label).tag(option)
             }
         }
-        .pickerStyle(.segmented)
     }
 
     private var summaryCards: some View {
         Button {
             selectedDetail = .overview
         } label: {
-            HStack(spacing: 0) {
-                overviewMetric(
-                    value: selectedEntries.count,
-                    label: "Entries",
-                    symbol: "square.and.pencil"
-                )
-
-                Divider().frame(height: 54)
-
-                overviewMetric(
-                    value: daysRepresented,
-                    label: "Days",
-                    symbol: "calendar"
-                )
-
-                Divider().frame(height: 54)
-
-                overviewMetric(
-                    value: peopleCounts.count,
-                    label: "People",
-                    symbol: "person.2.fill"
-                )
-
-                Divider().frame(height: 54)
-
-                overviewMetric(
-                    value: currentStreak,
-                    label: "Streak",
-                    symbol: "flame.fill"
-                )
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                        overviewMetric(value: selectedEntries.count, label: "Entries", symbol: "square.and.pencil")
+                        overviewMetric(value: daysRepresented, label: "Days", symbol: "calendar")
+                        overviewMetric(value: peopleCounts.count, label: "People", symbol: "person.2.fill")
+                        overviewMetric(value: currentStreak, label: "Streak", symbol: "flame.fill")
+                    }
+                } else {
+                    HStack(spacing: 0) {
+                        overviewMetric(value: selectedEntries.count, label: "Entries", symbol: "square.and.pencil")
+                        Divider().frame(height: 54)
+                        overviewMetric(value: daysRepresented, label: "Days", symbol: "calendar")
+                        Divider().frame(height: 54)
+                        overviewMetric(value: peopleCounts.count, label: "People", symbol: "person.2.fill")
+                        Divider().frame(height: 54)
+                        overviewMetric(value: currentStreak, label: "Streak", symbol: "flame.fill")
+                    }
+                }
             }
             .padding(.vertical, 16)
             .contentShape(Rectangle())
@@ -208,8 +206,7 @@ struct PatternsView: View {
             Text(label)
                 .font(.system(.caption2, design: .rounded).weight(.semibold))
                 .foregroundStyle(FoodTheme.secondaryText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
     }
@@ -693,6 +690,7 @@ private struct EatingPlacesMap: View {
                             .font(.system(size: selectedPointID == point.id ? 27 : 23, weight: .semibold))
                             .foregroundStyle(accentColor)
                             .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
+                            .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(point.displayName)
@@ -709,7 +707,7 @@ private struct EatingPlacesMap: View {
                         .foregroundStyle(accentColor)
                     Text(selectedPoint.displayName)
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer()
                     Text("\(selectedPoint.count)")
                         .font(.system(.subheadline, design: .rounded).weight(.bold))
@@ -794,6 +792,7 @@ private enum PlaceCoordinateBackfill {
 
 struct FoodLogSettingsView: View {
     @Environment(\.managedObjectContext) private var context
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FetchRequest(sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)])
     private var entries: FetchedResults<FoodEntry>
 
@@ -817,12 +816,11 @@ struct FoodLogSettingsView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 20) {
                 settingsSection("APPEARANCE") {
-                    Picker("Appearance", selection: $appearance) {
-                        Text("System").tag(0)
-                        Text("Light").tag(1)
-                        Text("Dark").tag(2)
+                    if dynamicTypeSize.isAccessibilitySize {
+                        appearancePicker.pickerStyle(.menu)
+                    } else {
+                        appearancePicker.pickerStyle(.segmented)
                     }
-                    .pickerStyle(.segmented)
 
                     Divider()
 
@@ -963,12 +961,23 @@ struct FoodLogSettingsView: View {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.0"
     }
 
+    private var appearancePicker: some View {
+        Picker("Appearance", selection: $appearance) {
+            Text("System").tag(0)
+            Text("Light").tag(1)
+            Text("Dark").tag(2)
+        }
+    }
+
     private var accentPicker: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Accent color")
                 .font(.system(.body, design: .rounded).weight(.medium))
 
-            HStack(spacing: 8) {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: dynamicTypeSize.isAccessibilitySize ? 90 : 48))],
+                spacing: 12
+            ) {
                 ForEach(FoodAccentOption.allCases) { option in
                     Button {
                         accentValue = option.rawValue
@@ -982,7 +991,7 @@ struct FoodLogSettingsView: View {
                                 if accentValue == option.rawValue {
                                     Image(systemName: "checkmark")
                                         .font(.system(size: 13, weight: .bold))
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(FoodTheme.onAccent)
                                 }
                             }
                             .overlay {

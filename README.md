@@ -76,8 +76,9 @@ coordinates stored separately for the eating-place map. Free-text places continu
 to work and previously used places appear as quick fills. Older free-text places
 can be located from Patterns through an explicit MapKit backfill action.
 On upgrade, FoodLog keeps the original place text and any valid saved coordinates.
-It leaves unknown city and coordinate fields empty until an exact place match is
-chosen; it does not guess a location from free text. Legacy entries also receive
+It leaves unknown city and coordinate fields empty until the user selects a
+MapKit place or explicitly backfills older places from Patterns; it does not
+guess a location from free text. Legacy entries also receive
 stable IDs and structured companion records without changing their original
 people text.
 

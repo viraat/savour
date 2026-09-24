@@ -26,6 +26,7 @@ struct FoodEntryEditor: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var context
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.createdAt, ascending: false)]
     ) private var previousEntries: FetchedResults<FoodEntry>
@@ -267,7 +268,7 @@ struct FoodEntryEditor: View {
 
             TextField("e.g. dosa and chutney", text: $food, axis: .vertical)
                 .accessibilityIdentifier("food-description")
-                .font(.system(size: 22, weight: .semibold, design: .rounded))
+                .font(.system(.title2, design: .rounded).weight(.semibold))
                 .foregroundColor(FoodTheme.ink)
                 .lineLimit(2 ... 5)
                 .textInputAutocapitalization(.sentences)
@@ -326,18 +327,20 @@ struct FoodEntryEditor: View {
 
     private var whenRow: some View {
         Button {
+            focusedField = nil
             withAnimation(.easeInOut(duration: 0.18)) {
                 isEditingTime.toggle()
             }
         } label: {
             HStack(spacing: 10) {
-                Text("Date & time")
-                    .foregroundStyle(FoodTheme.ink)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Date & time")
+                        .foregroundStyle(FoodTheme.ink)
+                    Text("\(FoodLogFormatters.shortDate.string(from: date)) · \(FoodLogFormatters.time.string(from: date))")
+                        .foregroundStyle(FoodTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Spacer(minLength: 8)
-                Text("\(FoodLogFormatters.shortDate.string(from: date)) · \(FoodLogFormatters.time.string(from: date))")
-                    .foregroundStyle(FoodTheme.secondaryText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
                 Image(systemName: isEditingTime ? "chevron.down" : "chevron.right")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(FoodTheme.secondaryText)
@@ -360,8 +363,10 @@ struct FoodEntryEditor: View {
             DatePicker("Time", selection: $date, displayedComponents: .hourAndMinute)
                 .datePickerStyle(.compact)
 
-            HStack(spacing: 8) {
-                Spacer()
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: dynamicTypeSize.isAccessibilitySize ? 160 : 80))],
+                spacing: 8
+            ) {
                 Button("Now", action: setTimeToNow)
                     .accessibilityLabel("Set time to now")
                 Button("−5 min") { adjustTime(by: -5) }
@@ -370,7 +375,7 @@ struct FoodEntryEditor: View {
                     .accessibilityLabel("Add 5 minutes")
             }
             .buttonStyle(.bordered)
-            .controlSize(.small)
+            .controlSize(.regular)
             .tint(FoodTheme.secondaryText)
         }
         .font(.system(.body, design: .rounded).weight(.medium))
@@ -405,7 +410,6 @@ struct FoodEntryEditor: View {
                     .foregroundStyle(FoodTheme.secondaryText)
             }
             .font(.system(.body, design: .rounded).weight(.medium))
-            .lineLimit(1)
             .padding(.horizontal, 16)
             .frame(minHeight: 58)
             .contentShape(Rectangle())
@@ -581,7 +585,7 @@ struct FoodEntryEditor: View {
                         }
                     }
                     .foregroundColor(contactsSearch.isEnabled ? FoodTheme.onInk : FoodTheme.secondaryText)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 44, height: 44)
                     .background(contactsSearch.isEnabled ? FoodTheme.ink : FoodTheme.field, in: Circle())
                 }
                 .disabled(contactsSearch.isEnabled || contactsSearch.isLoading)
@@ -766,7 +770,7 @@ struct FoodEntryEditor: View {
                         }
                     }
                     .foregroundColor(locationSearch.isEnabled ? FoodTheme.onInk : FoodTheme.secondaryText)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 44, height: 44)
                     .background(locationSearch.isEnabled ? FoodTheme.ink : FoodTheme.field, in: Circle())
                 }
                 .accessibilityLabel(locationSearch.isEnabled ? "Disable location suggestions" : "Enable location suggestions")

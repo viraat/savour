@@ -7,7 +7,8 @@ FoodLog has two XCTest targets:
   formatting, and migration from every stored model version.
 - `FoodLogUITests` checks add, edit, delete, relaunch persistence, explicit meal
   defaults, time controls, denied Contacts and Location behavior, biometric
-  content shielding, map-pin selection, CSV preview/import, and appearance changes.
+  content shielding, map-pin selection, CSV preview/import, appearance changes,
+  long food names, keyboard reachability, and accessibility semantics.
 
 UI tests launch the app with `--ui-testing` and use a separate
 `FoodLogUITests.sqlite` store in the test app container. Resetting this store
@@ -32,6 +33,25 @@ The test run completed on:
 - iPhone 16e, iOS 26.3.1: CRUD, relaunch, defaults, map, appearance, and lock
 - iPhone 16e, iOS 18.6: complete unit and UI suites, including appearance fallback
 
+The navigation/editor smoke test also passed on the iPhone SE (3rd generation),
+iPhone 13 mini, iPhone 11 Pro, iPhone 16 Plus, iPhone Air, and iPhone 17 Pro Max.
+These cover the available 4.7-, 5.4-, 5.8-, 6.5-, 6.7-, and 6.9-inch screen
+classes in addition to the 6.1- and 6.3-inch full-suite devices. The SE and
+17 Pro smoke tests also passed at the largest accessibility text size.
+
+On iOS 26, the UI suite audits the journal, editor, and settings in light and
+dark mode for contrast, hit regions, element descriptions, and clipped text.
+It also audits a populated journal and the Patterns/map screens. MapKit's canvas
+can trigger a contrast result with no identified element, so those map screens
+retain the other three audit checks. On iOS 18, XCTest similarly reports
+screen-wide contrast/clipping failures with no element, so its automated audit
+checks hit regions and descriptions; light/dark screenshots were inspected.
+The audit also excludes the system search placeholder, MapKit's own legal link,
+and content scrolling behind the bottom bar. Dynamic Type is checked with the
+simulator's actual largest content-size setting, because the XCTest audit
+reports custom SwiftUI tab labels as partially unsupported even when their
+size changes correctly.
+
 ## Manual device checks
 
 Some system integrations need a real device or direct Simulator interaction:
@@ -48,6 +68,10 @@ Some system integrations need a real device or direct Simulator interaction:
 6. Export CSV and inspect it in Numbers or another CSV reader. Import it into a
    fresh app store, review the preview, and verify the entries. Import it again
    and confirm the entries are marked as duplicates.
+7. With VoiceOver enabled, navigate the journal, open an entry, edit its fields,
+   and verify the tab buttons, entry row, filters, map pin, and settings controls
+   have understandable labels and actions. Repeat at the largest text size and
+   with Increase Contrast enabled on a physical device.
 
 Automated tests cover export to a fresh Core Data store, repeat imports,
 legacy CSV, mixed valid and invalid rows, and text with commas, quotes, and line
