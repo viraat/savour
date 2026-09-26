@@ -229,11 +229,6 @@ final class LocationSearchModel: NSObject, ObservableObject {
     }
 
     private func requestLocation() {
-        guard CLLocationManager.locationServicesEnabled() else {
-            waitingForAuthorization = false
-            message = "Location Services are off. Search still works."
-            return
-        }
         isLocating = true
         locationManager.requestLocation()
     }
