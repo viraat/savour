@@ -53,7 +53,7 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Set time to now"].exists)
     }
 
-    func testMealSpecificSuggestionAppendsWithoutDuplication() {
+    func testFoodSuggestionReplacesOnlyCurrentSegmentWithoutDuplication() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-suggestions"])
         app.buttons["Add entry"].tap()
         app.buttons["Meal type"].tap()
@@ -61,10 +61,11 @@ final class FoodLogUITests: XCTestCase {
 
         let foodField = app.textFields["food-description"]
         foodField.tap()
+        foodField.typeText("Eggs, Toa")
         let toastSuggestion = app.buttons["Toast"]
         XCTAssertTrue(toastSuggestion.waitForExistence(timeout: 2))
         toastSuggestion.tap()
-        XCTAssertEqual(foodField.value as? String, "Toast")
+        XCTAssertEqual(foodField.value as? String, "Eggs, Toast")
         XCTAssertFalse(app.buttons["Toast"].exists)
     }
 

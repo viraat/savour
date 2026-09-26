@@ -87,8 +87,13 @@ struct FoodEntryEditor: View {
 
     private var suggestions: [String] {
         FoodSuggestionEngine.suggestions(
-            from: previousEntries.map {
-                FoodSuggestionSource(mealType: $0.wrappedMealType, food: $0.wrappedFood)
+            from: previousEntries.compactMap { previousEntry in
+                guard previousEntry.objectID != entry?.objectID else { return nil }
+                return FoodSuggestionSource(
+                    mealType: previousEntry.wrappedMealType,
+                    food: previousEntry.wrappedFood,
+                    date: previousEntry.wrappedDate
+                )
             },
             mealType: mealType,
             currentFood: food
@@ -282,7 +287,7 @@ struct FoodEntryEditor: View {
                     HStack(spacing: 8) {
                         ForEach(suggestions, id: \.self) { suggestion in
                             Button {
-                                appendFoodSuggestion(suggestion)
+                                applyFoodSuggestion(suggestion)
                             } label: {
                                 Text(suggestion)
                                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
@@ -298,14 +303,8 @@ struct FoodEntryEditor: View {
         }
     }
 
-    private func appendFoodSuggestion(_ suggestion: String) {
-        let existingItems = FoodItemParser.items(in: food)
-        guard !existingItems.contains(where: {
-            $0.caseInsensitiveCompare(suggestion) == .orderedSame
-        }) else { return }
-
-        let current = food.trimmingCharacters(in: .whitespacesAndNewlines)
-        food = current.isEmpty ? suggestion : "\(current), \(suggestion)"
+    private func applyFoodSuggestion(_ suggestion: String) {
+        food = FoodSuggestionEngine.replacingCurrentSegment(in: food, with: suggestion)
         focusedField = .food
     }
 

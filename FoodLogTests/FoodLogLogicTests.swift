@@ -42,7 +42,7 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertEqual(MealTypeSuggestion.suggested(for: date(2026, 9, 11, 23), calendar: utcCalendar), "Snack")
     }
 
-    func testSuggestionsAreMealSpecificRankedAndDeduplicatedPerEntry() {
+    func testSuggestionsUseIndividualFoodsAcrossMealsAndDeduplicatePerEntry() {
         let sources = [
             FoodSuggestionSource(mealType: "Breakfast", food: "Toast, Eggs, toast"),
             FoodSuggestionSource(mealType: "Breakfast", food: "eggs, Coffee"),
@@ -54,10 +54,103 @@ final class FoodLogLogicTests: XCTestCase {
             FoodSuggestionEngine.suggestions(
                 from: sources,
                 mealType: "Breakfast",
-                currentFood: "eggs",
+                currentFood: "eggs, ",
                 limit: 8
             ),
-            ["Toast", "Coffee"]
+            ["Toast", "Coffee", "Pasta"]
+        )
+    }
+
+    func testFoodSuggestionsMatchOnlyCurrentSegmentAndExcludeExistingFoods() {
+        let sources = [
+            FoodSuggestionSource(mealType: "Lunch", food: "Rice, Tofu  scramble"),
+            FoodSuggestionSource(mealType: "Dinner", food: "Grilled tofu, Dal"),
+            FoodSuggestionSource(mealType: "Lunch", food: "Tofu, rice, tofu")
+        ]
+
+        XCTAssertEqual(
+            FoodSuggestionEngine.suggestions(
+                from: sources,
+                mealType: "Lunch",
+                currentFood: " rice , DAL, tof"
+            ),
+            ["Tofu", "Tofu scramble", "Grilled tofu"]
+        )
+        XCTAssertEqual(
+            FoodSuggestionEngine.suggestions(
+                from: sources,
+                mealType: "Lunch",
+                currentFood: "Rice, tofu, gri"
+            ),
+            ["Grilled tofu"]
+        )
+    }
+
+    func testFoodSuggestionRankingUsesMatchMealFrequencyAndRecency() {
+        let sources = [
+            FoodSuggestionSource(mealType: "Dinner", food: "Tofu scramble", date: date(2026, 9, 1)),
+            FoodSuggestionSource(mealType: "Dinner", food: "Tofu scramble", date: date(2026, 9, 2)),
+            FoodSuggestionSource(mealType: "Lunch", food: "Tofu salad", date: date(2026, 9, 1)),
+            FoodSuggestionSource(mealType: "Lunch", food: "Tofu soup", date: date(2026, 9, 3)),
+            FoodSuggestionSource(mealType: "Lunch", food: "Tofu scramble", date: date(2026, 9, 2)),
+            FoodSuggestionSource(mealType: "Lunch", food: "Grilled tofu", date: date(2026, 9, 4))
+        ]
+
+        XCTAssertEqual(
+            FoodSuggestionEngine.suggestions(
+                from: sources,
+                mealType: "Lunch",
+                currentFood: "tof"
+            ),
+            ["Tofu scramble", "Tofu soup", "Tofu salad", "Grilled tofu"]
+        )
+        XCTAssertEqual(
+            FoodSuggestionEngine.suggestions(
+                from: sources,
+                mealType: "Breakfast",
+                currentFood: "tof",
+                limit: 2
+            ),
+            ["Tofu scramble", "Tofu soup"]
+        )
+    }
+
+    func testFoodSuggestionsNormalizeWhitespaceAndAllowSmallTypos() {
+        let sources = [
+            FoodSuggestionSource(mealType: "Lunch", food: "Tofu  scramble, tofu scramble"),
+            FoodSuggestionSource(mealType: "Lunch", food: "Tofu")
+        ]
+
+        XCTAssertEqual(
+            FoodSuggestionEngine.suggestions(from: sources, mealType: "Lunch", currentFood: "tofu   scrambl"),
+            ["Tofu scramble"]
+        )
+        XCTAssertEqual(
+            FoodSuggestionEngine.suggestions(from: sources, mealType: "Lunch", currentFood: "tofu", limit: 8),
+            ["Tofu scramble"]
+        )
+        XCTAssertEqual(
+            FoodSuggestionEngine.suggestions(from: sources, mealType: "Lunch", currentFood: "tofu scrambel"),
+            ["Tofu scramble"]
+        )
+        XCTAssertEqual(
+            FoodSuggestionEngine.suggestions(from: sources, mealType: "Lunch", currentFood: "tifu", limit: 1),
+            ["Tofu"]
+        )
+    }
+
+    func testReplacingFoodSuggestionKeepsEarlierSegmentsUnchanged() {
+        XCTAssertEqual(
+            FoodSuggestionEngine.replacingCurrentSegment(in: "rice, dal, tof", with: "Tofu"),
+            "rice, dal, Tofu"
+        )
+        XCTAssertEqual(
+            FoodSuggestionEngine.replacingCurrentSegment(in: " rice ,  dal,tof", with: "Tofu"),
+            " rice ,  dal, Tofu"
+        )
+        XCTAssertEqual(
+            FoodSuggestionEngine.replacingCurrentSegment(in: "tof", with: "Tofu"),
+            "Tofu"
         )
     }
 

@@ -14,36 +14,136 @@ enum FoodItemParser {
 struct FoodSuggestionSource {
     let mealType: String
     let food: String
+    let date: Date
+
+    init(mealType: String, food: String, date: Date = .distantPast) {
+        self.mealType = mealType
+        self.food = food
+        self.date = date
+    }
 }
 
 enum FoodSuggestionEngine {
+    private struct Candidate {
+        let name: String
+        var count: Int
+        var mealCount: Int
+        var lastUsed: Date
+    }
+
     static func suggestions(
         from sources: [FoodSuggestionSource],
         mealType: String,
         currentFood: String,
         limit: Int = 8
     ) -> [String] {
-        var counts: [String: (name: String, count: Int)] = [:]
+        let query = key(for: currentSegment(in: currentFood))
+        let selected = Set(FoodItemParser.items(in: currentFood).map(key(for:)))
+        let selectedMeal = key(for: mealType)
+        var candidates: [String: Candidate] = [:]
 
-        for source in sources where source.mealType == mealType {
+        for source in sources {
             var countedForEntry = Set<String>()
             for item in FoodItemParser.items(in: source.food) {
-                let key = item.lowercased()
-                guard countedForEntry.insert(key).inserted else { continue }
-                let current = counts[key] ?? (item, 0)
-                counts[key] = (current.name, current.count + 1)
+                let name = normalizedWhitespace(item)
+                let itemKey = key(for: name)
+                guard countedForEntry.insert(itemKey).inserted else { continue }
+                var candidate = candidates[itemKey] ?? Candidate(
+                    name: name,
+                    count: 0,
+                    mealCount: 0,
+                    lastUsed: .distantPast
+                )
+                candidate.count += 1
+                if key(for: source.mealType) == selectedMeal {
+                    candidate.mealCount += 1
+                }
+                candidate.lastUsed = max(candidate.lastUsed, source.date)
+                candidates[itemKey] = candidate
             }
         }
 
-        let selected = Set(FoodItemParser.items(in: currentFood).map { $0.lowercased() })
-        return counts.values
-            .filter { !selected.contains($0.name.lowercased()) }
+        return candidates.compactMap { itemKey, candidate -> (Candidate, Int)? in
+            guard !selected.contains(itemKey), let match = matchRank(itemKey, query: query) else {
+                return nil
+            }
+            return (candidate, match)
+        }
             .sorted {
-                if $0.count != $1.count { return $0.count > $1.count }
-                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+                if $0.1 != $1.1 { return $0.1 > $1.1 }
+                if ($0.0.mealCount > 0) != ($1.0.mealCount > 0) {
+                    return $0.0.mealCount > 0
+                }
+                if $0.0.mealCount != $1.0.mealCount {
+                    return $0.0.mealCount > $1.0.mealCount
+                }
+                if $0.0.count != $1.0.count { return $0.0.count > $1.0.count }
+                if $0.0.lastUsed != $1.0.lastUsed { return $0.0.lastUsed > $1.0.lastUsed }
+                return $0.0.name.localizedCaseInsensitiveCompare($1.0.name) == .orderedAscending
             }
             .prefix(max(limit, 0))
-            .map(\.name)
+            .map { $0.0.name }
+    }
+
+    static func replacingCurrentSegment(in description: String, with suggestion: String) -> String {
+        guard let comma = description.lastIndex(of: ",") else { return suggestion }
+        return "\(description[...comma]) \(suggestion)"
+    }
+
+    private static func currentSegment(in description: String) -> String {
+        guard let comma = description.lastIndex(of: ",") else { return description }
+        return String(description[description.index(after: comma)...])
+    }
+
+    private static func normalizedWhitespace(_ value: String) -> String {
+        value.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
+    private static func key(for value: String) -> String {
+        normalizedWhitespace(value)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
+
+    private static func matchRank(_ candidate: String, query: String) -> Int? {
+        guard !query.isEmpty else { return 0 }
+        if candidate.hasPrefix(query) { return 4 }
+        let words = candidate.split(separator: " ").map(String.init)
+        if words.contains(where: { $0.hasPrefix(query) }) { return 3 }
+        if candidate.contains(query) { return 2 }
+
+        guard query.count >= 3 else { return nil }
+        let distance = query.count >= 5 ? 2 : 1
+        if isWithinEditDistance(query, of: candidate, limit: distance)
+            || words.contains(where: { isWithinEditDistance(query, of: $0, limit: distance) }) {
+            return 1
+        }
+        return nil
+    }
+
+    private static func isWithinEditDistance(_ query: String, of word: String, limit: Int) -> Bool {
+        let left = Array(query)
+        let right = Array(word)
+        guard abs(left.count - right.count) <= limit else { return false }
+        var previous = Array(0 ... right.count)
+
+        for (leftIndex, character) in left.enumerated() {
+            var current = [leftIndex + 1]
+            var rowMinimum = current[0]
+            for (rightIndex, other) in right.enumerated() {
+                let cost = character == other ? 0 : 1
+                let result = min(
+                    previous[rightIndex + 1] + 1,
+                    current[rightIndex] + 1,
+                    previous[rightIndex] + cost
+                )
+                current.append(result)
+                rowMinimum = min(rowMinimum, result)
+            }
+            if rowMinimum > limit { return false }
+            previous = current
+        }
+        return previous[right.count] <= limit
     }
 }
 
