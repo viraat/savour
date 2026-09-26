@@ -277,6 +277,13 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode([String].self, from: Data(rows[0][11].utf8)), ["Ana", "Bob"])
     }
 
+    func testCSVExporterCreatesValidHeaderForEmptyJournal() throws {
+        let url = try XCTUnwrap(CSVExporter.makeFile(from: []))
+        defer { try? FileManager.default.removeItem(at: url) }
+        let rows = try FoodLogCSVDocument.decode(String(contentsOf: url, encoding: .utf8))
+        XCTAssertTrue(rows.isEmpty)
+    }
+
     func testExportImportRestoresTextFieldsAndSkipsRepeatImport() throws {
         let source = PersistenceController(inMemory: true).container.viewContext
         let original = FoodEntry(context: source)

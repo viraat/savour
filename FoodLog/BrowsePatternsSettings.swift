@@ -845,7 +845,7 @@ struct FoodLogSettingsView: View {
                 }
 
                 settingsSection("PRIVACY") {
-                    Toggle(isOn: $biometricLockEnabled) {
+                    HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("App lock")
                                 .font(.system(.body, design: .rounded).weight(.medium))
@@ -853,17 +853,19 @@ struct FoodLogSettingsView: View {
                                  ? "Require \(biometricAvailability.name) when opening FoodLog"
                                  : "Face ID or Touch ID is unavailable")
                                 .font(.system(.caption, design: .rounded))
-                                .foregroundColor(FoodTheme.secondaryText)
+                                .foregroundColor(FoodTheme.ink)
                         }
+                        Spacer()
+                        Toggle("App lock", isOn: $biometricLockEnabled)
+                            .labelsHidden()
+                            .disabled(!biometricAvailability.isAvailable && !biometricLockEnabled)
                     }
-                    .disabled(!biometricAvailability.isAvailable && !biometricLockEnabled)
                 }
 
                 settingsSection("YOUR DATA") {
                     Button(action: exportCSV) {
                         settingsRow(icon: "square.and.arrow.up", title: "Export CSV", detail: "\(entries.count) entries")
                     }
-                    .disabled(entries.isEmpty)
 
                     Divider()
 
@@ -1005,7 +1007,7 @@ struct FoodLogSettingsView: View {
 
                             Text(option.name)
                                 .font(.system(.caption2, design: .rounded).weight(.medium))
-                                .foregroundStyle(FoodTheme.secondaryText)
+                                .foregroundStyle(FoodTheme.ink)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -1036,7 +1038,7 @@ struct FoodLogSettingsView: View {
             if let detail {
                 Text(detail)
                     .font(.system(.subheadline, design: .rounded))
-                    .foregroundColor(FoodTheme.secondaryText)
+                    .foregroundColor(FoodTheme.ink)
             }
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .bold))

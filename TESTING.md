@@ -3,10 +3,11 @@
 FoodLog has two XCTest targets:
 
 - `FoodLogTests` checks parsing, meal suggestions, statistics, default times,
-  CSV validation, import round-trips and duplicate handling, concise place
+  inline food matching and replacement, CSV validation, import round-trips,
+  empty exports and duplicate handling, concise place
   formatting, and migration from every stored model version.
 - `FoodLogUITests` checks add, edit, delete, relaunch persistence, explicit meal
-  defaults, time controls, denied Contacts and Location behavior, biometric
+  defaults, inline autocomplete, time controls, denied Contacts and Location behavior, biometric
   content shielding, map-pin selection, CSV preview/import, appearance changes,
   long food names, keyboard reachability, and accessibility semantics.
 

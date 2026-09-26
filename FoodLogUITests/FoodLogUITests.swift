@@ -193,6 +193,13 @@ final class FoodLogUITests: XCTestCase {
             try auditVisibleUI()
 
             app.buttons["Add entry"].tap()
+            XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 3))
+            // Audit FoodLog's editor controls after dismissing the system
+            // keyboard, whose prediction buttons have their own audit issues.
+            let dateAndTime = app.buttons["Date and time"]
+            dateAndTime.tap()
+            dateAndTime.tap()
+            XCTAssertFalse(app.keyboards.firstMatch.exists)
             try auditVisibleUI()
             app.buttons["Cancel"].tap()
 

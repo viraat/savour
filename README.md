@@ -26,7 +26,7 @@ the core experience is a neutral record.
 - Individual companions with optional Contacts autocomplete and photos in Patterns
 - Companion quick fills and automatically inferred recurring groups
 - Optional photo from the camera or system photo picker
-- Meal-aware suggestions ranked from comma-separated foods in previous entries
+- Inline food autocomplete for the current comma-separated item, ranked by match, meal type, frequency, and recency
 - Journal grouped by day
 - Search across food, place, people, and notes
 - Meal-category filtering
@@ -62,7 +62,8 @@ CSV import accepts older FoodLog exports and the current format. New exports
 include entry IDs, exact timestamps, and structured companion names so repeat
 imports can be skipped and names containing commas can be restored. Older
 exports store people as one text field, so names containing commas may be split
-on import. CSV files do not contain photos.
+on import. An empty journal exports a valid header-only CSV. CSV files do not
+contain photos.
 
 On iOS 26, FoodLog uses the system Liquid Glass effects, glass button styles,
 a grouped bottom navigation toolbar, and a distinct trailing add action. Earlier
