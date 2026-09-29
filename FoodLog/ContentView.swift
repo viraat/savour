@@ -1,3 +1,4 @@
+import CoreData
 import SwiftUI
 import UIKit
 
@@ -40,8 +41,15 @@ private enum FoodTab: String, CaseIterable {
 }
 
 struct FoodLogRootView: View {
+    private struct EditorPresentation: Identifiable {
+        let id = UUID()
+        let entry: FoodEntry?
+        let draftKey: FoodEntryDraftKey?
+    }
+
+    @Environment(\.managedObjectContext) private var context
     @State private var selectedTab: FoodTab = .journal
-    @State private var addingEntry = false
+    @State private var editorPresentation: EditorPresentation?
 
     @ViewBuilder
     var body: some View {
@@ -58,7 +66,11 @@ struct FoodLogRootView: View {
                 .simultaneousGesture(TapGesture().onEnded {})
                 .zIndex(10)
         }
-        .sheet(isPresented: $addingEntry, content: entrySheet)
+        .sheet(item: $editorPresentation) { presentation in
+            FoodEntryEditor(entry: presentation.entry, draftKey: presentation.draftKey)
+                .presentationDragIndicator(.visible)
+        }
+        .onAppear(perform: resumeInterruptedDraft)
     }
 
     @ViewBuilder
@@ -73,14 +85,27 @@ struct FoodLogRootView: View {
         }
     }
 
-    private func entrySheet() -> some View {
-        FoodEntryEditor(entry: nil)
-            .presentationDragIndicator(.visible)
-    }
-
     private func addEntry() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        addingEntry = true
+        editorPresentation = EditorPresentation(entry: nil, draftKey: .new)
+    }
+
+    private func resumeInterruptedDraft() {
+        guard editorPresentation == nil,
+              let key = try? FoodEntryDraftStore.shared.activeDraftKey() else { return }
+        let entry: FoodEntry?
+        if case let .edit(id) = key {
+            let request: NSFetchRequest<FoodEntry> = FoodEntry.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+            request.fetchLimit = 1
+            entry = try? context.fetch(request).first
+        } else {
+            entry = nil
+        }
+        DispatchQueue.main.async {
+            guard editorPresentation == nil else { return }
+            editorPresentation = EditorPresentation(entry: entry, draftKey: key)
+        }
     }
 }
 

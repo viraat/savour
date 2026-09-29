@@ -26,6 +26,7 @@ struct FoodEntryEditor: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.createdAt, ascending: false)]
     ) private var previousEntries: FetchedResults<FoodEntry>
@@ -34,6 +35,8 @@ struct FoodEntryEditor: View {
     @AppStorage(FastTargetPreference.key) private var defaultFastTargetHours = 0.0
 
     let entry: FoodEntry?
+    let draftKey: FoodEntryDraftKey
+    private let baselineDraft: FoodEntryDraft
 
     @State private var food: String
     @State private var date: Date
@@ -46,7 +49,7 @@ struct FoodEntryEditor: View {
     @State private var selectedPlaceLabel: String?
     @State private var selectedPlaceSavedName: String?
     @State private var selectedCompanions: [String]
-    @State private var companionQuery = ""
+    @State private var companionQuery: String
     @State private var note: String
     @State private var photoData: Data?
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -54,11 +57,17 @@ struct FoodEntryEditor: View {
     @State private var isLoadingPhoto = false
     @State private var photoMessage: String?
     @State private var confirmDelete = false
+    @State private var confirmDiscard = false
     @State private var detailsExpanded: Bool
     @State private var showingDateTimeSheet = false
-    @State private var startFastAfterMeal = false
+    @State private var startFastAfterMeal: Bool
     @State private var askAboutActiveFast = false
     @State private var fastingMessage: String?
+    @State private var draftError: String?
+    @State private var hasSavedDraft: Bool
+    @State private var finished = false
+    @State private var closedByUser = false
+    @State private var didSaveEntry = false
     @StateObject private var locationSearch = LocationSearchModel()
     @StateObject private var contactsSearch = ContactsSearchModel()
     @FocusState private var focusedField: Field?
@@ -67,23 +76,85 @@ struct FoodEntryEditor: View {
         case food, place, companion, note
     }
 
-    init(entry: FoodEntry?) {
+    init(entry: FoodEntry?, draftKey overrideDraftKey: FoodEntryDraftKey? = nil) {
         self.entry = entry
+        let key = overrideDraftKey ?? entry?.id.map(FoodEntryDraftKey.edit) ?? .new
+        self.draftKey = key
         let initialDate = entry?.wrappedDate ?? Date()
-        _food = State(initialValue: entry?.wrappedFood ?? "")
-        _date = State(initialValue: initialDate)
-        _mealType = State(initialValue: entry?.wrappedMealType ?? MealTypeSuggestion.suggested(for: initialDate))
-        _place = State(initialValue: entry?.wrappedPlace ?? "")
-        _placeCity = State(initialValue: entry?.wrappedPlaceCity ?? "")
-        _placeLatitude = State(initialValue: entry?.placeLatitude ?? 0)
-        _placeLongitude = State(initialValue: entry?.placeLongitude ?? 0)
-        _hasPlaceCoordinates = State(initialValue: entry?.hasPlaceCoordinates ?? false)
-        _selectedPlaceLabel = State(initialValue: entry?.hasPlaceCoordinates == true ? entry?.wrappedPlace : nil)
-        _selectedPlaceSavedName = State(initialValue: entry?.hasPlaceCoordinates == true ? entry?.wrappedPlace : nil)
-        _selectedCompanions = State(initialValue: entry?.companionNames ?? [])
-        _note = State(initialValue: entry?.wrappedNote ?? "")
-        _photoData = State(initialValue: entry?.photoData)
-        _detailsExpanded = State(initialValue: Self.hasDetails(entry))
+        let baseline = FoodEntryDraft(
+            food: entry?.wrappedFood ?? "",
+            date: initialDate,
+            mealType: entry?.wrappedMealType ?? MealTypeSuggestion.suggested(for: initialDate),
+            place: entry?.wrappedPlace ?? "",
+            placeCity: entry?.wrappedPlaceCity ?? "",
+            placeLatitude: entry?.placeLatitude ?? 0,
+            placeLongitude: entry?.placeLongitude ?? 0,
+            hasPlaceCoordinates: entry?.hasPlaceCoordinates ?? false,
+            selectedPlaceLabel: entry?.hasPlaceCoordinates == true ? entry?.wrappedPlace : nil,
+            selectedPlaceSavedName: entry?.hasPlaceCoordinates == true ? entry?.wrappedPlace : nil,
+            companions: entry?.companionNames ?? [],
+            companionQuery: "",
+            note: entry?.wrappedNote ?? "",
+            photoData: entry?.photoData,
+            startFastAfterMeal: false,
+            detailsExpanded: Self.hasDetails(entry)
+        )
+        self.baselineDraft = baseline
+
+        let restored: FoodEntryDraft?
+        let loadError: String?
+        do {
+            restored = try FoodEntryDraftStore.shared.draft(for: key)
+            loadError = nil
+        } catch {
+            restored = nil
+            loadError = "Draft could not be loaded: \(error.localizedDescription)"
+        }
+        let initial = restored ?? baseline
+        _food = State(initialValue: initial.food)
+        _date = State(initialValue: initial.date)
+        _mealType = State(initialValue: initial.mealType)
+        _place = State(initialValue: initial.place)
+        _placeCity = State(initialValue: initial.placeCity)
+        _placeLatitude = State(initialValue: initial.placeLatitude)
+        _placeLongitude = State(initialValue: initial.placeLongitude)
+        _hasPlaceCoordinates = State(initialValue: initial.hasPlaceCoordinates)
+        _selectedPlaceLabel = State(initialValue: initial.selectedPlaceLabel)
+        _selectedPlaceSavedName = State(initialValue: initial.selectedPlaceSavedName)
+        _selectedCompanions = State(initialValue: initial.companions)
+        _companionQuery = State(initialValue: initial.companionQuery)
+        _note = State(initialValue: initial.note)
+        _photoData = State(initialValue: initial.photoData)
+        _startFastAfterMeal = State(initialValue: initial.startFastAfterMeal)
+        _detailsExpanded = State(initialValue: initial.detailsExpanded)
+        _draftError = State(initialValue: loadError)
+        _hasSavedDraft = State(initialValue: restored != nil)
+    }
+
+    private var isRecoveringDraft: Bool {
+        if case .edit = draftKey { return entry == nil }
+        return false
+    }
+
+    private var draftSnapshot: FoodEntryDraft {
+        FoodEntryDraft(
+            food: food,
+            date: date,
+            mealType: mealType,
+            place: place,
+            placeCity: placeCity,
+            placeLatitude: placeLatitude,
+            placeLongitude: placeLongitude,
+            hasPlaceCoordinates: hasPlaceCoordinates,
+            selectedPlaceLabel: selectedPlaceLabel,
+            selectedPlaceSavedName: selectedPlaceSavedName,
+            companions: selectedCompanions,
+            companionQuery: companionQuery,
+            note: note,
+            photoData: photoData,
+            startFastAfterMeal: startFastAfterMeal,
+            detailsExpanded: detailsExpanded
+        )
     }
 
     private var canSave: Bool {
@@ -206,6 +277,12 @@ struct FoodEntryEditor: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 26) {
                     whatSection
+                    if let draftError {
+                        Text(draftError)
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.red)
+                            .accessibilityIdentifier("draft-save-error")
+                    }
                     mealAndTimeSection
                     optionalDetails
                 }
@@ -214,11 +291,12 @@ struct FoodEntryEditor: View {
                 .padding(.bottom, 28)
             }
             .background(FoodTheme.background)
-            .navigationTitle(entry == nil ? "New entry" : "Edit entry")
+            .navigationTitle(isRecoveringDraft ? "Recover draft" : (entry == nil ? "New entry" : "Edit entry"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel", action: closeKeepingDraft)
+                        .accessibilityHint("Closes the editor and keeps your draft")
                 }
 
                 if entry != nil {
@@ -237,16 +315,28 @@ struct FoodEntryEditor: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(entry == nil ? "Add" : "Save", action: save)
                         .fontWeight(.semibold)
-                        .disabled(!canSave)
+                        .disabled(!canSave || didSaveEntry)
                 }
             }
         }
         .background(FoodTheme.background.ignoresSafeArea())
         .onAppear {
-            if entry == nil {
+            if hasSavedDraft {
+                do { try FoodEntryDraftStore.shared.markActive(draftKey) }
+                catch { draftError = "Draft could not be updated: \(error.localizedDescription)" }
+            } else if entry == nil {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                     focusedField = .food
                 }
+            }
+        }
+        .onChange(of: draftSnapshot) { snapshot in
+            guard !finished, !closedByUser else { return }
+            _ = persistDraft(snapshot, active: true)
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase != .active, !finished, !closedByUser {
+                _ = persistDraft(draftSnapshot, active: true)
             }
         }
         .onChange(of: locationSearch.resolvedSelection) { selection in
@@ -254,7 +344,12 @@ struct FoodEntryEditor: View {
             applyLocationSelection(selection)
             focusedField = nil
         }
-        .onDisappear { locationSearch.stop() }
+        .onDisappear {
+            locationSearch.stop()
+            if !finished, !closedByUser {
+                _ = persistDraft(draftSnapshot, active: true)
+            }
+        }
         .sheet(isPresented: $showingDateTimeSheet) {
             FoodLogDateTimeSheet(title: "Date & time", date: date) { date = $0 }
         }
@@ -269,7 +364,13 @@ struct FoodEntryEditor: View {
             Button("Delete", role: .destructive, action: deleteEntry)
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This cannot be undone.")
+            Text("This also discards an unfinished edit draft for this entry. This cannot be undone.")
+        }
+        .alert("Discard this draft?", isPresented: $confirmDiscard) {
+            Button("Discard", role: .destructive, action: discardDraft)
+            Button("Keep draft", role: .cancel) {}
+        } message: {
+            Text("The saved journal entry, if any, will not change.")
         }
         .confirmationDialog("End the current fast with this entry?", isPresented: $askAboutActiveFast) {
             Button("End fast with this entry") { commitSave(endCurrentFast: true) }
@@ -317,6 +418,15 @@ struct FoodEntryEditor: View {
                         }
                     }
                 }
+            }
+
+            if hasSavedDraft {
+                Button("Discard draft", role: .destructive) {
+                    confirmDiscard = true
+                }
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .frame(minHeight: 44)
+                .accessibilityIdentifier("discard-entry-draft")
             }
         }
     }
@@ -868,6 +978,37 @@ struct FoodEntryEditor: View {
         .foodPanel(cornerRadius: 14)
     }
 
+    @discardableResult
+    private func persistDraft(_ snapshot: FoodEntryDraft, active: Bool) -> Bool {
+        guard hasSavedDraft || snapshot != baselineDraft else { return true }
+        do {
+            try FoodEntryDraftStore.shared.save(snapshot, for: draftKey, active: active)
+            hasSavedDraft = true
+            draftError = nil
+            return true
+        } catch {
+            draftError = "Draft could not be saved: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    private func closeKeepingDraft() {
+        guard !didSaveEntry else { return }
+        guard persistDraft(draftSnapshot, active: false) else { return }
+        closedByUser = true
+        dismiss()
+    }
+
+    private func discardDraft() {
+        do {
+            try FoodEntryDraftStore.shared.discard(draftKey)
+            finished = true
+            dismiss()
+        } catch {
+            draftError = "Draft could not be discarded: \(error.localizedDescription)"
+        }
+    }
+
     private func save() {
         let trimmedFood = food.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedFood.isEmpty else { return }
@@ -918,11 +1059,20 @@ struct FoodEntryEditor: View {
                                         startEntryID: target.id, in: context)
             }
             try context.save()
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-            dismiss()
         } catch {
             context.rollback()
             fastingMessage = error.localizedDescription
+            return
+        }
+
+        didSaveEntry = true
+        do {
+            try FoodEntryDraftStore.shared.discard(draftKey)
+            finished = true
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            dismiss()
+        } catch {
+            draftError = "Entry saved, but its draft could not be cleared: \(error.localizedDescription)"
         }
     }
 
@@ -932,10 +1082,19 @@ struct FoodEntryEditor: View {
             try FastingStore.detachEntry(entry, in: context)
             context.delete(entry)
             try context.save()
-            dismiss()
         } catch {
             context.rollback()
             fastingMessage = error.localizedDescription
+            return
+        }
+
+        didSaveEntry = true
+        do {
+            try FoodEntryDraftStore.shared.discard(draftKey)
+            finished = true
+            dismiss()
+        } catch {
+            draftError = "Entry deleted, but its draft could not be cleared: \(error.localizedDescription)"
         }
     }
 

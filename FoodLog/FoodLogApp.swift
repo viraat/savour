@@ -14,8 +14,30 @@ struct FoodLogApp: App {
                 for suffix in ["", "-shm", "-wal"] {
                     try? FileManager.default.removeItem(atPath: storeURL.path + suffix)
                 }
+                try? FileManager.default.removeItem(at: FoodEntryDraftStore.defaultURL)
             }
             let testPersistence = PersistenceController(storeURL: storeURL)
+            if arguments.contains("--seed-ui-test-draft") {
+                let draft = FoodEntryDraft(
+                    food: "Private unfinished meal",
+                    date: Date(),
+                    mealType: "Lunch",
+                    place: "Home",
+                    placeCity: "",
+                    placeLatitude: 0,
+                    placeLongitude: 0,
+                    hasPlaceCoordinates: false,
+                    selectedPlaceLabel: nil,
+                    selectedPlaceSavedName: nil,
+                    companions: ["Ana"],
+                    companionQuery: "",
+                    note: "Private draft note",
+                    photoData: nil,
+                    startFastAfterMeal: false,
+                    detailsExpanded: true
+                )
+                try? FoodEntryDraftStore.shared.save(draft, for: .new, active: true)
+            }
             if arguments.contains("--seed-ui-test-map") {
                 let context = testPersistence.container.viewContext
                 context.performAndWait {

@@ -74,6 +74,90 @@ final class FoodLogUITests: XCTestCase {
         add(pickerImage)
     }
 
+    func testNewDraftSurvivesBackgroundAndForcedTerminationWithoutCreatingEntry() {
+        launch(resetStore: true)
+        app.buttons["Add entry"].tap()
+        let foodField = app.textFields["food-description"]
+        foodField.tap()
+        foodField.typeText("Interrupted dinner")
+        app.buttons["Date and time"].tap()
+        app.buttons["Add 5 minutes"].tap()
+        app.buttons["date-time-done"].tap()
+        let chosenTime = app.buttons["Date and time"].value as? String
+
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertEqual(app.textFields["food-description"].value as? String, "Interrupted dinner")
+
+        app.terminate()
+        launch(resetStore: false)
+        XCTAssertTrue(app.navigationBars["New entry"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.textFields["food-description"].value as? String, "Interrupted dinner")
+        XCTAssertEqual(app.buttons["Date and time"].value as? String, chosenTime)
+        app.buttons["Cancel"].tap()
+        XCTAssertFalse(journalEntry(containing: "Interrupted dinner").exists)
+        app.buttons["Add entry"].tap()
+        XCTAssertEqual(app.textFields["food-description"].value as? String, "Interrupted dinner")
+        app.buttons["Add"].tap()
+        XCTAssertTrue(journalEntry(containing: "Interrupted dinner").waitForExistence(timeout: 3))
+        app.terminate()
+        launch(resetStore: false)
+        XCTAssertFalse(app.navigationBars["New entry"].exists)
+    }
+
+    func testEditDraftDoesNotChangeOriginalUntilSave() {
+        launch(resetStore: true)
+        addEntry(named: "Original draft meal")
+        journalEntry(containing: "Original draft meal").tap()
+        let foodField = app.textFields["food-description"]
+        foodField.tap()
+        foodField.typeText("Revised ")
+        let editedFood = foodField.value as? String ?? ""
+        XCTAssertTrue(editedFood.contains("Revised"))
+        XCTAssertNotEqual(editedFood, "Original draft meal")
+
+        app.terminate()
+        launch(resetStore: false)
+        XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.textFields["food-description"].value as? String, editedFood)
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(journalEntry(containing: "Original draft meal").exists)
+        XCTAssertFalse(journalEntry(containing: editedFood).exists)
+        journalEntry(containing: "Original draft meal").tap()
+        XCTAssertEqual(app.textFields["food-description"].value as? String, editedFood)
+        app.buttons["Save"].tap()
+        XCTAssertTrue(journalEntry(containing: editedFood).waitForExistence(timeout: 3))
+    }
+
+    func testDraftRequiresExplicitDiscardConfirmation() {
+        launch(resetStore: true)
+        app.buttons["Add entry"].tap()
+        let foodField = app.textFields["food-description"]
+        foodField.tap()
+        foodField.typeText("Keep this draft")
+        tapDiscardDraft()
+        app.alerts.buttons["Keep draft"].tap()
+        XCTAssertEqual(foodField.value as? String, "Keep this draft")
+        tapDiscardDraft()
+        app.alerts.buttons["Discard"].tap()
+        let editorDismissed = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: app.navigationBars["New entry"]
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [editorDismissed], timeout: 3), .completed)
+        app.buttons["Add entry"].tap()
+        XCTAssertNotEqual(app.textFields["food-description"].value as? String, "Keep this draft")
+    }
+
+    func testDraftIsHiddenBehindDeniedBiometricLock() {
+        launch(resetStore: true, extraArguments: [
+            "--seed-ui-test-draft", "-foodLogBiometricLockEnabled", "YES", "--simulate-biometric-denied"
+        ])
+        XCTAssertTrue(app.staticTexts["FoodLog is locked"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["Private unfinished meal"].exists)
+        XCTAssertFalse(app.textFields["food-description"].exists)
+    }
+
     func testFoodSuggestionReplacesOnlyCurrentSegmentWithoutDuplication() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-suggestions"])
         app.buttons["Add entry"].tap()
@@ -219,7 +303,7 @@ final class FoodLogUITests: XCTestCase {
             // keyboard, whose prediction buttons have their own audit issues.
             let dateAndTime = app.buttons["Date and time"]
             dateAndTime.tap()
-            dateAndTime.tap()
+            app.buttons["date-time-done"].tap()
             XCTAssertFalse(app.keyboards.firstMatch.exists)
             try auditVisibleUI()
             app.buttons["Cancel"].tap()
@@ -387,6 +471,12 @@ final class FoodLogUITests: XCTestCase {
 
     private func journalEntry(containing text: String) -> XCUIElement {
         app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", text)).firstMatch
+    }
+
+    private func tapDiscardDraft() {
+        let discard = app.buttons["discard-entry-draft"]
+        XCTAssertTrue(discard.waitForExistence(timeout: 2))
+        discard.tap()
     }
 
     private func openCSVFixturePreview() {

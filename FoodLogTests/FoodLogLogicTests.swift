@@ -51,6 +51,43 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertEqual(Int(DateTimeSelection.now().timeIntervalSince1970) % 60, 0)
     }
 
+    func testEntryDraftRoundTripsEveryFieldAcrossStoreInstances() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("FoodLogDraft-\(UUID().uuidString).plist")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let key = FoodEntryDraftKey.edit(UUID())
+        let draft = FoodEntryDraft(
+            food: "Rice, tofu\nTea",
+            date: date(2026, 9, 29, 23, 55),
+            mealType: "Dinner",
+            place: "Cafe, Central",
+            placeCity: "London",
+            placeLatitude: 51.5072,
+            placeLongitude: -0.1276,
+            hasPlaceCoordinates: true,
+            selectedPlaceLabel: "Cafe, Central, London",
+            selectedPlaceSavedName: "Cafe, Central",
+            companions: ["Ana", "Bob"],
+            companionQuery: "Car",
+            note: "A note with \"quotes\"\nand a second line",
+            photoData: Data([0, 1, 2, 255]),
+            startFastAfterMeal: true,
+            detailsExpanded: true
+        )
+
+        try FoodEntryDraftStore(url: url).save(draft, for: key, active: true)
+        let afterProcessDeath = FoodEntryDraftStore(url: url)
+        XCTAssertEqual(try afterProcessDeath.draft(for: key), draft)
+        XCTAssertEqual(try afterProcessDeath.activeDraftKey(), key)
+        try afterProcessDeath.markInactive(key)
+        XCTAssertNil(try FoodEntryDraftStore(url: url).activeDraftKey())
+        XCTAssertEqual(try FoodEntryDraftStore(url: url).draft(for: key), draft)
+        try afterProcessDeath.markActive(key)
+        XCTAssertEqual(try afterProcessDeath.activeDraftKey(), key)
+        try afterProcessDeath.discard(key)
+        XCTAssertNil(try FoodEntryDraftStore(url: url).draft(for: key))
+    }
+
     func testSuggestionsUseIndividualFoodsAcrossMealsAndDeduplicatePerEntry() {
         let sources = [
             FoodSuggestionSource(mealType: "Breakfast", food: "Toast, Eggs, toast"),
