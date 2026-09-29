@@ -30,6 +30,9 @@ struct FoodEntryEditor: View {
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.createdAt, ascending: false)]
     ) private var previousEntries: FetchedResults<FoodEntry>
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "startDate", ascending: false)])
+    private var fasts: FetchedResults<FastSession>
+    @AppStorage(FastTargetPreference.key) private var defaultFastTargetHours = 0.0
 
     let entry: FoodEntry?
 
@@ -54,6 +57,9 @@ struct FoodEntryEditor: View {
     @State private var confirmDelete = false
     @State private var detailsExpanded: Bool
     @State private var isEditingTime = false
+    @State private var startFastAfterMeal = false
+    @State private var askAboutActiveFast = false
+    @State private var fastingMessage: String?
     @StateObject private var locationSearch = LocationSearchModel()
     @StateObject private var contactsSearch = ContactsSearchModel()
     @FocusState private var focusedField: Field?
@@ -263,6 +269,16 @@ struct FoodEntryEditor: View {
         } message: {
             Text("This cannot be undone.")
         }
+        .confirmationDialog("End the current fast with this entry?", isPresented: $askAboutActiveFast) {
+            Button("End fast with this entry") { commitSave(endCurrentFast: true) }
+            Button("Keep fast active") { commitSave(endCurrentFast: false) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The entry will be saved either way. Drinks are not handled differently.")
+        }
+        .alert("Could not save", isPresented: Binding(
+            get: { fastingMessage != nil }, set: { if !$0 { fastingMessage = nil } }
+        )) { Button("OK") { fastingMessage = nil } } message: { Text(fastingMessage ?? "") }
     }
 
     private var whatSection: some View {
@@ -466,6 +482,16 @@ struct FoodEntryEditor: View {
                 .foodPanel(cornerRadius: 14)
 
                 photoSection
+
+                if let entry, fasts.contains(where: { $0.startEntryID == entry.id }) {
+                    Label("A fast starts with this entry. Edit it in Fasts.", systemImage: "clock")
+                        .font(.subheadline)
+                        .foregroundStyle(FoodTheme.secondaryText)
+                } else {
+                    Toggle("Start a fast after this meal", isOn: $startFastAfterMeal)
+                        .font(.system(.body, design: .rounded).weight(.medium))
+                        .accessibilityIdentifier("start-fast-after-meal")
+                }
             }
             .padding(.top, 14)
         } label: {
@@ -903,6 +929,24 @@ struct FoodEntryEditor: View {
         let trimmedFood = food.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedFood.isEmpty else { return }
 
+        if let active = fasts.first(where: { $0.endDate == nil }),
+           (entry == nil || active.startEntryID != entry?.id),
+           let start = active.startDate, date > start {
+            askAboutActiveFast = true
+        } else {
+            commitSave(endCurrentFast: false)
+        }
+    }
+
+    private func commitSave(endCurrentFast: Bool) {
+        let trimmedFood = food.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedFood.isEmpty else { return }
+        let active = fasts.first(where: { $0.endDate == nil })
+        if startFastAfterMeal && active != nil && !endCurrentFast {
+            fastingMessage = "End the current fast before starting another one."
+            return
+        }
+
         let target = entry ?? FoodEntry(context: context)
         if target.id == nil { target.id = UUID() }
         if target.createdAt == nil { target.createdAt = Date() }
@@ -922,16 +966,34 @@ struct FoodEntryEditor: View {
         target.note = note.trimmingCharacters(in: .whitespacesAndNewlines)
         target.photoData = photoData
 
-        try? context.save()
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        dismiss()
+        do {
+            if entry != nil { try FastingStore.entryDateChanged(target, in: context) }
+            if endCurrentFast, let active { try FastingStore.end(active, at: date, with: target.id) }
+            if startFastAfterMeal {
+                try FastingStore.create(start: date,
+                                        target: FastTargetPreference.seconds(for: defaultFastTargetHours),
+                                        startEntryID: target.id, in: context)
+            }
+            try context.save()
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            dismiss()
+        } catch {
+            context.rollback()
+            fastingMessage = error.localizedDescription
+        }
     }
 
     private func deleteEntry() {
         guard let entry else { return }
-        context.delete(entry)
-        try? context.save()
-        dismiss()
+        do {
+            try FastingStore.detachEntry(entry, in: context)
+            context.delete(entry)
+            try context.save()
+            dismiss()
+        } catch {
+            context.rollback()
+            fastingMessage = error.localizedDescription
+        }
     }
 
     private static func hasDetails(_ entry: FoodEntry?) -> Bool {

@@ -844,6 +844,20 @@ struct FoodLogSettingsView: View {
                     }
                 }
 
+                settingsSection("FASTING") {
+                    NavigationLink {
+                        FastTargetSettingsView()
+                    } label: {
+                        settingsRow(icon: "clock", title: "Default fasting target", detail: nil)
+                    }
+                    Divider()
+                    NavigationLink {
+                        FastSessionsView()
+                    } label: {
+                        settingsRow(icon: "calendar", title: "Fasting records", detail: nil)
+                    }
+                }
+
                 settingsSection("PRIVACY") {
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 3) {
@@ -955,7 +969,7 @@ struct FoodLogSettingsView: View {
             Button("Erase all", role: .destructive, action: eraseAll)
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Export first if you want a backup. This cannot be undone.")
+            Text("This removes food entries but keeps fasting records and their times. Export first if you want a food-entry backup.")
         }
     }
 
@@ -1070,8 +1084,16 @@ struct FoodLogSettingsView: View {
 #endif
 
     private func eraseAll() {
-        entries.forEach { context.delete($0) }
-        try? context.save()
+        do {
+            for entry in Array(entries) {
+                try FastingStore.detachEntry(entry, in: context)
+                context.delete(entry)
+            }
+            try context.save()
+        } catch {
+            context.rollback()
+            importMessage = error.localizedDescription
+        }
     }
 }
 

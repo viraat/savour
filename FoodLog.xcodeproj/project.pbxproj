@@ -23,6 +23,7 @@
 		A0000000000000000000000F /* FoodLogLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000021 /* FoodLogLogicTests.swift */; };
 		A00000000000000000000010 /* FoodLogUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000023 /* FoodLogUITests.swift */; };
 		A00000000000000000000011 /* FoodLogCSVImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000025 /* FoodLogCSVImport.swift */; };
+		A00000000000000000000012 /* Fasting.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000026 /* Fasting.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +67,8 @@
 		B00000000000000000000023 /* FoodLogUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogUITests.swift; sourceTree = "<group>"; };
 		B00000000000000000000024 /* FoodLogUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FoodLogUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B00000000000000000000025 /* FoodLogCSVImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogCSVImport.swift; sourceTree = "<group>"; };
+		B00000000000000000000026 /* Fasting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fasting.swift; sourceTree = "<group>"; };
+		B00000000000000000000027 /* FoodLogV5.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV5.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -118,6 +121,7 @@
 				B00000000000000000000019 /* MealDefaultTimes.swift */,
 				B00000000000000000000020 /* FoodLogLogic.swift */,
 				B00000000000000000000025 /* FoodLogCSVImport.swift */,
+				B00000000000000000000026 /* Fasting.swift */,
 				B00000000000000000000008 /* FoodLog.xcdatamodeld */,
 				B00000000000000000000007 /* Assets.xcassets */,
 				B00000000000000000000010 /* Info.plist */,
@@ -293,6 +297,7 @@
 				A0000000000000000000000D /* MealDefaultTimes.swift in Sources */,
 				A0000000000000000000000E /* FoodLogLogic.swift in Sources */,
 				A00000000000000000000011 /* FoodLogCSVImport.swift in Sources */,
+				A00000000000000000000012 /* Fasting.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -534,8 +539,9 @@
 				B00000000000000000000014 /* FoodLogV2.xcdatamodel */,
 				B00000000000000000000015 /* FoodLogV3.xcdatamodel */,
 				B00000000000000000000017 /* FoodLogV4.xcdatamodel */,
+				B00000000000000000000027 /* FoodLogV5.xcdatamodel */,
 			);
-			currentVersion = B00000000000000000000017 /* FoodLogV4.xcdatamodel */;
+			currentVersion = B00000000000000000000027 /* FoodLogV5.xcdatamodel */;
 			path = FoodLog.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

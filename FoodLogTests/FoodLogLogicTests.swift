@@ -570,8 +570,123 @@ final class FoodLogLogicTests: XCTestCase {
             XCTAssertEqual(importPreview.duplicateCount, 1, version)
             XCTAssertEqual(try FoodLogCSVImporter.commit(importPreview, to: context), 0, version)
             XCTAssertEqual(try context.count(for: FoodEntry.fetchRequest()), 2, version)
+            XCTAssertEqual(try context.count(for: FastSession.fetchRequest()), 0, version)
             XCTAssertEqual(try PersistenceController.migrateLegacyEntries(in: context), .init(), version)
         }
+    }
+
+    func testFastLifecycleOverlapEditingAndDeletion() throws {
+        let context = PersistenceController(inMemory: true).container.viewContext
+        let start = date(2026, 9, 14, 20)
+        let first = try FastingStore.create(start: start, target: 14 * 3_600, in: context)
+        try context.save()
+        XCTAssertEqual(try FastingStore.active(in: context)?.objectID, first.objectID)
+        XCTAssertEqual(first.targetSeconds, 14 * 3_600)
+        XCTAssertThrowsError(try FastingStore.create(start: start.addingTimeInterval(3_600), in: context)) {
+            XCTAssertEqual($0 as? FastingError, .overlapsExisting)
+        }
+
+        let end = date(2026, 9, 15, 10)
+        try FastingStore.end(first, at: end)
+        try context.save()
+        XCTAssertNil(try FastingStore.active(in: context))
+        XCTAssertEqual(first.duration, 14 * 3_600)
+
+        let second = try FastingStore.create(start: end, end: end.addingTimeInterval(12 * 3_600), in: context)
+        try context.save()
+        XCTAssertNil(second.targetSeconds)
+        XCTAssertThrowsError(try FastingStore.update(second, start: start, end: end, target: nil,
+                                                      startEntryID: nil, endEntryID: nil, in: context)) {
+            XCTAssertEqual($0 as? FastingError, .overlapsExisting)
+        }
+        try FastingStore.update(second, start: end.addingTimeInterval(3_600),
+                                end: end.addingTimeInterval(10 * 3_600), target: 12 * 3_600,
+                                startEntryID: nil, endEntryID: nil, in: context)
+        try context.save()
+        XCTAssertEqual(second.duration, 9 * 3_600)
+        context.delete(second)
+        try context.save()
+        XCTAssertEqual(try FastingStore.sessions(in: context).count, 1)
+    }
+
+    func testFastLinksFollowMealEditsAndSurviveMealDeletion() throws {
+        let context = PersistenceController(inMemory: true).container.viewContext
+        let meal = FoodEntry(context: context)
+        meal.id = UUID()
+        meal.food = "Dinner"
+        meal.date = date(2026, 9, 16, 20)
+        let fast = try FastingStore.create(start: meal.wrappedDate, target: nil,
+                                           startEntryID: meal.id, in: context)
+        try context.save()
+
+        meal.date = date(2026, 9, 16, 21)
+        try FastingStore.entryDateChanged(meal, in: context)
+        try context.save()
+        XCTAssertEqual(fast.startDate, meal.date)
+        XCTAssertEqual(fast.startEntryID, meal.id)
+
+        try FastingStore.detachEntry(meal, in: context)
+        context.delete(meal)
+        try context.save()
+        XCTAssertNil(fast.startEntryID)
+        XCTAssertEqual(fast.startDate, date(2026, 9, 16, 21))
+    }
+
+    func testFastPersistenceAndTimezoneIndependentElapsedTime() throws {
+        let storeURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("FoodLogFast-\(UUID().uuidString).sqlite")
+        defer {
+            for suffix in ["", "-shm", "-wal"] {
+                try? FileManager.default.removeItem(atPath: storeURL.path + suffix)
+            }
+        }
+        let start = date(2026, 9, 18, 20)
+        let end = start.addingTimeInterval(16 * 3_600)
+        do {
+            let context = PersistenceController(storeURL: storeURL).container.viewContext
+            _ = try FastingStore.create(start: start, end: end, target: nil, in: context)
+            try context.save()
+        }
+        let context = PersistenceController(storeURL: storeURL).container.viewContext
+        let restored = try XCTUnwrap(FastingStore.sessions(in: context).first)
+        XCTAssertEqual(restored.duration, 16 * 3_600)
+        XCTAssertNil(restored.targetSeconds)
+        var tokyo = Calendar(identifier: .gregorian)
+        tokyo.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        var newYork = Calendar(identifier: .gregorian)
+        newYork.timeZone = TimeZone(identifier: "America/New_York")!
+        XCTAssertNotEqual(tokyo.component(.hour, from: start), newYork.component(.hour, from: start))
+        XCTAssertEqual(restored.endDate?.timeIntervalSince(try XCTUnwrap(restored.startDate)), 16 * 3_600)
+    }
+
+    func testRetroactiveFastLinksBothEntriesAndCSVRemainsFoodOnly() throws {
+        let context = PersistenceController(inMemory: true).container.viewContext
+        let startMeal = FoodEntry(context: context)
+        startMeal.id = UUID()
+        startMeal.food = "Dinner"
+        startMeal.date = date(2026, 9, 19, 20)
+        let endMeal = FoodEntry(context: context)
+        endMeal.id = UUID()
+        endMeal.food = "Breakfast"
+        endMeal.date = date(2026, 9, 20, 10)
+        let fast = try FastingStore.create(start: startMeal.wrappedDate, end: endMeal.wrappedDate,
+                                           target: FastTargetPreference.seconds(for: 14),
+                                           startEntryID: startMeal.id, endEntryID: endMeal.id, in: context)
+        try context.save()
+        XCTAssertEqual(fast.startEntryID, startMeal.id)
+        XCTAssertEqual(fast.endEntryID, endMeal.id)
+        XCTAssertEqual(fast.targetSeconds, 14 * 3_600)
+        XCTAssertNil(FastTargetPreference.seconds(for: 0))
+        let csv = FoodLogCSVDocument.encodeExtended(dataRows: [CSVExporter.row(for: startMeal), CSVExporter.row(for: endMeal)])
+        XCTAssertFalse(csv.localizedCaseInsensitiveContains("FastSession"))
+        XCTAssertFalse(csv.localizedCaseInsensitiveContains("targetDuration"))
+        XCTAssertEqual(try FastingStore.sessions(in: context).count, 1)
+
+        try FastingStore.detachEntry(endMeal, in: context)
+        context.delete(endMeal)
+        try context.save()
+        XCTAssertNil(fast.endEntryID)
+        XCTAssertEqual(fast.endDate, date(2026, 9, 20, 10))
     }
 
     private func assertCSVError(

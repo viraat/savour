@@ -9,11 +9,14 @@ struct JournalView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)],
         animation: .default
     ) private var entries: FetchedResults<FoodEntry>
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "startDate", ascending: false)], animation: .default)
+    private var fasts: FetchedResults<FastSession>
 
     @State private var selectedEntry: FoodEntry?
     @State private var entryToDelete: FoodEntry?
     @State private var query = ""
     @State private var mealFilter = "All"
+    @State private var fastingMessage: String?
 
     private var thisWeek: [FoodEntry] {
         guard let interval = Calendar.current.dateInterval(of: .weekOfYear, for: Date()) else {
@@ -51,6 +54,24 @@ struct JournalView: View {
             LazyVStack(alignment: .leading, spacing: 18) {
                 if !isFiltering {
                     weeklySummary
+                    if let active = fasts.first(where: { $0.endDate == nil }) {
+                        FastJournalCard(session: active)
+                    }
+                    NavigationLink {
+                        FastSessionsView()
+                    } label: {
+                        HStack {
+                            Label("Fasts", systemImage: "clock")
+                            Spacer()
+                            Text("\(fasts.count)")
+                            Image(systemName: "chevron.right")
+                        }
+                        .font(.system(.body, design: .rounded).weight(.medium))
+                        .foregroundStyle(FoodTheme.ink)
+                        .padding(16)
+                        .foodPanel(cornerRadius: 18)
+                    }
+                    .accessibilityIdentifier("fasts-link")
                 }
 
                 if entries.isEmpty {
@@ -101,8 +122,14 @@ struct JournalView: View {
         )) {
             Button("Delete", role: .destructive) {
                 if let entryToDelete {
-                    context.delete(entryToDelete)
-                    try? context.save()
+                    do {
+                        try FastingStore.detachEntry(entryToDelete, in: context)
+                        context.delete(entryToDelete)
+                        try context.save()
+                    } catch {
+                        context.rollback()
+                        fastingMessage = error.localizedDescription
+                    }
                 }
                 self.entryToDelete = nil
             }
@@ -110,6 +137,9 @@ struct JournalView: View {
         } message: {
             Text("This only removes the record from your food log.")
         }
+        .alert("Entry could not be deleted", isPresented: Binding(
+            get: { fastingMessage != nil }, set: { if !$0 { fastingMessage = nil } }
+        )) { Button("OK") { fastingMessage = nil } } message: { Text(fastingMessage ?? "") }
     }
 
     private var weeklySummary: some View {

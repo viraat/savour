@@ -266,6 +266,40 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(incrementButton.isHittable)
     }
 
+    func testFastingCardMealPromptAndRelaunch() {
+        launch(resetStore: true)
+        app.buttons["Add entry"].tap()
+        let foodField = app.textFields["food-description"]
+        XCTAssertTrue(foodField.waitForExistence(timeout: 2))
+        foodField.tap()
+        foodField.typeText("Fasting start meal")
+        app.buttons["Add details"].tap()
+        let toggle = app.switches["start-fast-after-meal"]
+        for _ in 0..<3 where !toggle.isHittable { app.swipeUp() }
+        XCTAssertTrue(toggle.isHittable)
+        toggle.tap()
+        app.buttons["Add"].tap()
+        XCTAssertTrue(app.staticTexts["Current fast"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["end-fast"].exists)
+
+        app.terminate()
+        launch(resetStore: false)
+        XCTAssertTrue(app.staticTexts["Current fast"].waitForExistence(timeout: 3))
+        app.buttons["Add entry"].tap()
+        let nextFood = app.textFields["food-description"]
+        nextFood.tap()
+        nextFood.typeText("Tea during fast")
+        app.buttons["Date and time"].tap()
+        app.buttons["Add 5 minutes"].tap()
+        app.buttons["Add"].tap()
+        XCTAssertTrue(app.buttons["End fast with this entry"].waitForExistence(timeout: 3))
+        app.buttons["End fast with this entry"].tap()
+        XCTAssertFalse(app.staticTexts["Current fast"].waitForExistence(timeout: 2))
+        app.buttons["fasts-link"].tap()
+        XCTAssertTrue(app.navigationBars["Fasts"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Add"].exists)
+    }
+
     @available(iOS 17.0, *)
     private func auditVisibleUI(includeContrast: Bool = true) throws {
         var auditTypes: XCUIAccessibilityAuditType = [
