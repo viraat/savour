@@ -257,6 +257,12 @@ struct FastSessionsView: View {
 }
 
 struct FastSessionEditor: View {
+    private enum DateField: String, Identifiable {
+        case start, end
+        var id: String { rawValue }
+        var title: String { self == .start ? "Start time" : "End time" }
+    }
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var context
     @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)])
@@ -272,6 +278,7 @@ struct FastSessionEditor: View {
     @State private var targetHours: Double
     @State private var customTarget = ""
     @State private var message: String?
+    @State private var editingDateField: DateField?
 
     init(session: FastSession?) {
         self.session = session
@@ -296,10 +303,9 @@ struct FastSessionEditor: View {
                             startEntryID = id
                         }
                     ))
-                    DatePicker("Start time", selection: Binding(
-                        get: { startDate },
-                        set: { startDate = $0; startEntryID = nil }
-                    ))
+                    dateRow("Start time", date: startDate, identifier: "fast-start-time") {
+                        editingDateField = .start
+                    }
                 }
                 Section("End") {
                     Toggle("Has end time", isOn: $hasEnd)
@@ -313,10 +319,9 @@ struct FastSessionEditor: View {
                                 endEntryID = id
                             }
                         ))
-                        DatePicker("End time", selection: Binding(
-                            get: { endDate },
-                            set: { endDate = $0; endEntryID = nil }
-                        ))
+                        dateRow("End time", date: endDate, identifier: "fast-end-time") {
+                            editingDateField = .end
+                        }
                     }
                 }
                 Section("Optional target") {
@@ -348,6 +353,20 @@ struct FastSessionEditor: View {
         .onAppear {
             if session == nil { targetHours = defaultTargetHours }
         }
+        .sheet(item: $editingDateField) { field in
+            FoodLogDateTimeSheet(
+                title: field.title,
+                date: field == .start ? startDate : endDate
+            ) { selectedDate in
+                if field == .start {
+                    startDate = selectedDate
+                    startEntryID = nil
+                } else {
+                    endDate = selectedDate
+                    endEntryID = nil
+                }
+            }
+        }
         .alert("Fast could not be saved", isPresented: Binding(
             get: { message != nil }, set: { if !$0 { message = nil } }
         )) { Button("OK") { message = nil } } message: { Text(message ?? "") }
@@ -361,6 +380,25 @@ struct FastSessionEditor: View {
                     .tag(entry.id)
             }
         }
+    }
+
+    private func dateRow(_ title: String, date: Date, identifier: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Text(title)
+                Spacer(minLength: 8)
+                Text(date.formatted(date: .abbreviated, time: .shortened))
+                    .foregroundStyle(FoodTheme.secondaryText)
+                    .multilineTextAlignment(.trailing)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(FoodTheme.secondaryText)
+            }
+            .foregroundStyle(FoodTheme.ink)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(identifier)
     }
 
     private func save() {

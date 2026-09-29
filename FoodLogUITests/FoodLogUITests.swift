@@ -35,7 +35,7 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertFalse(editedEntry.waitForExistence(timeout: 2))
     }
 
-    func testMealSwitchAppliesDefaultAndTimeControlsOnlyAppearWhenExpanded() {
+    func testMealSwitchAppliesDefaultAndTimeControlsAppearInSheet() {
         launch(resetStore: true, extraArguments: ["-foodLogDefaultTime.lunch", "795"])
         app.buttons["Add entry"].tap()
 
@@ -50,7 +50,28 @@ final class FoodLogUITests: XCTestCase {
         app.buttons["Date and time"].tap()
         XCTAssertTrue(app.buttons["Add 5 minutes"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["Subtract 5 minutes"].exists)
+        XCTAssertTrue(app.buttons["Add 1 minute"].exists)
+        XCTAssertTrue(app.buttons["Subtract 1 minute"].exists)
         XCTAssertTrue(app.buttons["Set time to now"].exists)
+        XCTAssertTrue(app.datePickers["date-time-wheel"].exists)
+        let pickerImage = XCTAttachment(screenshot: app.screenshot())
+        pickerImage.name = "Meal date and time sheet"
+        pickerImage.lifetime = .keepAlways
+        add(pickerImage)
+        app.buttons["date-time-done"].tap()
+        XCTAssertFalse(app.buttons["Add 5 minutes"].exists)
+    }
+
+    func testDateTimeSheetInDarkMode() {
+        launch(resetStore: true, extraArguments: ["-foodLogAppearance", "2"])
+        app.buttons["Add entry"].tap()
+        app.buttons["Date and time"].tap()
+        XCTAssertTrue(app.datePickers["date-time-wheel"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["date-time-done"].exists)
+        let pickerImage = XCTAttachment(screenshot: app.screenshot())
+        pickerImage.name = "Dark date and time sheet"
+        pickerImage.lifetime = .keepAlways
+        add(pickerImage)
     }
 
     func testFoodSuggestionReplacesOnlyCurrentSegmentWithoutDuplication() {
@@ -291,6 +312,7 @@ final class FoodLogUITests: XCTestCase {
         nextFood.typeText("Tea during fast")
         app.buttons["Date and time"].tap()
         app.buttons["Add 5 minutes"].tap()
+        app.buttons["date-time-done"].tap()
         app.buttons["Add"].tap()
         XCTAssertTrue(app.buttons["End fast with this entry"].waitForExistence(timeout: 3))
         app.buttons["End fast with this entry"].tap()
@@ -298,6 +320,14 @@ final class FoodLogUITests: XCTestCase {
         app.buttons["fasts-link"].tap()
         XCTAssertTrue(app.navigationBars["Fasts"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["Add"].exists)
+        app.buttons["Add"].tap()
+        app.buttons["fast-start-time"].tap()
+        XCTAssertTrue(app.datePickers["date-time-wheel"].waitForExistence(timeout: 2))
+        app.buttons["Add 1 minute"].tap()
+        app.buttons["date-time-done"].tap()
+        app.buttons["fast-end-time"].tap()
+        XCTAssertTrue(app.buttons["Subtract 1 minute"].waitForExistence(timeout: 2))
+        app.buttons["date-time-done"].tap()
     }
 
     @available(iOS 17.0, *)

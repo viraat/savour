@@ -26,7 +26,6 @@ struct FoodEntryEditor: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var context
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.createdAt, ascending: false)]
     ) private var previousEntries: FetchedResults<FoodEntry>
@@ -56,7 +55,7 @@ struct FoodEntryEditor: View {
     @State private var photoMessage: String?
     @State private var confirmDelete = false
     @State private var detailsExpanded: Bool
-    @State private var isEditingTime = false
+    @State private var showingDateTimeSheet = false
     @State private var startFastAfterMeal = false
     @State private var askAboutActiveFast = false
     @State private var fastingMessage: String?
@@ -256,6 +255,9 @@ struct FoodEntryEditor: View {
             focusedField = nil
         }
         .onDisappear { locationSearch.stop() }
+        .sheet(isPresented: $showingDateTimeSheet) {
+            FoodLogDateTimeSheet(title: "Date & time", date: date) { date = $0 }
+        }
         .fullScreenCover(isPresented: $showingCamera) {
             CameraPicker(isPresented: $showingCamera) { image in
                 photoData = PhotoProcessor.prepare(image)
@@ -327,13 +329,6 @@ struct FoodEntryEditor: View {
     private var mealAndTimeSection: some View {
         VStack(spacing: 0) {
             whenRow
-
-            if isEditingTime {
-                Divider().padding(.leading, 16)
-                dateAndTimeEditor
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-
             Divider().padding(.leading, 16)
             mealMenu
         }
@@ -343,9 +338,7 @@ struct FoodEntryEditor: View {
     private var whenRow: some View {
         Button {
             focusedField = nil
-            withAnimation(.easeInOut(duration: 0.18)) {
-                isEditingTime.toggle()
-            }
+            showingDateTimeSheet = true
         } label: {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 3) {
@@ -356,7 +349,7 @@ struct FoodEntryEditor: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 8)
-                Image(systemName: isEditingTime ? "chevron.down" : "chevron.right")
+                Image(systemName: "chevron.right")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(FoodTheme.secondaryText)
             }
@@ -368,34 +361,6 @@ struct FoodEntryEditor: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Date and time")
         .accessibilityValue("\(FoodLogFormatters.shortDate.string(from: date)), \(FoodLogFormatters.time.string(from: date))")
-    }
-
-    private var dateAndTimeEditor: some View {
-        VStack(spacing: 12) {
-            DatePicker("Date", selection: $date, displayedComponents: .date)
-                .datePickerStyle(.compact)
-
-            DatePicker("Time", selection: $date, displayedComponents: .hourAndMinute)
-                .datePickerStyle(.compact)
-
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: dynamicTypeSize.isAccessibilitySize ? 160 : 80))],
-                spacing: 8
-            ) {
-                Button("Now", action: setTimeToNow)
-                    .accessibilityLabel("Set time to now")
-                Button("−5 min") { adjustTime(by: -5) }
-                    .accessibilityLabel("Subtract 5 minutes")
-                Button("+5 min") { adjustTime(by: 5) }
-                    .accessibilityLabel("Add 5 minutes")
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .tint(FoodTheme.secondaryText)
-        }
-        .font(.system(.body, design: .rounded).weight(.medium))
-        .padding(16)
-        .background(FoodTheme.field.opacity(0.55))
     }
 
     private var mealMenu: some View {
@@ -438,28 +403,6 @@ struct FoodEntryEditor: View {
         guard newMealType != mealType else { return }
         mealType = newMealType
         date = MealDefaultTimes.applyingDefault(for: newMealType, to: date)
-    }
-
-    private func adjustTime(by minuteOffset: Int) {
-        let calendar = Calendar.current
-        let time = calendar.dateComponents([.hour, .minute], from: date)
-        let currentMinutes = (time.hour ?? 0) * 60 + (time.minute ?? 0)
-        let adjustedMinutes = (currentMinutes + minuteOffset + 24 * 60) % (24 * 60)
-        var components = calendar.dateComponents([.era, .year, .month, .day], from: date)
-        components.hour = adjustedMinutes / 60
-        components.minute = adjustedMinutes % 60
-        components.second = 0
-        date = calendar.date(from: components) ?? date
-    }
-
-    private func setTimeToNow() {
-        let calendar = Calendar.current
-        let currentTime = calendar.dateComponents([.hour, .minute], from: Date())
-        var components = calendar.dateComponents([.era, .year, .month, .day], from: date)
-        components.hour = currentTime.hour
-        components.minute = currentTime.minute
-        components.second = 0
-        date = calendar.date(from: components) ?? date
     }
 
     private var optionalDetails: some View {

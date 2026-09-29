@@ -42,6 +42,15 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertEqual(MealTypeSuggestion.suggested(for: date(2026, 9, 11, 23), calendar: utcCalendar), "Snack")
     }
 
+    func testDateTimeQuickAdjustmentsCrossDayAndRoundToMinute() {
+        let late = date(2026, 9, 14, 23, 58).addingTimeInterval(32)
+        XCTAssertEqual(DateTimeSelection.adjusting(late, by: 5), date(2026, 9, 15, 0, 3))
+        XCTAssertEqual(DateTimeSelection.adjusting(late, by: -1), date(2026, 9, 14, 23, 57))
+        XCTAssertEqual(DateTimeSelection.adjusting(date(2026, 9, 15), by: -1), date(2026, 9, 14, 23, 59))
+        XCTAssertEqual(DateTimeSelection.roundedToMinute(late), date(2026, 9, 14, 23, 58))
+        XCTAssertEqual(Int(DateTimeSelection.now().timeIntervalSince1970) % 60, 0)
+    }
+
     func testSuggestionsUseIndividualFoodsAcrossMealsAndDeduplicatePerEntry() {
         let sources = [
             FoodSuggestionSource(mealType: "Breakfast", food: "Toast, Eggs, toast"),
