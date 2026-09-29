@@ -421,11 +421,17 @@ struct FoodEntryEditor: View {
             }
 
             if hasSavedDraft {
-                Button("Discard draft", role: .destructive) {
+                Button(role: .destructive) {
                     confirmDiscard = true
+                } label: {
+                    Text("Discard draft")
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 48)
+                        .contentShape(Rectangle())
                 }
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                .frame(minHeight: 44)
+                .buttonStyle(.plain)
+                .foregroundStyle(FoodTheme.ink)
                 .accessibilityIdentifier("discard-entry-draft")
             }
         }
