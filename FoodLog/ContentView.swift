@@ -28,12 +28,14 @@ struct ContentView: View {
 
 private enum FoodTab: String, CaseIterable {
     case journal = "Journal"
+    case fasts = "Fasts"
     case patterns = "Patterns"
     case settings = "Settings"
 
     var icon: String {
         switch self {
         case .journal: return "book.closed.fill"
+        case .fasts: return "moon.fill"
         case .patterns: return "chart.bar.fill"
         case .settings: return "gearshape.fill"
         }
@@ -55,16 +57,7 @@ struct FoodLogRootView: View {
     var body: some View {
         NavigationStack {
             selectedContent
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            FoodBottomBar(selection: $selectedTab, addEntry: addEntry)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity)
-                .background(FoodTheme.background)
-                .contentShape(Rectangle())
-                .simultaneousGesture(TapGesture().onEnded {})
-                .zIndex(10)
+                .modifier(FoodBottomBarPlacement(selection: $selectedTab, addEntry: addEntry))
         }
         .sheet(item: $editorPresentation) { presentation in
             FoodEntryEditor(entry: presentation.entry, draftKey: presentation.draftKey)
@@ -78,6 +71,8 @@ struct FoodLogRootView: View {
         switch selectedTab {
         case .journal:
             JournalView()
+        case .fasts:
+            FastSessionsView()
         case .patterns:
             PatternsView()
         case .settings:
@@ -109,13 +104,46 @@ struct FoodLogRootView: View {
     }
 }
 
+private struct FoodBottomBarPlacement: ViewModifier {
+    @Binding var selection: FoodTab
+    let addEntry: () -> Void
+
+    func body(content: Content) -> some View {
+        // Keep scroll content under the native glass, but reserve enough scroll
+        // inset to bring the final row clear on every tab and supported OS.
+        content.safeAreaInset(edge: .bottom, spacing: 0) { bar }
+    }
+
+    private var bar: some View {
+        FoodBottomBar(selection: $selection, addEntry: addEntry)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .simultaneousGesture(TapGesture().onEnded {})
+    }
+}
+
 private struct FoodBottomBar: View {
     @Environment(\.foodAccentColor) private var accentColor
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Binding var selection: FoodTab
     let addEntry: () -> Void
 
+    @ViewBuilder
     var body: some View {
+#if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 12) { controls }
+        } else {
+            controls
+        }
+#else
+        controls
+#endif
+    }
+
+    private var controls: some View {
         HStack(spacing: 12) {
             HStack(spacing: 2) {
                 ForEach(FoodTab.allCases, id: \.self) { tab in
@@ -124,7 +152,7 @@ private struct FoodBottomBar: View {
             }
             .padding(5)
             .frame(maxWidth: .infinity)
-            .foodGlass(cornerRadius: 32)
+            .foodGlass(cornerRadius: 32, interactive: true)
 
             addButton
         }
