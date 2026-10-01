@@ -540,7 +540,7 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Previously saved fasting records"].exists)
         XCTAssertTrue(app.staticTexts["12h 0m"].exists)
         app.buttons["Patterns"].tap()
-        XCTAssertTrue(app.staticTexts["OVERNIGHT ESTIMATES"].exists)
+        XCTAssertTrue(app.staticTexts["FASTS"].exists)
         XCTAssertTrue(app.staticTexts["Average gap"].exists)
         XCTAssertTrue(app.staticTexts["Latest gap"].exists)
     }

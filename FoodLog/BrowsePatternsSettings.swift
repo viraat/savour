@@ -187,7 +187,7 @@ struct PatternsView: View {
     private var overnightPatternsCard: some View {
         let estimates = overnightEstimates
         return VStack(alignment: .leading, spacing: 12) {
-            Label("OVERNIGHT ESTIMATES", systemImage: "moon")
+            Label("FASTS", systemImage: "moon")
                 .sectionLabel()
             if let summary = OvernightFasting.summary(of: estimates), let latest = estimates.first {
                 HStack(alignment: .top, spacing: 16) {
@@ -196,11 +196,11 @@ struct PatternsView: View {
                 }
                 Text("Range: \(FastTimeText.duration(summary.shortestDuration)) – \(FastTimeText.duration(summary.longestDuration))")
                     .font(.system(.subheadline, design: .rounded))
-                Text("\(summary.count) overnight \(summary.count == 1 ? "estimate" : "estimates") · Based on logged meals; drinks excluded.")
+                Text("\(summary.count) \(summary.count == 1 ? "fast" : "fasts")")
                     .font(.system(.caption, design: .rounded))
                     .foregroundStyle(FoodTheme.secondaryText)
             } else {
-                Text("Log meals on consecutive days to see overnight estimates.")
+                Text("Log meals on consecutive days to see fasting times.")
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(FoodTheme.secondaryText)
             }
@@ -907,7 +907,7 @@ struct FoodLogSettingsView: View {
                     NavigationLink {
                         FastSessionsView()
                     } label: {
-                        settingsRow(icon: "moon", title: "Overnight gaps", detail: nil)
+                        settingsRow(icon: "moon", title: "Fasts", detail: nil)
                     }
                 }
 

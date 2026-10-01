@@ -21,6 +21,31 @@ struct OvernightFastSummary {
     let longestDuration: TimeInterval
 }
 
+struct FastingCalendarMonth {
+    let start: Date
+    let cells: [Date?]
+
+    init(containing date: Date, calendar: Calendar) {
+        let start = calendar.dateInterval(of: .month, for: date)?.start ?? calendar.startOfDay(for: date)
+        self.start = start
+        let offset = (calendar.component(.weekday, from: start) - calendar.firstWeekday + 7) % 7
+        let days = calendar.range(of: .day, in: .month, for: start) ?? 1..<2
+        var cells = Array<Date?>(repeating: nil, count: offset)
+        for day in days {
+            cells.append(calendar.date(byAdding: .day, value: day - days.lowerBound, to: start)
+                .map { calendar.startOfDay(for: $0) })
+        }
+        cells.append(contentsOf: Array<Date?>(repeating: nil, count: (7 - cells.count % 7) % 7))
+        self.cells = cells
+    }
+
+    // A fixed scale keeps a duration's shade consistent across months.
+    static func intensity(for duration: TimeInterval) -> Double {
+        guard duration.isFinite else { return 0 }
+        return min(1, max(0, duration / (36 * 3_600)))
+    }
+}
+
 enum OvernightFasting {
     static func summary(of estimates: [OvernightFastEstimate]) -> OvernightFastSummary? {
         let durations = estimates.map(\.duration)
@@ -55,21 +80,149 @@ struct OvernightFastCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Overnight estimate", systemImage: "moon")
-                .font(.system(.headline, design: .rounded))
-            Text(FastTimeText.duration(estimate.duration))
-                .font(.system(.title2, design: .rounded).weight(.semibold))
-                .accessibilityIdentifier("overnight-duration")
+            HStack(spacing: 8) {
+                Image(systemName: "moon")
+                    .accessibilityHidden(true)
+                Text(FastTimeText.duration(estimate.duration))
+                    .accessibilityIdentifier("overnight-duration")
+            }
+            .font(.system(.title2, design: .rounded).weight(.semibold))
             Text("Last meal: \(estimate.startDate.formatted(date: .abbreviated, time: .shortened))")
             Text("First meal: \(estimate.endDate.formatted(date: .abbreviated, time: .shortened))")
-            Text("Based on logged meals; drinks are excluded.")
-                .foregroundStyle(FoodTheme.secondaryText)
         }
         .font(.system(.subheadline, design: .rounded))
         .foregroundStyle(FoodTheme.ink)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .foodPanel(cornerRadius: 18)
+    }
+}
+
+private struct FastingMonthCalendar: View {
+    let estimates: [OvernightFastEstimate]
+    let calendar: Calendar
+    @Binding var displayedMonth: Date
+    @Binding var selectedEstimate: OvernightFastEstimate?
+
+    private var month: FastingCalendarMonth {
+        FastingCalendarMonth(containing: displayedMonth, calendar: calendar)
+    }
+
+    private var estimatesByDay: [Date: OvernightFastEstimate] {
+        Dictionary(estimates.map { (calendar.startOfDay(for: $0.endDate), $0) },
+                   uniquingKeysWith: { first, _ in first })
+    }
+
+    private var monthTitle: String {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.setLocalizedDateFormatFromTemplate("MMMM yyyy")
+        return formatter.string(from: month.start)
+    }
+
+    private func shade(_ intensity: Double) -> Color {
+        Color(red: 0.26 - 0.18 * intensity,
+              green: 0.47 - 0.31 * intensity,
+              blue: 0.67 - 0.39 * intensity)
+    }
+
+    private func moveMonth(by offset: Int) {
+        if let date = calendar.date(byAdding: .month, value: offset, to: month.start) {
+            displayedMonth = date
+        }
+    }
+
+    var body: some View {
+        let month = month
+        let estimatesByDay = estimatesByDay
+        VStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Button { moveMonth(by: -1) } label: {
+                    Image(systemName: "chevron.left").frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("Previous month")
+                Text(monthTitle)
+                    .font(.system(.headline, design: .rounded))
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
+                Button { moveMonth(by: 1) } label: {
+                    Image(systemName: "chevron.right").frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("Next month")
+            }
+            .buttonStyle(.plain)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 4) {
+                ForEach(0..<7, id: \.self) { offset in
+                    let index = (calendar.firstWeekday - 1 + offset) % 7
+                    Text(calendar.veryShortStandaloneWeekdaySymbols[index])
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(FoodTheme.secondaryText)
+                        .frame(maxWidth: .infinity)
+                        .accessibilityLabel(calendar.standaloneWeekdaySymbols[index])
+                }
+                ForEach(month.cells.indices, id: \.self) { index in
+                    if let day = month.cells[index] {
+                        dayCell(day, estimate: estimatesByDay[day])
+                    } else {
+                        Color.clear.frame(minHeight: 44).accessibilityHidden(true)
+                    }
+                }
+            }
+            HStack(spacing: 6) {
+                Text("Shorter")
+                ForEach(0..<5, id: \.self) { index in
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(shade(Double(index) / 4))
+                        .frame(width: 16, height: 12)
+                        .accessibilityHidden(true)
+                }
+                Text("Longer")
+                Spacer(minLength: 0)
+            }
+            .font(.system(.caption, design: .rounded))
+            .foregroundStyle(FoodTheme.secondaryText)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Darker dates indicate longer fasts")
+            if !calendar.isDate(Date(), equalTo: month.start, toGranularity: .month) {
+                Button("This month") { displayedMonth = Date() }
+                    .frame(minHeight: 44)
+                    .buttonStyle(.plain)
+            }
+        }
+        .foregroundStyle(FoodTheme.ink)
+        .padding(12)
+        .foodPanel(cornerRadius: 18)
+        .accessibilityIdentifier("fasting-month-calendar")
+    }
+
+    private func dayCell(_ day: Date, estimate: OvernightFastEstimate?) -> some View {
+        Button {
+            selectedEstimate = estimate
+        } label: {
+            Text("\(calendar.component(.day, from: day))")
+                .font(.system(.subheadline, design: .rounded).weight(.medium))
+                .foregroundStyle(estimate == nil ? FoodTheme.ink : Color.white)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background {
+                    if let estimate {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(shade(FastingCalendarMonth.intensity(for: estimate.duration)))
+                    }
+                }
+                .overlay {
+                    if calendar.isDateInToday(day) {
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(estimate == nil ? FoodTheme.ink : Color.white, lineWidth: 2)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .disabled(estimate == nil)
+        .accessibilityLabel(day.formatted(date: .complete, time: .omitted))
+        .accessibilityValue(estimate.map { FastTimeText.duration($0.duration) } ?? "No fast")
+        .accessibilityHint(estimate == nil ? "" : "Shows meal times")
     }
 }
 
@@ -228,6 +381,8 @@ struct FastSessionsView: View {
     @State private var deletingSession: FastSession?
     @State private var message: String?
     @State private var calendar = Calendar.current
+    @State private var displayedMonth = Date()
+    @State private var selectedEstimate: OvernightFastEstimate?
 
     private var estimates: [OvernightFastEstimate] {
         OvernightFasting.estimates(from: Array(entries), calendar: calendar)
@@ -235,11 +390,16 @@ struct FastSessionsView: View {
 
     var body: some View {
         List {
+            FastingMonthCalendar(estimates: estimates, calendar: calendar,
+                                 displayedMonth: $displayedMonth, selectedEstimate: $selectedEstimate)
+                .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             if estimates.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "clock").font(.largeTitle)
-                    Text("No overnight estimates yet").font(.headline)
-                    Text("Log meals on consecutive days to see the time between the last meal and the next day's first meal.").font(.subheadline)
+                    Text("No fasting times yet").font(.headline)
+                    Text("Log meals on consecutive days to see your fasting times.").font(.subheadline)
                 }
                 .frame(maxWidth: .infinity)
                 .foregroundStyle(FoodTheme.secondaryText)
@@ -252,7 +412,7 @@ struct FastSessionsView: View {
                         .listRowSeparator(.hidden)
                 }
             } footer: {
-                Text("Estimates update when meals change. Drinks and gaps across days without logged meals are excluded. These estimates are not saved as fasting sessions.")
+                Text("Calculated between meals on consecutive days. Drinks are excluded.")
             }
             if !sessions.isEmpty {
                 Section("Previously saved fasting records") {
@@ -286,6 +446,22 @@ struct FastSessionsView: View {
             if phase == .active { calendar = .current }
         }
         .sheet(item: $editingSession) { FastSessionEditor(session: $0) }
+        .sheet(item: $selectedEstimate) { estimate in
+            NavigationStack {
+                ScrollView {
+                    OvernightFastCard(estimate: estimate).padding()
+                }
+                .background(FoodTheme.background)
+                .navigationTitle(estimate.endDate.formatted(date: .abbreviated, time: .omitted))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { selectedEstimate = nil }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
         .alert("Delete this fast?", isPresented: Binding(
             get: { deletingSession != nil }, set: { if !$0 { deletingSession = nil } }
         )) {
