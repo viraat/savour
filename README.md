@@ -28,6 +28,9 @@ the core experience is a neutral record.
 - Optional photo from the camera or system photo picker
 - Inline food autocomplete for the current comma-separated item, ranked by match, meal type, frequency, and recency
 - Journal grouped by day
+- Fasts tab with automatic overnight-gap estimates from consecutive days' last and first meals (Drink entries excluded)
+- Overnight average, latest, and range estimates in Patterns, respecting the selected date range
+- Autosaved unfinished entries and edits; Cancel offers Keep draft or Discard
 - Search across food, place, people, and notes
 - Meal-category filtering
 - Neutral visual summaries for 7 days, 30 days, and all time
@@ -37,7 +40,7 @@ the core experience is a neutral record.
 - CSV export and import with a preview of entries, duplicate detection, and row errors
 - Light, dark, and system appearance with five saved accent colors
 - Native navigation, sheets, bottom toolbars, and iOS 26 Liquid Glass styling
-- Optional biometric app lock with background privacy shielding
+- Optional automatic biometric app lock, immediate/1-minute/5-minute relocking, and background privacy shielding
 - Fully local Core Data storage with no account required
 
 ## Build
@@ -66,9 +69,27 @@ on import. An empty journal exports a valid header-only CSV. CSV files do not
 contain photos.
 
 On iOS 26, FoodLog uses the system Liquid Glass effects, glass button styles,
-a grouped bottom navigation toolbar, and a distinct trailing add action. Earlier
+a grouped bottom navigation bar, and a distinct trailing add action. Journal
+content scrolls behind the glass while the final entry can scroll clear of the
+controls. Earlier
 supported iOS versions use native materials and bordered controls through
 availability-gated fallbacks.
+
+With App lock enabled, FoodLog requests device authentication automatically on
+launch and when returning after the relock delay. Cancelled or unsuccessful
+authentication stays on the lock screen until retry; it does not repeatedly
+prompt. Settings → Privacy offers immediate, 1-minute, and 5-minute relocking.
+A new process always requires authentication. Background snapshots conceal
+the journal, presented drafts, and keyboard predictions even during a grace
+period. Grace periods use elapsed system uptime, not the wall clock.
+
+Overnight estimates are calculated from the last non-Drink entry on one calendar
+day and the first non-Drink entry on the next. They update with meal edits,
+deletions, imports, and the current time zone. Days without logged meals are
+skipped. These are estimates from your journal, not confirmations that nothing
+else was consumed. There is no Start/End fast control or automatic creation of
+`FastSession` records. Previously saved fasting records remain available in the
+Fasts tab; the existing Core Data model and CSV formats are unchanged.
 
 Food entries stay in the app's local Core Data store. The location button enables
 MapKit suggestions and uses foreground location only to prioritize nearby results;

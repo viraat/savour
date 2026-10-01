@@ -1,6 +1,78 @@
 import CoreData
 import SwiftUI
 
+struct OvernightMeal {
+    let date: Date
+    let mealType: String
+}
+
+struct OvernightFastEstimate: Identifiable, Equatable {
+    let day: Date
+    let startDate: Date
+    let endDate: Date
+    var id: Date { day }
+    var duration: TimeInterval { endDate.timeIntervalSince(startDate) }
+}
+
+struct OvernightFastSummary {
+    let count: Int
+    let averageDuration: TimeInterval
+    let shortestDuration: TimeInterval
+    let longestDuration: TimeInterval
+}
+
+enum OvernightFasting {
+    static func summary(of estimates: [OvernightFastEstimate]) -> OvernightFastSummary? {
+        let durations = estimates.map(\.duration)
+        guard let shortest = durations.min(), let longest = durations.max() else { return nil }
+        return OvernightFastSummary(count: durations.count,
+                                    averageDuration: durations.reduce(0, +) / Double(durations.count),
+                                    shortestDuration: shortest, longestDuration: longest)
+    }
+
+    static func estimates(from meals: [OvernightMeal], calendar: Calendar = .current) -> [OvernightFastEstimate] {
+        let mealsByDay = Dictionary(grouping: meals.filter { $0.mealType != "Drink" }) {
+            calendar.startOfDay(for: $0.date)
+        }
+        return mealsByDay.compactMap { day, meals in
+            guard let previousDate = calendar.date(byAdding: .day, value: -1, to: day),
+                  let start = mealsByDay[calendar.startOfDay(for: previousDate)]?.map(\.date).max(),
+                  let end = meals.map(\.date).min(), end > start else { return nil }
+            return OvernightFastEstimate(day: day, startDate: start, endDate: end)
+        }
+        .sorted { $0.endDate > $1.endDate }
+    }
+
+    static func estimates(from entries: [FoodEntry], calendar: Calendar = .current) -> [OvernightFastEstimate] {
+        estimates(from: entries.compactMap { entry in
+            entry.date.map { OvernightMeal(date: $0, mealType: entry.wrappedMealType) }
+        }, calendar: calendar)
+    }
+}
+
+struct OvernightFastCard: View {
+    let estimate: OvernightFastEstimate
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Overnight estimate", systemImage: "moon")
+                .font(.system(.headline, design: .rounded))
+            Text(FastTimeText.duration(estimate.duration))
+                .font(.system(.title2, design: .rounded).weight(.semibold))
+                .accessibilityIdentifier("overnight-duration")
+            Text("Last meal: \(estimate.startDate.formatted(date: .abbreviated, time: .shortened))")
+            Text("First meal: \(estimate.endDate.formatted(date: .abbreviated, time: .shortened))")
+            Text("Based on logged meals; drinks are excluded.")
+                .foregroundStyle(FoodTheme.secondaryText)
+        }
+        .font(.system(.subheadline, design: .rounded))
+        .foregroundStyle(FoodTheme.ink)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .foodPanel(cornerRadius: 18)
+    }
+}
+
 enum FastingError: LocalizedError, Equatable {
     case datesOutOfOrder
     case overlapsExisting
@@ -145,98 +217,74 @@ enum FastTimeText {
     }
 }
 
-struct FastJournalCard: View {
-    @ObservedObject var session: FastSession
-    @Environment(\.managedObjectContext) private var context
-    @State private var message: String?
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { timeline in
-            VStack(alignment: .leading, spacing: 10) {
-                Label("Current fast", systemImage: "clock")
-                    .font(.system(.headline, design: .rounded))
-                    .foregroundStyle(FoodTheme.ink)
-                if let start = session.startDate {
-                    Text(FastTimeText.duration(timeline.date.timeIntervalSince(start)))
-                        .font(.system(.title2, design: .rounded).weight(.semibold))
-                        .foregroundStyle(FoodTheme.ink)
-                        .accessibilityIdentifier("fast-elapsed")
-                    Text("Started \(start.formatted(date: .abbreviated, time: .shortened))")
-                        .font(.subheadline)
-                        .foregroundStyle(FoodTheme.secondaryText)
-                    if let target = session.targetSeconds, target > 0 {
-                        ProgressView(value: min(max(timeline.date.timeIntervalSince(start) / target, 0), 1))
-                            .accessibilityLabel("Target progress")
-                        Text("Optional target: \(FastTimeText.duration(target))")
-                            .font(.subheadline)
-                            .foregroundStyle(FoodTheme.secondaryText)
-                    }
-                }
-                Button("End fast") {
-                    do {
-                        try FastingStore.end(session, at: Date())
-                        try context.save()
-                    } catch {
-                        context.rollback()
-                        message = error.localizedDescription
-                    }
-                }
-                .buttonStyle(.bordered)
-                .accessibilityIdentifier("end-fast")
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .foodPanel(cornerRadius: 18)
-        }
-        .alert("Fast could not be updated", isPresented: Binding(
-            get: { message != nil }, set: { if !$0 { message = nil } }
-        )) { Button("OK") { message = nil } } message: { Text(message ?? "") }
-    }
-}
-
 struct FastSessionsView: View {
     @Environment(\.managedObjectContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "startDate", ascending: false)])
     private var sessions: FetchedResults<FastSession>
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)])
+    private var entries: FetchedResults<FoodEntry>
     @State private var editingSession: FastSession?
-    @State private var adding = false
     @State private var deletingSession: FastSession?
     @State private var message: String?
+    @State private var calendar = Calendar.current
+
+    private var estimates: [OvernightFastEstimate] {
+        OvernightFasting.estimates(from: Array(entries), calendar: calendar)
+    }
 
     var body: some View {
         List {
-            if sessions.isEmpty {
+            if estimates.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "clock").font(.largeTitle)
-                    Text("No fasts recorded").font(.headline)
-                    Text("Add one whenever you want to keep a record.").font(.subheadline)
+                    Text("No overnight estimates yet").font(.headline)
+                    Text("Log meals on consecutive days to see the time between the last meal and the next day's first meal.").font(.subheadline)
                 }
                 .frame(maxWidth: .infinity)
                 .foregroundStyle(FoodTheme.secondaryText)
             }
-            ForEach(sessions, id: \.objectID) { session in
-                Button { editingSession = session } label: {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(session.startDate?.formatted(date: .abbreviated, time: .shortened) ?? "Start time unavailable")
-                            .font(.headline)
-                        Text(session.endDate.map { "Ended \($0.formatted(date: .abbreviated, time: .shortened))" } ?? "Active")
-                            .font(.subheadline)
-                        if let duration = session.duration {
-                            Text(FastTimeText.duration(duration)).font(.subheadline)
+            Section {
+                ForEach(estimates) { estimate in
+                    OvernightFastCard(estimate: estimate)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                }
+            } footer: {
+                Text("Estimates update when meals change. Drinks and gaps across days without logged meals are excluded. These estimates are not saved as fasting sessions.")
+            }
+            if !sessions.isEmpty {
+                Section("Previously saved fasting records") {
+                    ForEach(sessions, id: \.objectID) { session in
+                        Button { editingSession = session } label: {
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(session.startDate?.formatted(date: .abbreviated, time: .shortened) ?? "Start time unavailable")
+                                    .font(.headline)
+                                Text(session.endDate.map { "Ended \($0.formatted(date: .abbreviated, time: .shortened))" } ?? "No end recorded")
+                                    .font(.subheadline)
+                                if let duration = session.duration {
+                                    Text(FastTimeText.duration(duration)).font(.subheadline)
+                                }
+                            }
+                            .foregroundStyle(FoodTheme.ink)
+                            .padding(.vertical, 4)
+                        }
+                        .contextMenu {
+                            Button("Edit", systemImage: "pencil") { editingSession = session }
+                            Button("Delete", systemImage: "trash", role: .destructive) { deletingSession = session }
                         }
                     }
-                    .foregroundStyle(FoodTheme.ink)
-                    .padding(.vertical, 4)
-                }
-                .contextMenu {
-                    Button("Edit", systemImage: "pencil") { editingSession = session }
-                    Button("Delete", systemImage: "trash", role: .destructive) { deletingSession = session }
                 }
             }
         }
         .navigationTitle("Fasts")
-        .toolbar { Button("Add", systemImage: "plus") { adding = true } }
-        .sheet(isPresented: $adding) { FastSessionEditor(session: nil) }
+        .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+            calendar = .current
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { calendar = .current }
+        }
         .sheet(item: $editingSession) { FastSessionEditor(session: $0) }
         .alert("Delete this fast?", isPresented: Binding(
             get: { deletingSession != nil }, set: { if !$0 { deletingSession = nil } }
@@ -418,35 +466,5 @@ struct FastSessionEditor: View {
             context.rollback()
             message = error.localizedDescription
         }
-    }
-}
-
-struct FastTargetSettingsView: View {
-    @AppStorage(FastTargetPreference.key) private var hours = 0.0
-    @State private var customHours = ""
-
-    var body: some View {
-        Form {
-            Section {
-                Picker("Default target", selection: $hours) {
-                    Text("No target").tag(0.0)
-                    Text("12 hours").tag(12.0)
-                    Text("14 hours").tag(14.0)
-                    Text("16 hours").tag(16.0)
-                    if hours > 0 && ![12.0, 14.0, 16.0].contains(hours) {
-                        Text("\(hours.formatted()) hours").tag(hours)
-                    }
-                }
-                HStack {
-                    TextField("Custom hours", text: $customHours).keyboardType(.decimalPad)
-                    Button("Use") {
-                        if let value = Double(customHours), value > 0, value.isFinite { hours = value }
-                    }
-                }
-            } footer: {
-                Text("A target is optional and can be changed for each fast.")
-            }
-        }
-        .navigationTitle("Fasting target")
     }
 }

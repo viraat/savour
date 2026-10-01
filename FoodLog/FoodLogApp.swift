@@ -15,6 +15,7 @@ struct FoodLogApp: App {
                     try? FileManager.default.removeItem(atPath: storeURL.path + suffix)
                 }
                 try? FileManager.default.removeItem(at: FoodEntryDraftStore.defaultURL)
+                UserDefaults.standard.removeObject(forKey: AppRelockDelay.settingKey)
             }
             let testPersistence = PersistenceController(storeURL: storeURL)
             if arguments.contains("--seed-ui-test-draft") {
@@ -87,6 +88,32 @@ struct FoodLogApp: App {
                         entry.food = "Navigation fixture \(index + 1)"
                         entry.mealType = "Snack"
                     }
+                    try? context.save()
+                }
+            }
+            if arguments.contains("--seed-ui-test-overnight") {
+                let context = testPersistence.container.viewContext
+                context.performAndWait {
+                    let calendar = Calendar.current
+                    let today = calendar.startOfDay(for: Date())
+                    for (food, offset, hour, type) in [
+                        ("Overnight dinner", -1, 22, "Dinner"),
+                        ("Late drink", -1, 23, "Drink"),
+                        ("Early drink", 0, 7, "Drink"),
+                        ("Overnight breakfast", 0, 8, "Breakfast"),
+                        ("Later lunch", 0, 12, "Lunch")
+                    ] {
+                        let day = calendar.date(byAdding: .day, value: offset, to: today)!
+                        let timestamp = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: day)!
+                        let entry = FoodEntry(context: context)
+                        entry.id = UUID()
+                        entry.createdAt = timestamp
+                        entry.date = timestamp
+                        entry.food = food
+                        entry.mealType = type
+                    }
+                    let start = calendar.date(byAdding: .day, value: -3, to: today)!
+                    _ = try? FastingStore.create(start: start, end: start.addingTimeInterval(12 * 3_600), in: context)
                     try? context.save()
                 }
             }

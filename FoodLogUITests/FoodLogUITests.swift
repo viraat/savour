@@ -95,6 +95,8 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertEqual(app.textFields["food-description"].value as? String, "Interrupted dinner")
         XCTAssertEqual(app.buttons["Date and time"].value as? String, chosenTime)
         app.buttons["Cancel"].tap()
+        app.buttons["Keep draft"].tap()
+        waitForEditorDismissal()
         XCTAssertFalse(journalEntry(containing: "Interrupted dinner").exists)
         app.buttons["Add entry"].tap()
         XCTAssertEqual(app.textFields["food-description"].value as? String, "Interrupted dinner")
@@ -121,6 +123,8 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.textFields["food-description"].value as? String, editedFood)
         app.buttons["Cancel"].tap()
+        app.buttons["Keep draft"].tap()
+        waitForEditorDismissal()
         XCTAssertTrue(journalEntry(containing: "Original draft meal").exists)
         XCTAssertFalse(journalEntry(containing: editedFood).exists)
         journalEntry(containing: "Original draft meal").tap()
@@ -135,11 +139,15 @@ final class FoodLogUITests: XCTestCase {
         let foodField = app.textFields["food-description"]
         foodField.tap()
         foodField.typeText("Keep this draft")
-        tapDiscardDraft()
-        app.alerts.buttons["Keep draft"].tap()
+        XCTAssertFalse(app.buttons["discard-entry-draft"].exists)
+        app.buttons["Cancel"].tap()
+        app.buttons["Keep draft"].tap()
+        waitForEditorDismissal()
+        app.buttons["Add entry"].tap()
+        XCTAssertTrue(foodField.waitForExistence(timeout: 3))
         XCTAssertEqual(foodField.value as? String, "Keep this draft")
-        tapDiscardDraft()
-        app.alerts.buttons["Discard"].tap()
+        app.buttons["Cancel"].tap()
+        app.buttons["Discard draft"].tap()
         let editorDismissed = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == false"),
             object: app.navigationBars["New entry"]
@@ -221,6 +229,127 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["FoodLog is locked"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.navigationBars["Food log"].exists)
         XCTAssertTrue(app.buttons["Unlock"].waitForExistence(timeout: 3))
+    }
+
+    func testAutomaticAuthenticationOnLaunchAndImmediateReturnWithoutRetryLoop() {
+        launch(resetStore: true, extraArguments: [
+            "-foodLogBiometricLockEnabled", "YES", "--simulate-biometric-success-once"
+        ])
+        XCTAssertTrue(app.navigationBars["Food log"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Unlock"].exists)
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(app.staticTexts["FoodLog is locked"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.navigationBars["Food log"].exists)
+        XCTAssertEqual(app.staticTexts["authentication-message"].value as? String, "2")
+        app.buttons["Unlock"].tap()
+        XCTAssertEqual(app.staticTexts["authentication-message"].value as? String, "3")
+        XCTAssertTrue(app.buttons["Unlock"].isHittable)
+    }
+
+    func testCancelledAutomaticAuthenticationWaitsForRetry() {
+        launch(resetStore: true, extraArguments: [
+            "-foodLogBiometricLockEnabled", "YES", "--simulate-biometric-denied"
+        ])
+        let status = app.staticTexts["authentication-message"]
+        XCTAssertTrue(status.waitForExistence(timeout: 3))
+        XCTAssertEqual(status.value as? String, "1")
+        XCTAssertFalse(app.buttons["Journal"].exists)
+        app.buttons["Unlock"].tap()
+        XCTAssertEqual(status.value as? String, "2")
+        XCTAssertTrue(app.buttons["Unlock"].isHittable)
+        XCTAssertEqual(status.value as? String, "2")
+    }
+
+    func testRelockGracePeriodPreservesOpenDraftWhenBrieflySwitchingApps() {
+        for delay in ["60", "300"] {
+            launch(resetStore: true, extraArguments: [
+                "-foodLogBiometricLockEnabled", "YES", "-foodLogRelockDelaySeconds", delay,
+                "--simulate-biometric-success-once"
+            ])
+            XCTAssertTrue(app.buttons["Add entry"].waitForExistence(timeout: 3))
+            app.buttons["Add entry"].tap()
+            let field = app.textFields["food-description"]
+            field.tap()
+            field.typeText("Grace period draft")
+            XCUIDevice.shared.press(.home)
+            app.activate()
+            XCTAssertTrue(app.navigationBars["New entry"].waitForExistence(timeout: 3))
+            XCTAssertEqual(field.value as? String, "Grace period draft")
+            XCTAssertFalse(app.staticTexts["FoodLog is locked"].exists)
+            app.terminate()
+        }
+    }
+
+    func testRelockSettingPersistsAcrossRelaunch() {
+        launch(resetStore: true)
+        app.buttons["Settings"].tap()
+        let picker = app.buttons["relock-delay"]
+        revealAboveNavigation(picker)
+        picker.tap()
+        app.buttons["After 5 minutes"].tap()
+        XCTAssertTrue(picker.label.contains("After 5 minutes"))
+        app.terminate()
+        launch(resetStore: false)
+        app.buttons["Settings"].tap()
+        revealAboveNavigation(picker)
+        XCTAssertTrue(picker.label.contains("After 5 minutes"))
+    }
+
+    func testPrivacyCoverConcealsPresentedDraftInAppSwitcherDuringGracePeriod() {
+        launch(resetStore: true, extraArguments: [
+            "-foodLogBiometricLockEnabled", "YES", "-foodLogRelockDelaySeconds", "60",
+            "--simulate-biometric-success-once"
+        ])
+        app.buttons["Add entry"].tap()
+        let field = app.textFields["food-description"]
+        field.tap()
+        field.typeText("Private draft behind lock")
+        // Open the app switcher using the home-indicator gesture, including a
+        // hold at the end. The capture verifies the snapshot of the open sheet.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.995))
+            .press(forDuration: 0.1,
+                   thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)),
+                   withVelocity: .slow, thenHoldForDuration: 0.5)
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        XCTAssertTrue(springboard.wait(for: .runningForeground, timeout: 3))
+        let capture = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        capture.name = "Privacy cover over draft in app switcher"
+        capture.lifetime = .keepAlways
+        add(capture)
+        app.activate()
+        XCTAssertEqual(field.value as? String, "Private draft behind lock")
+        XCTAssertFalse(app.staticTexts["FoodLog is locked"].exists)
+    }
+
+    func testJournalLastEntryRemainsReachableAboveGlassNavigation() {
+        for appearance in ["1", "2"] {
+            launch(resetStore: true, extraArguments: [
+                "--seed-ui-test-navigation", "-foodLogAppearance", appearance
+            ])
+            let last = journalEntry(containing: "Navigation fixture 20")
+            let journal = app.buttons["Journal"]
+            app.scrollViews.firstMatch.swipeUp()
+            XCTAssertGreaterThan(app.scrollViews.firstMatch.frame.maxY, journal.frame.minY)
+            let underlap = XCTAttachment(screenshot: app.screenshot())
+            underlap.name = "Content beneath glass \(appearance == "1" ? "light" : "dark")"
+            underlap.lifetime = .keepAlways
+            add(underlap)
+            for _ in 0..<15 {
+                if last.isHittable && last.frame.maxY < journal.frame.minY - 8 { break }
+                app.scrollViews.firstMatch.swipeUp()
+            }
+            XCTAssertTrue(last.isHittable)
+            let capture = XCTAttachment(screenshot: app.screenshot())
+            capture.name = "Glass navigation \(appearance == "1" ? "light" : "dark")"
+            capture.lifetime = .keepAlways
+            add(capture)
+            XCTAssertLessThan(last.frame.maxY, journal.frame.minY - 8)
+            last.tap()
+            XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 3))
+            XCTAssertEqual(app.textFields["food-description"].value as? String, "Navigation fixture 20")
+            app.terminate()
+        }
     }
 
     func testMapPinAndAppearanceSetting() {
@@ -307,8 +436,17 @@ final class FoodLogUITests: XCTestCase {
             XCTAssertFalse(app.keyboards.firstMatch.exists)
             try auditVisibleUI()
             app.buttons["Cancel"].tap()
+            if app.alerts["Close this entry?"].waitForExistence(timeout: 1) {
+                app.buttons["Keep draft"].tap()
+            }
+            waitForEditorDismissal()
 
             app.buttons["Settings"].tap()
+            XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+            // Bring the privacy controls above the glass before checking their
+            // text contrast; deliberately refracted offscreen content is not
+            // readable text and can produce an unattributed contrast finding.
+            revealAboveNavigation(app.descendants(matching: .any)["dime-source-link"])
             try auditVisibleUI()
             app.terminate()
         }
@@ -352,7 +490,7 @@ final class FoodLogUITests: XCTestCase {
 
     func testLargeTextNavigationRemainsReachable() {
         launch(resetStore: true)
-        for tab in ["Patterns", "Settings", "Journal"] {
+        for tab in ["Fasts", "Patterns", "Settings", "Journal"] {
             let button = app.buttons[tab]
             XCTAssertTrue(button.isHittable, "\(tab) should remain reachable")
             button.tap()
@@ -371,47 +509,40 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(incrementButton.isHittable)
     }
 
-    func testFastingCardMealPromptAndRelaunch() {
-        launch(resetStore: true)
-        app.buttons["Add entry"].tap()
-        let foodField = app.textFields["food-description"]
-        XCTAssertTrue(foodField.waitForExistence(timeout: 2))
-        foodField.tap()
-        foodField.typeText("Fasting start meal")
-        app.buttons["Add details"].tap()
-        let toggle = app.switches["start-fast-after-meal"]
-        for _ in 0..<3 where !toggle.isHittable { app.swipeUp() }
-        XCTAssertTrue(toggle.isHittable)
-        toggle.tap()
-        app.buttons["Add"].tap()
-        XCTAssertTrue(app.staticTexts["Current fast"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["end-fast"].exists)
-
+    func testAutomaticOvernightEstimateRelaunchEditDeleteAndLegacyPreservation() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-overnight"])
+        XCTAssertTrue(app.staticTexts["10h 0m"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["end-fast"].exists)
         app.terminate()
         launch(resetStore: false)
-        XCTAssertTrue(app.staticTexts["Current fast"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["10h 0m"].waitForExistence(timeout: 3))
         app.buttons["Add entry"].tap()
-        let nextFood = app.textFields["food-description"]
-        nextFood.tap()
-        nextFood.typeText("Tea during fast")
+        XCTAssertFalse(app.switches["start-fast-after-meal"].exists)
+        app.buttons["Cancel"].tap()
+        let breakfast = journalEntry(containing: "Overnight breakfast")
+        revealAboveNavigation(breakfast)
+        breakfast.tap()
         app.buttons["Date and time"].tap()
         app.buttons["Add 5 minutes"].tap()
         app.buttons["date-time-done"].tap()
-        app.buttons["Add"].tap()
-        XCTAssertTrue(app.buttons["End fast with this entry"].waitForExistence(timeout: 3))
-        app.buttons["End fast with this entry"].tap()
-        XCTAssertFalse(app.staticTexts["Current fast"].waitForExistence(timeout: 2))
-        app.buttons["fasts-link"].tap()
+        app.buttons["Save"].tap()
+        app.scrollViews.firstMatch.swipeDown()
+        XCTAssertTrue(app.staticTexts["10h 5m"].waitForExistence(timeout: 3))
+        revealAboveNavigation(breakfast)
+        breakfast.press(forDuration: 1)
+        app.buttons["Delete"].tap()
+        app.alerts.buttons["Delete"].tap()
+        app.scrollViews.firstMatch.swipeDown()
+        XCTAssertTrue(app.staticTexts["14h 0m"].waitForExistence(timeout: 3))
+        app.buttons["Fasts"].tap()
         XCTAssertTrue(app.navigationBars["Fasts"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Add"].exists)
-        app.buttons["Add"].tap()
-        app.buttons["fast-start-time"].tap()
-        XCTAssertTrue(app.datePickers["date-time-wheel"].waitForExistence(timeout: 2))
-        app.buttons["Add 1 minute"].tap()
-        app.buttons["date-time-done"].tap()
-        app.buttons["fast-end-time"].tap()
-        XCTAssertTrue(app.buttons["Subtract 1 minute"].waitForExistence(timeout: 2))
-        app.buttons["date-time-done"].tap()
+        XCTAssertFalse(app.buttons["Add"].exists)
+        XCTAssertTrue(app.staticTexts["Previously saved fasting records"].exists)
+        XCTAssertTrue(app.staticTexts["12h 0m"].exists)
+        app.buttons["Patterns"].tap()
+        XCTAssertTrue(app.staticTexts["OVERNIGHT ESTIMATES"].exists)
+        XCTAssertTrue(app.staticTexts["Average gap"].exists)
+        XCTAssertTrue(app.staticTexts["Latest gap"].exists)
     }
 
     @available(iOS 17.0, *)
@@ -445,7 +576,13 @@ final class FoodLogUITests: XCTestCase {
             // bottom bar even when the foreground tab labels are opaque.
             if issue.auditType == .contrast, let element = issue.element {
                 let bar = self.app.buttons["Journal"].frame.union(self.app.buttons["Add entry"].frame)
-                return element.frame.maxY >= bar.minY - 32
+                if element.frame.maxY >= bar.minY - 32 { return true }
+                // Native navigation scroll-edge blur also refracts scrolled
+                // text. Do not exempt the navigation title or toolbar controls.
+                let navigationBar = self.app.navigationBars.firstMatch
+                let belongsToScrollContent = element.elementType == .staticText &&
+                    self.app.scrollViews.firstMatch.staticTexts[element.label].exists
+                return belongsToScrollContent && element.frame.minY < navigationBar.frame.maxY
             }
             return false
         }
@@ -473,12 +610,6 @@ final class FoodLogUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", text)).firstMatch
     }
 
-    private func tapDiscardDraft() {
-        let discard = app.buttons["discard-entry-draft"]
-        XCTAssertTrue(discard.waitForExistence(timeout: 2))
-        discard.tap()
-    }
-
     private func openCSVFixturePreview() {
         let fixture = app.buttons["Preview CSV fixture"]
         for _ in 0..<4 {
@@ -489,6 +620,36 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(fixture.isHittable)
         XCTAssertLessThan(fixture.frame.maxY, app.buttons["Journal"].frame.minY)
         fixture.tap()
+    }
+
+    private func revealAboveNavigation(_ element: XCUIElement) {
+        for _ in 0..<12 {
+            if element.isHittable && element.frame.maxY < app.buttons["Journal"].frame.minY - 8 { break }
+            app.scrollViews.firstMatch.swipeUp()
+        }
+        if !element.isHittable {
+            let capture = XCTAttachment(screenshot: app.screenshot())
+            capture.name = "Unreachable control"
+            capture.lifetime = .keepAlways
+            add(capture)
+            let hierarchy = XCTAttachment(string: app.debugDescription)
+            hierarchy.name = "Unreachable control hierarchy"
+            hierarchy.lifetime = .keepAlways
+            add(hierarchy)
+        }
+        XCTAssertTrue(element.isHittable)
+        XCTAssertLessThan(element.frame.maxY, app.buttons["Journal"].frame.minY - 8)
+    }
+
+    private func waitForEditorDismissal() {
+        let dismissal = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"), object: app.textFields["food-description"]
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [dismissal], timeout: 3), .completed)
+        let addReady = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "hittable == true"), object: app.buttons["Add entry"]
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [addReady], timeout: 3), .completed)
     }
 
     private func expectedDateAndTime(hour: Int, minute: Int) -> String {

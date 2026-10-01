@@ -5,24 +5,28 @@ import UIKit
 struct JournalView: View {
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.scenePhase) private var scenePhase
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)],
         animation: .default
     ) private var entries: FetchedResults<FoodEntry>
-    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "startDate", ascending: false)], animation: .default)
-    private var fasts: FetchedResults<FastSession>
 
     @State private var selectedEntry: FoodEntry?
     @State private var entryToDelete: FoodEntry?
     @State private var query = ""
     @State private var mealFilter = "All"
     @State private var fastingMessage: String?
+    @State private var calendar = Calendar.current
 
     private var thisWeek: [FoodEntry] {
         guard let interval = Calendar.current.dateInterval(of: .weekOfYear, for: Date()) else {
             return Array(entries)
         }
         return entries.filter { interval.contains($0.wrappedDate) }
+    }
+
+    private var overnightEstimates: [OvernightFastEstimate] {
+        OvernightFasting.estimates(from: Array(entries), calendar: calendar)
     }
 
     private var filteredEntries: [FoodEntry] {
@@ -54,24 +58,9 @@ struct JournalView: View {
             LazyVStack(alignment: .leading, spacing: 18) {
                 if !isFiltering {
                     weeklySummary
-                    if let active = fasts.first(where: { $0.endDate == nil }) {
-                        FastJournalCard(session: active)
+                    if let latest = overnightEstimates.first {
+                        OvernightFastCard(estimate: latest)
                     }
-                    NavigationLink {
-                        FastSessionsView()
-                    } label: {
-                        HStack {
-                            Label("Fasts", systemImage: "clock")
-                            Spacer()
-                            Text("\(fasts.count)")
-                            Image(systemName: "chevron.right")
-                        }
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .foregroundStyle(FoodTheme.ink)
-                        .padding(16)
-                        .foodPanel(cornerRadius: 18)
-                    }
-                    .accessibilityIdentifier("fasts-link")
                 }
 
                 if entries.isEmpty {
@@ -101,6 +90,12 @@ struct JournalView: View {
         }
         .background(FoodTheme.background)
         .navigationTitle("Food log")
+        .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+            calendar = .current
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { calendar = .current }
+        }
         .searchable(
             text: $query,
             placement: .navigationBarDrawer(displayMode: .always),

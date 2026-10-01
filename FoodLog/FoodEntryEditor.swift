@@ -30,9 +30,6 @@ struct FoodEntryEditor: View {
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.createdAt, ascending: false)]
     ) private var previousEntries: FetchedResults<FoodEntry>
-    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "startDate", ascending: false)])
-    private var fasts: FetchedResults<FastSession>
-    @AppStorage(FastTargetPreference.key) private var defaultFastTargetHours = 0.0
 
     let entry: FoodEntry?
     let draftKey: FoodEntryDraftKey
@@ -57,11 +54,9 @@ struct FoodEntryEditor: View {
     @State private var isLoadingPhoto = false
     @State private var photoMessage: String?
     @State private var confirmDelete = false
-    @State private var confirmDiscard = false
+    @State private var confirmCloseDraft = false
     @State private var detailsExpanded: Bool
     @State private var showingDateTimeSheet = false
-    @State private var startFastAfterMeal: Bool
-    @State private var askAboutActiveFast = false
     @State private var fastingMessage: String?
     @State private var draftError: String?
     @State private var hasSavedDraft: Bool
@@ -125,7 +120,6 @@ struct FoodEntryEditor: View {
         _companionQuery = State(initialValue: initial.companionQuery)
         _note = State(initialValue: initial.note)
         _photoData = State(initialValue: initial.photoData)
-        _startFastAfterMeal = State(initialValue: initial.startFastAfterMeal)
         _detailsExpanded = State(initialValue: initial.detailsExpanded)
         _draftError = State(initialValue: loadError)
         _hasSavedDraft = State(initialValue: restored != nil)
@@ -152,7 +146,9 @@ struct FoodEntryEditor: View {
             companionQuery: companionQuery,
             note: note,
             photoData: photoData,
-            startFastAfterMeal: startFastAfterMeal,
+            // Kept in the draft format to decode older drafts safely; manual
+            // fasting has been replaced by computed overnight estimates.
+            startFastAfterMeal: false,
             detailsExpanded: detailsExpanded
         )
     }
@@ -295,8 +291,15 @@ struct FoodEntryEditor: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: closeKeepingDraft)
-                        .accessibilityHint("Closes the editor and keeps your draft")
+                    Button("Cancel") {
+                        if hasSavedDraft || draftSnapshot != baselineDraft {
+                            focusedField = nil
+                            confirmCloseDraft = true
+                        } else {
+                            closeKeepingDraft()
+                        }
+                    }
+                    .accessibilityHint("Choose whether to keep unfinished changes")
                 }
 
                 if entry != nil {
@@ -366,18 +369,12 @@ struct FoodEntryEditor: View {
         } message: {
             Text("This also discards an unfinished edit draft for this entry. This cannot be undone.")
         }
-        .alert("Discard this draft?", isPresented: $confirmDiscard) {
-            Button("Discard", role: .destructive, action: discardDraft)
-            Button("Keep draft", role: .cancel) {}
+        .alert("Close this entry?", isPresented: $confirmCloseDraft) {
+            Button("Keep draft", action: closeKeepingDraft)
+            Button("Discard draft", role: .destructive, action: discardDraft)
+            Button("Continue editing", role: .cancel) {}
         } message: {
-            Text("The saved journal entry, if any, will not change.")
-        }
-        .confirmationDialog("End the current fast with this entry?", isPresented: $askAboutActiveFast) {
-            Button("End fast with this entry") { commitSave(endCurrentFast: true) }
-            Button("Keep fast active") { commitSave(endCurrentFast: false) }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("The entry will be saved either way. Drinks are not handled differently.")
+            Text("Keep unfinished changes as a draft or discard them. The saved journal entry, if any, will not change.")
         }
         .alert("Could not save", isPresented: Binding(
             get: { fastingMessage != nil }, set: { if !$0 { fastingMessage = nil } }
@@ -420,20 +417,6 @@ struct FoodEntryEditor: View {
                 }
             }
 
-            if hasSavedDraft {
-                Button(role: .destructive) {
-                    confirmDiscard = true
-                } label: {
-                    Text("Discard draft")
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: 48)
-                        .contentShape(Rectangle())
-                }
-                .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                .buttonStyle(.plain)
-                .foregroundStyle(FoodTheme.ink)
-                .accessibilityIdentifier("discard-entry-draft")
-            }
         }
     }
 
@@ -542,15 +525,6 @@ struct FoodEntryEditor: View {
 
                 photoSection
 
-                if let entry, fasts.contains(where: { $0.startEntryID == entry.id }) {
-                    Label("A fast starts with this entry. Edit it in Fasts.", systemImage: "clock")
-                        .font(.subheadline)
-                        .foregroundStyle(FoodTheme.secondaryText)
-                } else {
-                    Toggle("Start a fast after this meal", isOn: $startFastAfterMeal)
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .accessibilityIdentifier("start-fast-after-meal")
-                }
             }
             .padding(.top, 14)
         } label: {
@@ -1019,24 +993,6 @@ struct FoodEntryEditor: View {
         let trimmedFood = food.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedFood.isEmpty else { return }
 
-        if let active = fasts.first(where: { $0.endDate == nil }),
-           (entry == nil || active.startEntryID != entry?.id),
-           let start = active.startDate, date > start {
-            askAboutActiveFast = true
-        } else {
-            commitSave(endCurrentFast: false)
-        }
-    }
-
-    private func commitSave(endCurrentFast: Bool) {
-        let trimmedFood = food.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedFood.isEmpty else { return }
-        let active = fasts.first(where: { $0.endDate == nil })
-        if startFastAfterMeal && active != nil && !endCurrentFast {
-            fastingMessage = "End the current fast before starting another one."
-            return
-        }
-
         let target = entry ?? FoodEntry(context: context)
         if target.id == nil { target.id = UUID() }
         if target.createdAt == nil { target.createdAt = Date() }
@@ -1058,12 +1014,6 @@ struct FoodEntryEditor: View {
 
         do {
             if entry != nil { try FastingStore.entryDateChanged(target, in: context) }
-            if endCurrentFast, let active { try FastingStore.end(active, at: date, with: target.id) }
-            if startFastAfterMeal {
-                try FastingStore.create(start: date,
-                                        target: FastTargetPreference.seconds(for: defaultFastTargetHours),
-                                        startEntryID: target.id, in: context)
-            }
             try context.save()
         } catch {
             context.rollback()

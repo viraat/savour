@@ -40,6 +40,7 @@ struct PatternsView: View {
     @Environment(\.managedObjectContext) private var context
     @Environment(\.foodAccentColor) private var accentColor
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.scenePhase) private var scenePhase
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)]
     ) private var entries: FetchedResults<FoodEntry>
@@ -48,6 +49,7 @@ struct PatternsView: View {
     @State private var isBackfillingPlaces = false
     @State private var backfillMessage: String?
     @State private var selectedDetail: PatternDetail?
+    @State private var calendar = Calendar.current
     @StateObject private var contactPhotos = ContactsSearchModel(includesImages: true)
 
     private var selectedEntries: [FoodEntry] {
@@ -55,6 +57,16 @@ struct PatternsView: View {
               let start = Calendar.current.date(byAdding: .day, value: -(range.rawValue - 1), to: Calendar.current.startOfDay(for: Date()))
         else { return Array(entries) }
         return entries.filter { $0.wrappedDate >= start }
+    }
+
+    private var overnightEstimates: [OvernightFastEstimate] {
+        let estimates = OvernightFasting.estimates(from: Array(entries), calendar: calendar)
+        guard range.rawValue > 0,
+              let start = calendar.date(byAdding: .day, value: -(range.rawValue - 1),
+                                        to: calendar.startOfDay(for: Date())) else { return estimates }
+        // Select by the first meal's day, retaining the previous day's last
+        // meal even when it falls outside the selected reporting range.
+        return estimates.filter { $0.endDate >= start }
     }
 
     private var daysRepresented: Int {
@@ -128,6 +140,7 @@ struct PatternsView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
                 rangePicker
+                overnightPatternsCard
                 eatingPlacesCard
                 summaryCards
 
@@ -140,10 +153,16 @@ struct PatternsView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-            .padding(.bottom, 110)
+            .padding(.bottom, 20)
         }
         .background(FoodTheme.background)
         .navigationTitle("Patterns")
+        .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+            calendar = .current
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { calendar = .current }
+        }
         .onAppear(perform: contactPhotos.loadIfAuthorized)
         .sheet(item: $selectedDetail, content: detailSheet)
     }
@@ -163,6 +182,45 @@ struct PatternsView: View {
                 Text(option.label).tag(option)
             }
         }
+    }
+
+    private var overnightPatternsCard: some View {
+        let estimates = overnightEstimates
+        return VStack(alignment: .leading, spacing: 12) {
+            Label("OVERNIGHT ESTIMATES", systemImage: "moon")
+                .sectionLabel()
+            if let summary = OvernightFasting.summary(of: estimates), let latest = estimates.first {
+                HStack(alignment: .top, spacing: 16) {
+                    overnightMetric("Average gap", duration: summary.averageDuration)
+                    overnightMetric("Latest gap", duration: latest.duration)
+                }
+                Text("Range: \(FastTimeText.duration(summary.shortestDuration)) – \(FastTimeText.duration(summary.longestDuration))")
+                    .font(.system(.subheadline, design: .rounded))
+                Text("\(summary.count) overnight \(summary.count == 1 ? "estimate" : "estimates") · Based on logged meals; drinks excluded.")
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(FoodTheme.secondaryText)
+            } else {
+                Text("Log meals on consecutive days to see overnight estimates.")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(FoodTheme.secondaryText)
+            }
+        }
+        .foregroundStyle(FoodTheme.ink)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .foodPanel(cornerRadius: 20)
+        .accessibilityIdentifier("overnight-patterns")
+    }
+
+    private func overnightMetric(_ title: String, duration: TimeInterval) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(FastTimeText.duration(duration))
+                .font(.system(.title3, design: .rounded).weight(.semibold))
+            Text(title)
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(FoodTheme.secondaryText)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var summaryCards: some View {
@@ -800,6 +858,7 @@ struct FoodLogSettingsView: View {
     @AppStorage(FoodAccentOption.settingKey) private var accentValue = FoodAccentOption.teal.rawValue
     @AppStorage("showMealLabels") private var showMealLabels = true
     @AppStorage(BiometricAuthentication.settingKey) private var biometricLockEnabled = false
+    @AppStorage(AppRelockDelay.settingKey) private var relockDelaySeconds = 0
     @State private var showingShareSheet = false
     @State private var exportURL: URL?
     @State private var showingFileImporter = false
@@ -846,15 +905,9 @@ struct FoodLogSettingsView: View {
 
                 settingsSection("FASTING") {
                     NavigationLink {
-                        FastTargetSettingsView()
-                    } label: {
-                        settingsRow(icon: "clock", title: "Default fasting target", detail: nil)
-                    }
-                    Divider()
-                    NavigationLink {
                         FastSessionsView()
                     } label: {
-                        settingsRow(icon: "calendar", title: "Fasting records", detail: nil)
+                        settingsRow(icon: "moon", title: "Overnight gaps", detail: nil)
                     }
                 }
 
@@ -874,6 +927,27 @@ struct FoodLogSettingsView: View {
                             .labelsHidden()
                             .disabled(!biometricAvailability.isAvailable && !biometricLockEnabled)
                     }
+
+                    Divider()
+
+                    HStack {
+                        Text("Relock")
+                        Spacer()
+                        Picker("Relock", selection: $relockDelaySeconds) {
+                            ForEach(AppRelockDelay.allCases) { delay in
+                                Text(delay.title).tag(delay.rawValue)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .accessibilityIdentifier("relock-delay")
+                        .frame(minHeight: 44)
+                    }
+                    .font(.system(.body, design: .rounded).weight(.medium))
+
+                    Text("FoodLog stays hidden in the background. A new launch always requires authentication when app lock is enabled.")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(FoodTheme.ink)
                 }
 
                 settingsSection("YOUR DATA") {
@@ -909,8 +983,13 @@ struct FoodLogSettingsView: View {
                         Text("Adapted from Dime's open-source SwiftUI code and interaction ideas under GPLv3.")
                             .font(.system(.subheadline, design: .rounded))
                             .foregroundColor(FoodTheme.secondaryText)
-                        Link("View Dime on GitHub", destination: URL(string: "https://github.com/rafsoh/dimeApp")!)
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        Link(destination: URL(string: "https://github.com/rafsoh/dimeApp")!) {
+                            Text("View Dime on GitHub")
+                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                .frame(minHeight: 44, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }
+                        .accessibilityIdentifier("dime-source-link")
                     }
                 }
             }

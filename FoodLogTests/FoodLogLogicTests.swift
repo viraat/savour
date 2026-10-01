@@ -19,6 +19,85 @@ final class FoodLogLogicTests: XCTestCase {
         ))!
     }
 
+    func testAutomaticAuthenticationDoesNotLoopAfterCancellationOrPromptTransitions() {
+        var lock = AppLockLifecycle()
+        lock.becameActive(at: 100, delay: .immediately)
+        XCTAssertTrue(lock.beginAuthentication(automatic: true))
+        XCTAssertFalse(lock.isUnlocked)
+        lock.becameInactive(at: 101, delay: .immediately)
+        lock.becameActive(at: 102, delay: .immediately)
+        XCTAssertFalse(lock.beginAuthentication(automatic: true))
+        lock.finishAuthentication(success: false)
+        lock.becameInactive(at: 103, delay: .immediately)
+        lock.becameActive(at: 104, delay: .immediately)
+        XCTAssertFalse(lock.isUnlocked)
+        XCTAssertFalse(lock.beginAuthentication(automatic: true))
+        XCTAssertTrue(lock.beginAuthentication(automatic: false))
+        XCTAssertFalse(lock.beginAuthentication(automatic: false))
+        lock.finishAuthentication(success: true)
+        XCTAssertTrue(lock.isUnlocked)
+    }
+
+    func testRelockDelaysExpireAtBoundaryAndColdLaunchAlwaysStartsLocked() {
+        for delay in [AppRelockDelay.oneMinute, .fiveMinutes] {
+            var lock = AppLockLifecycle()
+            XCTAssertTrue(lock.beginAuthentication(automatic: true))
+            lock.finishAuthentication(success: true)
+            lock.becameInactive(at: 100, delay: delay)
+            lock.enteredBackground(at: 101, delay: delay)
+            XCTAssertTrue(lock.permitsContent(at: 100 + Double(delay.rawValue) - 1, delay: delay))
+            XCTAssertFalse(lock.permitsContent(at: 100 + Double(delay.rawValue), delay: delay))
+            lock.becameActive(at: 100 + Double(delay.rawValue) - 1, delay: delay)
+            XCTAssertTrue(lock.isUnlocked)
+            XCTAssertFalse(lock.beginAuthentication(automatic: true))
+
+            lock.becameInactive(at: 1000, delay: delay)
+            lock.enteredBackground(at: 1001, delay: delay)
+            lock.becameActive(at: 1000 + Double(delay.rawValue), delay: delay)
+            XCTAssertFalse(lock.isUnlocked)
+            XCTAssertTrue(lock.beginAuthentication(automatic: true))
+            lock.finishAuthentication(success: true)
+            XCTAssertFalse(AppLockLifecycle().isUnlocked)
+        }
+    }
+
+    func testImmediateRelockAndInterruptedAuthenticationRetryOnNextForegroundVisit() {
+        var lock = AppLockLifecycle()
+        XCTAssertTrue(lock.beginAuthentication(automatic: true))
+        lock.finishAuthentication(success: true)
+        lock.becameInactive(at: 100, delay: .immediately)
+        XCTAssertFalse(lock.isUnlocked)
+        lock.enteredBackground(at: 101, delay: .immediately)
+        lock.becameActive(at: 102, delay: .immediately)
+        XCTAssertTrue(lock.beginAuthentication(automatic: true))
+
+        lock.enteredBackground(at: 103, delay: .fiveMinutes)
+        XCTAssertFalse(lock.isAuthenticating)
+        XCTAssertFalse(lock.isUnlocked)
+        lock.becameActive(at: 104, delay: .fiveMinutes)
+        XCTAssertTrue(lock.beginAuthentication(automatic: true))
+        lock.finishAuthentication(success: false)
+        XCTAssertFalse(lock.beginAuthentication(automatic: true))
+        lock.enteredBackground(at: 105, delay: .fiveMinutes)
+        lock.becameActive(at: 106, delay: .fiveMinutes)
+        XCTAssertTrue(lock.beginAuthentication(automatic: true))
+    }
+
+    func testDisablingLockClearsSessionAndInvalidElapsedTimeCannotExtendGracePeriod() {
+        var lock = AppLockLifecycle()
+        lock.setEnabled(false)
+        XCTAssertTrue(lock.isUnlocked)
+        XCTAssertFalse(lock.beginAuthentication(automatic: true))
+        lock.setEnabled(true)
+        XCTAssertFalse(lock.isUnlocked)
+        XCTAssertTrue(lock.beginAuthentication(automatic: true))
+        lock.finishAuthentication(success: true)
+        lock.becameInactive(at: 100, delay: .fiveMinutes)
+        XCTAssertFalse(lock.permitsContent(at: 99, delay: .fiveMinutes))
+        lock.becameActive(at: 99, delay: .fiveMinutes)
+        XCTAssertFalse(lock.isUnlocked)
+    }
+
     func testFoodItemParserTrimsAndDropsEmptyItems() {
         XCTAssertEqual(
             FoodItemParser.items(in: " Toast,  eggs ,, coffee \n"),
@@ -653,6 +732,105 @@ final class FoodLogLogicTests: XCTestCase {
         context.delete(second)
         try context.save()
         XCTAssertEqual(try FastingStore.sessions(in: context).count, 1)
+    }
+
+    func testOvernightEstimatesUseLastMealAndFirstMealAndIgnoreDrinks() {
+        let meals = [
+            OvernightMeal(date: date(2026, 9, 15, 12), mealType: "Lunch"),
+            OvernightMeal(date: date(2026, 9, 14, 12), mealType: "Lunch"),
+            OvernightMeal(date: date(2026, 9, 14, 22), mealType: "Dinner"),
+            OvernightMeal(date: date(2026, 9, 14, 23), mealType: "Drink"),
+            OvernightMeal(date: date(2026, 9, 15, 7), mealType: "Drink"),
+            OvernightMeal(date: date(2026, 9, 15, 8), mealType: "Breakfast")
+        ]
+        let estimates = OvernightFasting.estimates(from: meals, calendar: utcCalendar)
+        XCTAssertEqual(estimates.count, 1)
+        XCTAssertEqual(estimates.first?.startDate, date(2026, 9, 14, 22))
+        XCTAssertEqual(estimates.first?.endDate, date(2026, 9, 15, 8))
+        XCTAssertEqual(estimates.first?.duration, 10 * 3_600)
+    }
+
+    func testOvernightEstimatesSkipMissingDaysAndSortNewestFirst() {
+        XCTAssertTrue(OvernightFasting.estimates(from: [OvernightMeal](), calendar: utcCalendar).isEmpty)
+        let meals = [
+            OvernightMeal(date: date(2026, 9, 12, 22), mealType: "Dinner"),
+            OvernightMeal(date: date(2026, 9, 13, 8), mealType: "Drink"),
+            OvernightMeal(date: date(2026, 9, 14, 8), mealType: "Breakfast"),
+            OvernightMeal(date: date(2026, 9, 15, 8), mealType: "Breakfast"),
+            OvernightMeal(date: date(2026, 9, 16, 8), mealType: "Breakfast")
+        ]
+        let estimates = OvernightFasting.estimates(from: meals, calendar: utcCalendar)
+        XCTAssertEqual(estimates.map(\.day), [date(2026, 9, 16), date(2026, 9, 15)])
+        XCTAssertEqual(estimates.map(\.duration), [86_400, 86_400])
+    }
+
+    func testOvernightSummaryCalculatesAverageAndRangeAndHandlesNoEstimates() {
+        XCTAssertNil(OvernightFasting.summary(of: []))
+        let start = date(2026, 9, 14, 22)
+        let estimates = [10.0, 14.0].enumerated().map { index, hours in
+            OvernightFastEstimate(day: date(2026, 9, 15 + index), startDate: start,
+                                  endDate: start.addingTimeInterval(hours * 3_600))
+        }
+        let summary = OvernightFasting.summary(of: estimates)
+        XCTAssertEqual(summary?.count, 2)
+        XCTAssertEqual(summary?.averageDuration, 12 * 3_600)
+        XCTAssertEqual(summary?.shortestDuration, 10 * 3_600)
+        XCTAssertEqual(summary?.longestDuration, 14 * 3_600)
+    }
+
+    func testOvernightEstimatesFollowTimezoneAndUseActualElapsedTimeAcrossDST() {
+        var newYork = utcCalendar
+        newYork.timeZone = TimeZone(identifier: "America/New_York")!
+        for (start, end, hours) in [
+            (date(2026, 3, 8, 3), date(2026, 3, 8, 12), 9),
+            (date(2026, 11, 1, 2), date(2026, 11, 1, 13), 11)
+        ] {
+            let meals = [OvernightMeal(date: start, mealType: "Dinner"), OvernightMeal(date: end, mealType: "Breakfast")]
+            XCTAssertEqual(OvernightFasting.estimates(from: meals, calendar: newYork).first?.duration, Double(hours) * 3_600)
+        }
+        let meals = [OvernightMeal(date: date(2026, 9, 14, 23), mealType: "Dinner"),
+                     OvernightMeal(date: date(2026, 9, 15, 3), mealType: "Breakfast")]
+        XCTAssertEqual(OvernightFasting.estimates(from: meals, calendar: utcCalendar).first?.duration, 4 * 3_600)
+        var india = utcCalendar
+        india.timeZone = TimeZone(identifier: "Asia/Kolkata")!
+        XCTAssertTrue(OvernightFasting.estimates(from: meals, calendar: india).isEmpty)
+
+        // Some time zones change at midnight: startOfDay can be 01:00.
+        // Normalize the previous day again instead of preserving that hour.
+        var santiago = utcCalendar
+        santiago.timeZone = TimeZone(identifier: "America/Santiago")!
+        let start = santiago.date(from: DateComponents(year: 2026, month: 9, day: 5, hour: 22))!
+        let end = santiago.date(from: DateComponents(year: 2026, month: 9, day: 6, hour: 8))!
+        let midnightChange = [OvernightMeal(date: start, mealType: "Dinner"), OvernightMeal(date: end, mealType: "Breakfast")]
+        XCTAssertEqual(OvernightFasting.estimates(from: midnightChange, calendar: santiago).first?.duration,
+                       end.timeIntervalSince(start))
+    }
+
+    func testOvernightEstimatesRecalculateAfterEditsAndDeletionWithoutWritingSessions() throws {
+        let context = PersistenceController(inMemory: true).container.viewContext
+        let legacy = try FastingStore.create(start: date(2026, 9, 10, 22), end: date(2026, 9, 11, 8), in: context)
+        var meals: [FoodEntry] = []
+        for timestamp in [date(2026, 9, 14, 22), date(2026, 9, 15, 8), date(2026, 9, 15, 12)] {
+            let meal = FoodEntry(context: context)
+            meal.id = UUID()
+            meal.food = "Meal"
+            meal.date = timestamp
+            meal.mealType = "Other"
+            meals.append(meal)
+        }
+        try context.save()
+        XCTAssertEqual(OvernightFasting.estimates(from: meals, calendar: utcCalendar).first?.duration, 10 * 3_600)
+        meals[1].date = date(2026, 9, 15, 9)
+        try context.save()
+        XCTAssertEqual(OvernightFasting.estimates(from: meals, calendar: utcCalendar).first?.duration, 11 * 3_600)
+        context.delete(meals.remove(at: 1))
+        try context.save()
+        XCTAssertEqual(OvernightFasting.estimates(from: meals, calendar: utcCalendar).first?.duration, 14 * 3_600)
+        context.delete(meals.removeFirst())
+        try context.save()
+        XCTAssertTrue(OvernightFasting.estimates(from: meals, calendar: utcCalendar).isEmpty)
+        XCTAssertEqual(try context.count(for: FastSession.fetchRequest()), 1)
+        XCTAssertEqual(legacy.duration, 10 * 3_600)
     }
 
     func testFastLinksFollowMealEditsAndSurviveMealDeletion() throws {
