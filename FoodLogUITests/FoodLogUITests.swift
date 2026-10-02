@@ -335,12 +335,52 @@ final class FoodLogUITests: XCTestCase {
             XCTAssertTrue(addButton.isHittable)
             XCTAssertGreaterThan(addButton.frame.midY, app.frame.midY)
             XCTAssertGreaterThan(addButton.frame.midX, app.frame.midX)
+#if compiler(>=6.4)
+            if #available(iOS 27.0, *) {
+                XCTAssertLessThan(abs(addButton.frame.midY - tab.frame.midY), 14)
+                XCTAssertGreaterThan(addButton.frame.minX, tabBar.buttons["Settings"].frame.maxX)
+            } else {
+                XCTAssertLessThanOrEqual(addButton.frame.maxY, tabBar.frame.minY)
+            }
+#else
             XCTAssertLessThanOrEqual(addButton.frame.maxY, tabBar.frame.minY)
+#endif
             XCTAssertGreaterThanOrEqual(addButton.frame.width, 44)
             XCTAssertGreaterThanOrEqual(addButton.frame.height, 44)
+            // Opening and dismissing Add from every destination must preserve
+            // that destination, with no selected Add tab or placeholder page.
+            addButton.tap()
+            XCTAssertTrue(app.navigationBars["New entry"].waitForExistence(timeout: 3))
+            app.buttons["Cancel"].tap()
+            if app.alerts["Close this entry?"].waitForExistence(timeout: 1) {
+                app.buttons["Keep draft"].tap()
+            }
+            waitForEditorDismissal()
+            XCTAssertTrue(tab.isSelected)
+            XCTAssertFalse(app.buttons["bottom-add-entry"].isSelected)
         }
         app.buttons["Add entry"].tap()
         XCTAssertTrue(app.navigationBars["New entry"].waitForExistence(timeout: 3))
+    }
+
+    func testJournalSearchSurvivesOpeningAndDismissingAddSheet() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-navigation"])
+        app.buttons["journal-search-button"].tap()
+        let search = app.textFields["journal-search-field"]
+        XCTAssertTrue(search.waitForExistence(timeout: 2))
+        search.tap()
+        search.typeText("Navigation fixture 20\n")
+        app.buttons["bottom-add-entry"].tap()
+        XCTAssertTrue(app.navigationBars["New entry"].waitForExistence(timeout: 3))
+        app.buttons["Cancel"].tap()
+        if app.alerts["Close this entry?"].waitForExistence(timeout: 1) {
+            app.buttons["Keep draft"].tap()
+        }
+        waitForEditorDismissal()
+        XCTAssertTrue(app.tabBars.firstMatch.buttons["Journal"].isSelected)
+        XCTAssertEqual(search.value as? String, "Navigation fixture 20")
+        XCTAssertTrue(journalEntry(containing: "Navigation fixture 20").exists)
+        XCTAssertFalse(journalEntry(containing: "Navigation fixture 19").exists)
     }
 
     func testEditEntryActionsShowDeleteWithoutAnotherOverflowMenu() {

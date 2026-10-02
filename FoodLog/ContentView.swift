@@ -26,7 +26,7 @@ struct ContentView: View {
     }
 }
 
-private enum FoodTab: String, CaseIterable {
+enum FoodTab: String, CaseIterable {
     case journal = "Journal"
     case fasts = "Fasts"
     case patterns = "Patterns"
@@ -55,6 +55,30 @@ struct FoodLogRootView: View {
 
     @ViewBuilder
     var body: some View {
+        navigation
+            .sheet(item: $editorPresentation) { presentation in
+                FoodEntryEditor(entry: presentation.entry, draftKey: presentation.draftKey)
+                    .presentationDragIndicator(.visible)
+            }
+            .onAppear(perform: resumeInterruptedDraft)
+    }
+
+    @ViewBuilder
+    private var navigation: some View {
+#if compiler(>=6.4)
+        if #available(iOS 27.0, *) {
+            FoodNativeTabNavigation(selection: $selectedTab, addEntry: addEntry) { tab in
+                NavigationStack { content(for: tab) }
+            }
+        } else {
+            legacyNavigation
+        }
+#else
+        legacyNavigation
+#endif
+    }
+
+    private var legacyNavigation: some View {
         TabView(selection: $selectedTab) {
             ForEach(FoodTab.allCases, id: \.self) { tab in
                 NavigationStack {
@@ -65,11 +89,6 @@ struct FoodLogRootView: View {
                 .tag(tab)
             }
         }
-        .sheet(item: $editorPresentation) { presentation in
-            FoodEntryEditor(entry: presentation.entry, draftKey: presentation.draftKey)
-                .presentationDragIndicator(.visible)
-        }
-        .onAppear(perform: resumeInterruptedDraft)
     }
 
     @ViewBuilder
@@ -87,6 +106,7 @@ struct FoodLogRootView: View {
     }
 
     private func addEntry() {
+        guard editorPresentation == nil else { return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         editorPresentation = EditorPresentation(entry: nil, draftKey: .new)
     }
@@ -110,12 +130,102 @@ struct FoodLogRootView: View {
     }
 }
 
+#if compiler(>=6.4)
+/// Public UIKit integration for a same-row action without replacing the native
+/// tab bar, abusing the search role, or briefly selecting an empty Add page.
+@available(iOS 27.0, *)
+struct FoodNativeTabNavigation<Page: View>: UIViewControllerRepresentable {
+    static var addIdentifier: String { "foodlog-add-entry" }
+
+    @Binding var selection: FoodTab
+    let addEntry: () -> Void
+    let content: (FoodTab) -> Page
+
+    func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
+
+    func makeUIViewController(context: Context) -> UITabBarController {
+        let controller = UITabBarController()
+        let coordinator = context.coordinator
+        var tabs = FoodTab.allCases.map { tab in
+            let host = UIHostingController(rootView: page(for: tab, environment: context.environment))
+            coordinator.hosts[tab] = host
+            let item = UITab(title: tab.rawValue, image: UIImage(systemName: tab.icon),
+                             identifier: tab.rawValue) { _ in host }
+            item.preferredPlacement = .fixed
+            return item
+        }
+        // This tab only supplies native layout/artwork. The delegate below
+        // prevents it from ever becoming a destination (including on retaps).
+        let add = UITab(title: "Add entry", image: UIImage(systemName: "plus"),
+                        identifier: Self.addIdentifier) { _ in UIViewController() }
+        add.preferredPlacement = .pinned
+        add.accessibilityIdentifier = "bottom-add-entry"
+        tabs.append(add)
+        controller.tabs = tabs
+        controller.prominentTabIdentifier = Self.addIdentifier
+        controller.selectedTab = controller.tab(forIdentifier: selection.rawValue)
+        controller.delegate = coordinator
+        applyAppearance(to: controller, environment: context.environment)
+        return controller
+    }
+
+    func updateUIViewController(_ controller: UITabBarController, context: Context) {
+        context.coordinator.parent = self
+        // Hosting roots must receive the SwiftUI environment across the UIKit
+        // boundary: Core Data, accent, appearance, scene phase, Dynamic Type,
+        // and locale all need to continue updating rather than being captured
+        // only once when a tab is first created.
+        for (tab, host) in context.coordinator.hosts {
+            host.rootView = page(for: tab, environment: context.environment)
+        }
+        if controller.selectedTab?.identifier != selection.rawValue {
+            controller.selectedTab = controller.tab(forIdentifier: selection.rawValue)
+        }
+        applyAppearance(to: controller, environment: context.environment)
+    }
+
+    static func dismantleUIViewController(_ controller: UITabBarController, coordinator: Coordinator) {
+        controller.delegate = nil
+    }
+
+    private func page(for tab: FoodTab, environment: EnvironmentValues) -> AnyView {
+        AnyView(content(tab).environment(\.self, environment))
+    }
+
+    private func applyAppearance(to controller: UITabBarController, environment: EnvironmentValues) {
+        controller.view.tintColor = UIColor(environment.foodAccentColor)
+        controller.overrideUserInterfaceStyle = environment.colorScheme == .dark ? .dark : .light
+        // No tab-bar frame hacks, custom backgrounds, blur, or selection views.
+    }
+
+    final class Coordinator: NSObject, UITabBarControllerDelegate {
+        var parent: FoodNativeTabNavigation
+        var hosts: [FoodTab: UIHostingController<AnyView>] = [:]
+
+        init(parent: FoodNativeTabNavigation) { self.parent = parent }
+
+        func tabBarController(_ controller: UITabBarController, shouldSelectTab tab: UITab) -> Bool {
+            if tab.identifier == FoodNativeTabNavigation.addIdentifier {
+                parent.addEntry()
+                return false
+            }
+            return FoodTab(rawValue: tab.identifier) != nil
+        }
+
+        func tabBarController(_ controller: UITabBarController, didSelectTab tab: UITab, previousTab: UITab?) {
+            guard let selected = FoodTab(rawValue: tab.identifier), parent.selection != selected else { return }
+            parent.selection = selected
+        }
+    }
+}
+#endif
+
 private struct FoodBottomAddAction: ViewModifier {
     let action: () -> Void
 
-    // A real TabView owns navigation and its selection animation. Add is an
-    // action, not a fifth (or search-role) tab. safeAreaBar registers the control
-    // with the system scroll edge effect and reserves room for the final row.
+    // Older systems keep the real TabView and a separate action above it.
+    // safeAreaBar registers the control with the system scroll edge effect
+    // and reserves room for the final row.
     @ViewBuilder
     func body(content: Content) -> some View {
 #if compiler(>=6.2)
