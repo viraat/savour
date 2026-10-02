@@ -91,6 +91,26 @@ struct FoodLogApp: App {
                     try? context.save()
                 }
             }
+            if arguments.contains("--seed-ui-test-fasting-history") {
+                let context = testPersistence.container.viewContext
+                context.performAndWait {
+                    let calendar = Calendar.current
+                    let today = calendar.startOfDay(for: Date())
+                    for index in 0..<66 {
+                        let day = calendar.date(byAdding: .day, value: -index, to: today)!
+                        for (hour, type) in [(index < 30 ? 8 : 11, "Breakfast"), (20, "Dinner")] {
+                            let timestamp = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: day)!
+                            let entry = FoodEntry(context: context)
+                            entry.id = UUID()
+                            entry.createdAt = timestamp
+                            entry.date = timestamp
+                            entry.food = "History fixture \(index) \(type)"
+                            entry.mealType = type
+                        }
+                    }
+                    try? context.save()
+                }
+            }
             if arguments.contains("--seed-ui-test-overnight") {
                 let context = testPersistence.container.viewContext
                 context.performAndWait {

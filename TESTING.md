@@ -25,6 +25,13 @@ the UI suite does not depend on a simulator's permission history.
 
 ## Run the automated suite
 
+Native navigation/search/statistics regressions cover system page titles,
+Clear versus Cancel, retaining Journal queries across the Add sheet, accessible
+count bars without task-progress semantics, inclusive goal labels, and an
+all-completed-fasts average unaffected by View more or calendar navigation.
+These new UI regressions are compile-checked during routine work, not run unless
+simulator testing is explicitly requested.
+
 During routine development, prefer a build and targeted logic checks. Run the
 full simulator suite only when explicitly requested; the commands below are
 available for that opt-in verification.

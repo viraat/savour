@@ -227,7 +227,7 @@ final class FoodLogUITests: XCTestCase {
             ]
         )
         XCTAssertTrue(app.staticTexts["Savour is locked"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.staticTexts["journal-title"].exists)
+        XCTAssertFalse(app.navigationBars["Savour"].exists)
         XCTAssertTrue(app.buttons["Unlock"].waitForExistence(timeout: 3))
     }
 
@@ -235,12 +235,12 @@ final class FoodLogUITests: XCTestCase {
         launch(resetStore: true, extraArguments: [
             "-foodLogBiometricLockEnabled", "YES", "--simulate-biometric-success-once"
         ])
-        XCTAssertTrue(app.staticTexts["journal-title"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.navigationBars["Savour"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["Unlock"].exists)
         XCUIDevice.shared.press(.home)
         app.activate()
         XCTAssertTrue(app.staticTexts["Savour is locked"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.staticTexts["journal-title"].exists)
+        XCTAssertFalse(app.navigationBars["Savour"].exists)
         XCTAssertEqual(app.staticTexts["authentication-message"].value as? String, "2")
         app.buttons["Unlock"].tap()
         XCTAssertEqual(app.staticTexts["authentication-message"].value as? String, "3")
@@ -366,7 +366,7 @@ final class FoodLogUITests: XCTestCase {
     func testJournalSearchSurvivesOpeningAndDismissingAddSheet() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-navigation"])
         app.buttons["journal-search-button"].tap()
-        let search = app.textFields["journal-search-field"]
+        let search = app.searchFields["Search entries"]
         XCTAssertTrue(search.waitForExistence(timeout: 2))
         search.tap()
         search.typeText("Navigation fixture 20\n")
@@ -457,7 +457,7 @@ final class FoodLogUITests: XCTestCase {
 
     func testBottomNavigationCapturesTouchesAcrossButtonEdges() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-navigation"])
-        XCTAssertTrue(app.staticTexts["journal-title"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.navigationBars["Savour"].waitForExistence(timeout: 3))
 
         let journal = app.buttons["Journal"]
         XCTAssertTrue(journal.waitForExistence(timeout: 2))
@@ -467,11 +467,11 @@ final class FoodLogUITests: XCTestCase {
 
         let patterns = app.buttons["Patterns"]
         patterns.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: 0.88)).tap()
-        XCTAssertTrue(app.staticTexts["patterns-title"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Patterns"].waitForExistence(timeout: 2))
 
         let journalAgain = app.buttons["Journal"]
         journalAgain.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.12)).tap()
-        XCTAssertTrue(app.staticTexts["journal-title"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Savour"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.navigationBars["Edit entry"].exists)
     }
 
@@ -518,7 +518,7 @@ final class FoodLogUITests: XCTestCase {
             waitForEditorDismissal()
 
             app.buttons["Settings"].tap()
-            XCTAssertTrue(app.staticTexts["settings-title"].waitForExistence(timeout: 3))
+            XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
             // Bring the privacy controls above the glass before checking their
             // text contrast; deliberately refracted offscreen content is not
             // readable text and can produce an unattributed contrast finding.
@@ -585,17 +585,22 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(incrementButton.isHittable)
     }
 
-    func testJournalSearchOpensFromToolbarAndClearsOnClose() {
+    func testNativeJournalSearchClearKeepsSearchOpenAndCancelDismissesIt() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-overnight"])
-        XCTAssertFalse(app.textFields["journal-search-field"].exists)
         app.buttons["journal-search-button"].tap()
-        let field = app.textFields["journal-search-field"]
+        let field = app.searchFields["Search entries"]
         XCTAssertTrue(field.waitForExistence(timeout: 2))
         field.typeText("not a logged meal")
         XCTAssertTrue(app.staticTexts["Nothing found"].waitForExistence(timeout: 2))
-        app.buttons["Close search"].tap()
-        XCTAssertFalse(field.exists)
+        field.buttons["Clear text"].tap()
+        XCTAssertTrue(field.isHittable)
         XCTAssertFalse(app.staticTexts["Nothing found"].exists)
+        field.typeText("not a logged meal")
+        app.buttons["Cancel"].tap()
+        XCTAssertFalse(app.staticTexts["Nothing found"].exists)
+        XCTAssertFalse(app.buttons["Cancel"].exists)
+        XCTAssertFalse(app.keyboards.firstMatch.exists)
+        XCTAssertTrue(app.buttons["journal-search-button"].exists)
     }
 
     func testFastingSettingsContainGoalControlsInsteadOfDuplicatePage() {
@@ -607,12 +612,62 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertFalse(app.buttons.matching(identifier: "Fasts").allElementsBoundByIndex.count > 1)
     }
 
+    func testNativeNavigationTitlesOnEveryPage() {
+        launch(resetStore: true)
+        for (tab, title) in [("Journal", "Savour"), ("Fasts", "Fasts"),
+                             ("Patterns", "Patterns"), ("Settings", "Settings")] {
+            app.tabBars.firstMatch.buttons[tab].tap()
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 3))
+        }
+    }
+
+    func testFastingAverageDoesNotChangeWhenHistoryExpandsOrCalendarMonthChanges() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-fasting-history"])
+        app.tabBars.firstMatch.buttons["Fasts"].tap()
+        let average = app.descendants(matching: .any)["fasting-history-average"]
+        XCTAssertTrue(average.waitForExistence(timeout: 3))
+        XCTAssertTrue(average.label.contains("all 65 completed fasts"))
+        let originalLabel = average.label
+        XCTAssertTrue(app.descendants(matching: .any)["fasting-goal-legend"].label.contains("at least 14h"))
+        app.buttons["Previous month"].tap()
+        XCTAssertEqual(average.label, originalLabel)
+        let more = app.buttons["fasting-history-more"]
+        for _ in 0..<20 {
+            if more.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(more.isHittable)
+        more.tap()
+        for _ in 0..<25 {
+            if average.isHittable { break }
+            app.swipeDown()
+        }
+        XCTAssertTrue(average.isHittable)
+        XCTAssertEqual(average.label, originalLabel)
+    }
+
+    func testPatternCountsAreNotExposedAsTaskProgress() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-suggestions"])
+        app.tabBars.firstMatch.buttons["Patterns"].tap()
+        app.buttons["Overview"].tap()
+        XCTAssertTrue(app.navigationBars["Overview"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["DAYS WITH ENTRIES"].exists)
+        XCTAssertEqual(app.progressIndicators.count, 0)
+        app.buttons["Done"].tap()
+        app.buttons["Foods noted"].tap()
+        XCTAssertTrue(app.navigationBars["Foods noted"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.progressIndicators.count, 0)
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(
+            format: "label == %@ AND value CONTAINS %@", "Toast", "2"
+        )).firstMatch.exists)
+    }
+
     func testCurrentFastRestoresOnRelaunchAndRestartsWithNextMeal() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-overnight"])
         app.buttons["Fasts"].tap()
         let current = app.descendants(matching: .any)["fasting-current"]
         XCTAssertTrue(current.waitForExistence(timeout: 3))
-        XCTAssertTrue(current.label.contains("Current fast, started"))
+        XCTAssertTrue(current.label.contains("Current fast estimate, last logged meal"))
         app.terminate()
         launch(resetStore: false)
         app.buttons["Fasts"].tap()
@@ -660,7 +715,7 @@ final class FoodLogUITests: XCTestCase {
         app.scrollViews.firstMatch.swipeDown()
         verifyFastingDuration("14h 0m")
         app.buttons["Fasts"].tap()
-        XCTAssertTrue(app.staticTexts["fasts-title"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Fasts"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.buttons["Add"].exists)
         XCTAssertTrue(app.staticTexts["Previously saved fasting records"].exists)
         XCTAssertTrue(app.staticTexts["12h 0m"].exists)
@@ -672,7 +727,7 @@ final class FoodLogUITests: XCTestCase {
 
     private func verifyFastingDuration(_ duration: String) {
         app.buttons["Fasts"].tap()
-        XCTAssertTrue(app.staticTexts["fasts-title"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Fasts"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.descendants(matching: .any)["fasting-month-calendar"].exists)
         let row = app.buttons.matching(NSPredicate(
             format: "identifier BEGINSWITH %@ AND label CONTAINS %@", "fasting-history-", duration

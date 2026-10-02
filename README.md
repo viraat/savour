@@ -41,6 +41,7 @@ the core experience is a neutral record.
 - Overnight average, latest, and range estimates in Patterns, respecting the selected date range
 - Autosaved unfinished entries and edits; Cancel offers Keep draft or Discard
 - Search across food, place, people, and notes
+- Native navigation titles and contextual system search with separate Clear and Cancel actions
 - Meal-category filtering
 - Neutral visual summaries for 7 days, 30 days, and all time
 - Current consecutive-day streak derived from journal entries
@@ -84,7 +85,10 @@ On iOS 27, Savour uses a native `UITabBarController` with a prominent trailing
 Add item on the same row as the four navigation tabs. A public selection delegate
 intercepts Add, opens the existing entry sheet, and returns false so the selected
 page never changes. This is intentionally custom action handling for an API
-designed for tab destinations, not a native action slot. SwiftUI page state and
+designed for tab destinations, not a native action slot or Apple's standard
+tab-bar interaction pattern. We deliberately retain the same-row modal action
+as a product choice; Apple's HIG recommends putting actions in toolbars instead.
+SwiftUI page state and
 the full environment (including Core Data, appearance, accent, and scene phase)
 are forwarded through the hosting controllers.
 
@@ -110,6 +114,17 @@ skipped. These are estimates from your journal, not confirmations that nothing
 else was consumed. There is no Start/End fast control or automatic creation of
 `FastSession` records. Previously saved fasting records remain available in the
 Fasts tab; the existing Core Data model and CSV formats are unchanged.
+The Current row estimates elapsed time since the latest logged non-Drink meal.
+The Avg row includes all completed estimates, independent of the calendar month
+or history pagination. History initially shows 30 rows; View more adds up to 30
+without changing the average. Calendar goal borders include the exact target
+duration (`14h+ goal` by default). This explanation appears once, not on every row.
+
+Journal, Fasts, Patterns, and Settings use native large navigation titles and
+system scrolling transitions. Journal uses SwiftUI `searchable`; on iOS 17 and
+later its toolbar search button activates the native field, while iOS 16 shows
+the standard search drawer. Statistical count bars use Swift Charts `BarMark`,
+not task-progress indicators, with visible counts and accessible row descriptions.
 
 Food entries stay in the app's local Core Data store. The location button enables
 MapKit suggestions and uses foreground location only to prioritize nearby results;

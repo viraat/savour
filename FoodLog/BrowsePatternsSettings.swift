@@ -1,3 +1,4 @@
+import Charts
 import CoreData
 import MapKit
 import SwiftUI
@@ -157,11 +158,8 @@ struct PatternsView: View {
         }
         .background(FoodTheme.background)
         .navigationTitle("Patterns")
-        .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            FoodPageHeader("Patterns", identifier: "patterns-title")
-                .background(FoodTheme.background)
-        }
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar(.visible, for: .navigationBar)
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
         }
@@ -513,13 +511,16 @@ struct PatternsView: View {
                             Text(day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
                                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                                 .frame(width: 82, alignment: .leading)
-                            ProgressView(value: Double(count), total: Double(dailyCounts.map(\.1).max() ?? 1))
-                                .tint(accentColor)
+                            PatternCountBar(category: day.formatted(date: .abbreviated, time: .omitted),
+                                            count: count, maximum: dailyCounts.map(\.1).max() ?? 1)
                             Text("\(count)")
                                 .font(.system(.subheadline, design: .rounded).weight(.bold))
                                 .foregroundStyle(FoodTheme.secondaryText)
                                 .frame(minWidth: 20, alignment: .trailing)
                         }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(day.formatted(date: .complete, time: .omitted))
+                        .accessibilityValue("\(count) \(count == 1 ? "entry" : "entries")")
                     }
                 }
                 .padding(17)
@@ -654,10 +655,12 @@ struct PatternsView: View {
                                 .font(.system(.body, design: .rounded).weight(.bold))
                                 .foregroundStyle(FoodTheme.secondaryText)
                         }
-                        ProgressView(value: Double(item.1), total: Double(maximum))
-                            .tint(accentColor)
+                        PatternCountBar(category: item.0, count: item.1, maximum: maximum)
                     }
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(item.0)
+                .accessibilityValue("Count: \(item.1)")
             }
         }
         .padding(17)
@@ -666,6 +669,30 @@ struct PatternsView: View {
 
     private func frequency(of values: [String]) -> [(String, Int)] {
         FoodLogStatistics.frequencies(values).map { ($0.name, $0.count) }
+    }
+}
+
+/// A historical count, not task progress. Labels and counts remain outside the
+/// chart for long names and Dynamic Type; each surrounding row is one complete
+/// accessibility element, so VoiceOver doesn't announce the value twice.
+private struct PatternCountBar: View {
+    @Environment(\.foodAccentColor) private var accentColor
+    let category: String
+    let count: Int
+    let maximum: Int
+
+    var body: some View {
+        Chart {
+            BarMark(x: .value("Count", count), y: .value("Category", category))
+                .foregroundStyle(accentColor)
+                .cornerRadius(3)
+        }
+        .chartXScale(domain: 0...max(1, maximum))
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartLegend(.hidden)
+        .frame(height: 12)
+        .accessibilityHidden(true)
     }
 }
 
@@ -1016,11 +1043,8 @@ struct FoodLogSettingsView: View {
         }
         .background(FoodTheme.background)
         .navigationTitle("Settings")
-        .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            FoodPageHeader("Settings", identifier: "settings-title")
-                .background(FoodTheme.background)
-        }
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar(.visible, for: .navigationBar)
         .onAppear {
             biometricAvailability = BiometricAuthentication.availability()
         }

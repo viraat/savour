@@ -2,6 +2,26 @@ import CoreData
 import SwiftUI
 import UIKit
 
+/// The system owns focus, clear/cancel actions, and search-field glass styling.
+private struct JournalSearch: ViewModifier {
+    @Binding var text: String
+    @Binding var isPresented: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 17.0, *) {
+            content.searchable(text: $text, isPresented: $isPresented,
+                               placement: .navigationBarDrawer, prompt: "Search entries")
+        } else {
+            // iOS 16 has no programmatic search presentation. Keep its native
+            // field discoverable rather than approximating focus with UIKit.
+            content.searchable(text: $text,
+                               placement: .navigationBarDrawer(displayMode: .always),
+                               prompt: "Search entries")
+        }
+    }
+}
+
 struct JournalView: View {
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -15,7 +35,6 @@ struct JournalView: View {
     @State private var entryToDelete: FoodEntry?
     @State private var query = ""
     @State private var showingSearch = false
-    @FocusState private var searchFocused: Bool
     @State private var mealFilter = "All"
     @State private var fastingMessage: String?
     @State private var calendar = Calendar.current
@@ -85,19 +104,27 @@ struct JournalView: View {
         }
         .background(FoodTheme.background)
         .navigationTitle("Savour")
-        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar(.visible, for: .navigationBar)
+        .toolbar {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                if #available(iOS 17.0, *) {
+                    Button {
+                        showingSearch = true
+                    } label: {
+                        Label("Search entries", systemImage: "magnifyingglass")
+                    }
+                    .accessibilityIdentifier("journal-search-button")
+                }
+                mealFilterMenu
+            }
+        }
+        .modifier(JournalSearch(text: $query, isPresented: $showingSearch))
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
         }
         .onChange(of: scenePhase) { phase in
             if phase == .active { calendar = .current }
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(spacing: 0) {
-                FoodPageHeader("Savour", identifier: "journal-title") { headerActions }
-                    .background(FoodTheme.background)
-                if showingSearch { searchBar }
-            }
         }
         .sheet(item: $selectedEntry) { entry in
             FoodEntryEditor(entry: entry)
@@ -127,56 +154,6 @@ struct JournalView: View {
         .alert("Entry could not be deleted", isPresented: Binding(
             get: { fastingMessage != nil }, set: { if !$0 { fastingMessage = nil } }
         )) { Button("OK") { fastingMessage = nil } } message: { Text(fastingMessage ?? "") }
-    }
-
-    private var headerActions: some View {
-        HStack(spacing: 10) {
-            Button {
-                showingSearch = true
-                searchFocused = true
-            } label: {
-                Image(systemName: "magnifyingglass")
-                    .frame(width: 24, height: 24)
-            }
-            .foodSecondaryActionStyle()
-            .buttonBorderShape(.capsule)
-            .accessibilityLabel("Search entries")
-            .accessibilityIdentifier("journal-search-button")
-            mealFilterMenu
-        }
-        .font(.system(.body).weight(.semibold))
-        .fixedSize()
-    }
-
-    private var searchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(FoodTheme.secondaryText)
-                .accessibilityHidden(true)
-            TextField("Search entries", text: $query)
-                .focused($searchFocused)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.search)
-                .onSubmit { searchFocused = false }
-                .onAppear { searchFocused = true }
-                .accessibilityIdentifier("journal-search-field")
-            Button {
-                searchFocused = false
-                query = ""
-                showingSearch = false
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("Close search")
-        }
-        .font(.system(.body, design: .rounded))
-        .foregroundStyle(FoodTheme.ink)
-        .padding(.leading, 12)
-        .foodGlass(cornerRadius: 22, interactive: true)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 8)
     }
 
     private var weeklySummary: some View {
@@ -273,13 +250,9 @@ struct JournalView: View {
                 }
             }
         } label: {
-            Image(systemName: mealFilter == "All"
-                  ? "line.3.horizontal.decrease.circle"
-                  : "line.3.horizontal.decrease.circle.fill")
-                .frame(width: 24, height: 24)
+            Label("Filter by meal type", systemImage: mealFilter == "All"
+                  ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill")
         }
-        .foodSecondaryActionStyle()
-        .buttonBorderShape(.capsule)
         .accessibilityLabel("Filter by meal type")
         .accessibilityValue(mealFilter)
     }

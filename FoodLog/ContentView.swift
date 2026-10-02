@@ -131,8 +131,9 @@ struct FoodLogRootView: View {
 }
 
 #if compiler(>=6.4)
-/// Public UIKit integration for a same-row action without replacing the native
-/// tab bar, abusing the search role, or briefly selecting an empty Add page.
+/// Public UIKit rendering with deliberately custom action semantics: Apple's
+/// prominent-tab API is designed for destinations, not a modal Add action.
+/// We retain this product choice without presenting it as a standard HIG pattern.
 @available(iOS 27.0, *)
 struct FoodNativeTabNavigation<Page: View>: UIViewControllerRepresentable {
     static var addIdentifier: String { "foodlog-add-entry" }
@@ -271,57 +272,6 @@ private struct FoodBottomAddAction: ViewModifier {
         .accessibilityLabel("Add entry")
         .accessibilityHint("Opens the food entry sheet")
         .accessibilityIdentifier("bottom-add-entry")
-    }
-}
-
-struct FoodPageHeader<Actions: View>: View {
-    let title: String
-    let identifier: String
-    let actions: Actions
-
-    init(_ title: String, identifier: String, @ViewBuilder actions: () -> Actions) {
-        self.title = title
-        self.identifier = identifier
-        self.actions = actions()
-    }
-
-    private var heading: some View {
-        Text(title)
-            .font(.system(.largeTitle).weight(.bold))
-            .foregroundStyle(FoodTheme.ink)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityIdentifier(identifier)
-    }
-
-    private var controls: some View {
-        HStack(spacing: 10) {
-            actions
-        }
-        .fixedSize()
-    }
-
-    var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .center, spacing: 12) {
-                heading.fixedSize()
-                Spacer(minLength: 0)
-                controls
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                heading
-                HStack { Spacer(); controls }
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 8)
-    }
-}
-
-extension FoodPageHeader where Actions == EmptyView {
-    init(_ title: String, identifier: String) {
-        self.init(title, identifier: identifier) { EmptyView() }
     }
 }
 

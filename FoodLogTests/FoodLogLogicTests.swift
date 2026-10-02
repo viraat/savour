@@ -942,6 +942,29 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertEqual(FastingHistory.nextLimit(current: 30, total: 0), 0)
     }
 
+    func testFastingHistoryAverageUsesAllCompletedEstimatesRegardlessOfPagination() {
+        let start = date(2026, 9, 1, 20)
+        let estimates = (0..<65).map { index in
+            let mealStart = start.addingTimeInterval(Double(index) * 86_400)
+            return OvernightFastEstimate(day: mealStart, startDate: mealStart,
+                                         endDate: mealStart.addingTimeInterval(Double(index < 30 ? 10 : 16) * 3_600))
+        }
+        let summary = FastingHistory.summary(of: estimates)
+        XCTAssertEqual(summary?.count, 65)
+        XCTAssertEqual(summary?.averageDuration ?? 0, (30 * 10 + 35 * 16) * 3_600 / 65.0, accuracy: 0.001)
+        XCTAssertNotEqual(summary?.averageDuration, OvernightFasting.summary(of: Array(estimates.prefix(30)))?.averageDuration)
+        let nextLimit = FastingHistory.nextLimit(current: 30, total: estimates.count)
+        XCTAssertEqual(nextLimit, 60)
+        XCTAssertEqual(FastingHistory.summary(of: estimates)?.averageDuration, summary?.averageDuration)
+        XCTAssertNil(FastingHistory.summary(of: []))
+    }
+
+    func testFastingGoalLegendIncludesTheExactTargetAndCustomHalfHours() {
+        XCTAssertEqual(FastingGoalPreference.legend(hours: 14), "14h+ goal")
+        XCTAssertEqual(FastingGoalPreference.legend(hours: 14.5), "14h 30m+ goal")
+        XCTAssertTrue(FastingGoalPreference.isMet(by: 14 * 3_600, hours: 14, enabled: true))
+    }
+
     func testCompactFastDurationOmitsZeroMinutesAndRetainsHalfHours() {
         XCTAssertEqual(FastTimeText.compactDuration(14 * 3_600), "14h")
         XCTAssertEqual(FastTimeText.compactDuration(14.5 * 3_600), "14h 30m")

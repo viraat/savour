@@ -14,6 +14,20 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
   user-facing errors, and new CSV export filenames.
 - Kept the bundle identifier, Core Data models/store, draft storage, preferences,
   and CSV schema unchanged. The Xcode project and scheme remain `FoodLog`.
+- Replaced custom page headings with native large navigation titles and moved
+  Journal search/filter actions into the system toolbar. Journal now uses native
+  search with separate Clear and Cancel actions and an iOS 16 search-drawer fallback.
+- Made the fasting average cover all completed estimates independently of the
+  selected month or visible history. Clarified estimated Current/Avg semantics
+  once per page and changed the inclusive goal legend to `14h+ goal`.
+- Replaced historical count progress controls with native Swift Charts bars,
+  retaining readable labels/counts and accessible descriptions.
+- Retained the same-row Add action and modal editor; documented its deliberate
+  exception to standard tab-navigation semantics.
+- Added regression coverage for native titles/search, historical count semantics,
+  inclusive goal labels, and pagination-independent fasting averages. Unsigned
+  device Release build and Debug app/test-target compilation passed; simulator
+  and UI tests were not executed.
 
 ## 0.5.2 — 2026-10-02
 
