@@ -15,6 +15,9 @@ or App Store submission.
 - Compact history with dates, durations, and meal-time ranges. The latest 30
   fasts appear initially; View more appends another 30. The average of the
   displayed fasts has bold text and a distinct shaded, outlined row.
+- Current fast row above the average shows the latest non-drink meal's start
+  timestamp and elapsed time, refreshed every minute. It recalculates after meal
+  additions, edits, deletions, and relaunch without storing a fasting session.
 - Hourglass icon replaces the moon. Removed the This month link, duplicate
   Fasts page in Settings, and fasting card from Journal.
 - Search and Filter align beside the Journal heading. The expanded search field
@@ -34,8 +37,9 @@ or App Store submission.
 
 Swift syntax checks and focused local logic checks passed for calendar layout,
 daylight-saving transitions, opacity, contrast, optional/custom goals, compact
-duration formatting, and 30-at-a-time pagination. UI tests were updated but not
-run, including new native-tab and single-level entry-menu regression checks.
+duration formatting, current-fast inference, and 30-at-a-time pagination. UI tests
+were updated but not run, including native-tab, single-level entry-menu, and
+current-fast relaunch/next-meal regression checks.
 No simulator tests were run, as requested.
 
 The release configuration builds successfully for iPhone without signing. The
@@ -67,6 +71,7 @@ is ready for a 1.0 release. Build numbers continue increasing independently.
 | v0.8.0 (originally v2.2.0) | v0.4.0 | Fasting, date picker, persistent drafts | b9ad9fbe6c8d8b8bf622cedea6055fe2e1719cc8 |
 | v0.9.0 (originally v2.3.0) | v0.5.0 | Fasts tab, automatic estimates, biometric unlock | 756b94afbae266c81e3d19762b0fc9707c7fddb4 |
 
-The former `v0.9.1` UI-polish release is now `v0.5.1` on main, with app version
-`0.5.1` and build number `6`. Its release-metadata commit updates the version
-and this document; application code is unchanged.
+The current UI-polish release is `v0.5.1` on main, with app version `0.5.1`
+and build number `6`. It includes the Current fast summary added while the
+release renumbering was in progress. The former `v0.9.1` tag has been retired;
+its commit `4f947ead42eb5cfe68800579f777098c0ef4981b` remains in main's history.

@@ -560,6 +560,32 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertFalse(app.buttons.matching(identifier: "Fasts").allElementsBoundByIndex.count > 1)
     }
 
+    func testCurrentFastRestoresOnRelaunchAndRestartsWithNextMeal() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-overnight"])
+        app.buttons["Fasts"].tap()
+        let current = app.descendants(matching: .any)["fasting-current"]
+        XCTAssertTrue(current.waitForExistence(timeout: 3))
+        XCTAssertTrue(current.label.contains("Current fast, started"))
+        app.terminate()
+        launch(resetStore: false)
+        app.buttons["Fasts"].tap()
+        XCTAssertTrue(current.waitForExistence(timeout: 3))
+        app.buttons["Add entry"].tap()
+        let food = app.textFields["food-description"]
+        XCTAssertTrue(food.waitForExistence(timeout: 3))
+        food.tap()
+        food.typeText("Next logged meal")
+        app.buttons["Meal type"].tap()
+        app.buttons["Breakfast"].tap()
+        app.buttons["Date and time"].tap()
+        app.buttons["Set time to now"].tap()
+        app.buttons["date-time-done"].tap()
+        app.buttons["Add"].tap()
+        waitForEditorDismissal()
+        XCTAssertTrue(current.waitForExistence(timeout: 3))
+        XCTAssertTrue(current.label.contains("elapsed 0h 0m"))
+    }
+
     func testAutomaticOvernightEstimateRelaunchEditDeleteAndLegacyPreservation() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-overnight"])
         XCTAssertFalse(app.staticTexts["overnight-duration"].exists)

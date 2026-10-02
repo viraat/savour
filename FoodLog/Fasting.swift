@@ -7,6 +7,27 @@ struct OvernightMeal {
     let mealType: String
 }
 
+struct CurrentFastEstimate: Equatable {
+    let startDate: Date
+
+    func elapsed(at date: Date) -> TimeInterval {
+        max(0, date.timeIntervalSince(startDate))
+    }
+}
+
+enum CurrentFasting {
+    static func estimate(from meals: [OvernightMeal], at now: Date = Date()) -> CurrentFastEstimate? {
+        meals.filter { $0.mealType != "Drink" && $0.date <= now }.map(\.date).max()
+            .map { CurrentFastEstimate(startDate: $0) }
+    }
+
+    static func estimate(from entries: [FoodEntry], at now: Date = Date()) -> CurrentFastEstimate? {
+        estimate(from: entries.compactMap { entry in
+            entry.date.map { OvernightMeal(date: $0, mealType: entry.wrappedMealType) }
+        }, at: now)
+    }
+}
+
 struct OvernightFastEstimate: Identifiable, Equatable {
     let day: Date
     let startDate: Date
@@ -514,6 +535,29 @@ private struct FastHistoryRow: View {
     }
 }
 
+private struct CurrentFastSummaryRow: View {
+    let entries: [FoodEntry]
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { timeline in
+            if let current = CurrentFasting.estimate(from: entries, at: timeline.date) {
+                FastHistoryRow(date: "Current", duration: current.elapsed(at: timeline.date),
+                               detail: "Started \(current.startDate.formatted(.dateTime.month(.abbreviated).day().hour().minute()))",
+                               isSummary: true)
+                    .padding(.vertical, 3)
+                    .background(FoodTheme.ink.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(FoodTheme.ink.opacity(0.2), lineWidth: 1)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Current fast, started \(current.startDate.formatted(date: .abbreviated, time: .shortened)), elapsed \(FastTimeText.duration(current.elapsed(at: timeline.date)))")
+                    .accessibilityIdentifier("fasting-current")
+            }
+        }
+    }
+}
+
 struct FastSessionsView: View {
     @Environment(\.managedObjectContext) private var context
     @Environment(\.scenePhase) private var scenePhase
@@ -537,6 +581,10 @@ struct FastSessionsView: View {
         Array(estimates.prefix(historyLimit))
     }
 
+    private var hasCurrentFast: Bool {
+        CurrentFasting.estimate(from: Array(entries)) != nil
+    }
+
     var body: some View {
         List {
             FastingMonthCalendar(estimates: estimates, calendar: calendar,
@@ -544,10 +592,16 @@ struct FastSessionsView: View {
                 .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 12, trailing: 20))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
+            if hasCurrentFast {
+                CurrentFastSummaryRow(entries: Array(entries))
+                    .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
             if estimates.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "hourglass").font(.largeTitle)
-                    Text("No fasting times yet").font(.headline)
+                    Text(hasCurrentFast ? "No completed fasts yet" : "No fasting times yet").font(.headline)
                     Text("Log meals on consecutive days to see your fasting times.").font(.subheadline)
                 }
                 .frame(maxWidth: .infinity)

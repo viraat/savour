@@ -734,6 +734,64 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertEqual(try FastingStore.sessions(in: context).count, 1)
     }
 
+    func testCurrentFastUsesLatestMealAndIgnoresDrinksAndFutureEntries() {
+        let now = date(2026, 10, 2, 10)
+        let dinner = date(2026, 10, 1, 20)
+        var meals = [
+            OvernightMeal(date: dinner, mealType: "Dinner"),
+            OvernightMeal(date: date(2026, 10, 2, 8), mealType: "Drink"),
+            OvernightMeal(date: date(2026, 10, 3, 8), mealType: "Breakfast")
+        ]
+        let current = CurrentFasting.estimate(from: meals, at: now)
+        XCTAssertEqual(current?.startDate, dinner)
+        XCTAssertEqual(current?.elapsed(at: now), 14 * 3_600)
+        XCTAssertEqual(current?.elapsed(at: dinner.addingTimeInterval(-60)), 0)
+        meals.append(OvernightMeal(date: now, mealType: "Breakfast"))
+        XCTAssertEqual(CurrentFasting.estimate(from: meals, at: now)?.startDate, now)
+        XCTAssertEqual(CurrentFasting.estimate(from: meals, at: now)?.elapsed(at: now), 0)
+        XCTAssertNil(CurrentFasting.estimate(from: [OvernightMeal](), at: now))
+        XCTAssertNil(CurrentFasting.estimate(from: [OvernightMeal(date: now, mealType: "Drink")], at: now))
+    }
+
+    func testCurrentFastRecalculatesAfterMealEditsDeletionAndReloadWithoutSavingSessions() throws {
+        let context = PersistenceController(inMemory: true).container.viewContext
+        let now = date(2026, 10, 2, 10)
+        let dinner = FoodEntry(context: context)
+        dinner.id = UUID()
+        dinner.date = date(2026, 10, 1, 20)
+        dinner.mealType = "Dinner"
+        let breakfast = FoodEntry(context: context)
+        breakfast.id = UUID()
+        breakfast.date = date(2026, 10, 2, 8)
+        breakfast.mealType = "Breakfast"
+        let undated = FoodEntry(context: context)
+        undated.id = UUID()
+        try context.save()
+        XCTAssertEqual(CurrentFasting.estimate(from: [dinner, breakfast, undated], at: now)?.elapsed(at: now), 2 * 3_600)
+        breakfast.date = date(2026, 10, 2, 9)
+        try context.save()
+        XCTAssertEqual(CurrentFasting.estimate(from: [dinner, breakfast], at: now)?.elapsed(at: now), 3_600)
+        context.delete(breakfast)
+        try context.save()
+        context.reset()
+        let request: NSFetchRequest<FoodEntry> = FoodEntry.fetchRequest()
+        XCTAssertEqual(CurrentFasting.estimate(from: try context.fetch(request), at: now)?.elapsed(at: now), 14 * 3_600)
+        XCTAssertTrue(try FastingStore.sessions(in: context).isEmpty)
+    }
+
+    func testCurrentFastElapsedTimeIsIndependentOfCalendarTimezone() {
+        let start = date(2026, 3, 8, 3)
+        let now = date(2026, 3, 8, 12)
+        let current = CurrentFasting.estimate(from: [OvernightMeal(date: start, mealType: "Dinner")], at: now)
+        XCTAssertEqual(current?.elapsed(at: now), 9 * 3_600)
+        var newYork = utcCalendar
+        newYork.timeZone = TimeZone(identifier: "America/New_York")!
+        let localStart = newYork.date(from: DateComponents(year: 2026, month: 3, day: 7, hour: 22))!
+        let localNow = newYork.date(from: DateComponents(year: 2026, month: 3, day: 8, hour: 8))!
+        XCTAssertEqual(current, CurrentFasting.estimate(from: [OvernightMeal(date: localStart, mealType: "Dinner")], at: localNow))
+        XCTAssertEqual(localNow.timeIntervalSince(localStart), 9 * 3_600)
+    }
+
     func testOvernightEstimatesUseLastMealAndFirstMealAndIgnoreDrinks() {
         let meals = [
             OvernightMeal(date: date(2026, 9, 15, 12), mealType: "Lunch"),
