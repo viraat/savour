@@ -906,23 +906,27 @@ struct FoodLogSettingsView: View {
 
     private var settingsContent: some View {
         Form {
-            Section("Appearance") {
+            Section {
                 appearancePicker
                     .pickerStyle(.menu)
                     .accessibilityIdentifier("settings-appearance")
                 accentPicker
+            } header: {
+                Text("Appearance").foregroundStyle(FoodTheme.secondaryText)
             }
 
-            Section("Meals") {
+            Section {
                 Toggle("Show meal labels in journal", isOn: $showMealLabels)
                     .accessibilityIdentifier("settings-meal-labels")
                 NavigationLink("Default meal times") {
                     MealDefaultTimesSettingsView()
                 }
                 .accessibilityIdentifier("settings-meal-times")
+            } header: {
+                Text("Meals").foregroundStyle(FoodTheme.secondaryText)
             }
 
-            Section("Fasting") {
+            Section {
                 Toggle("Show goal in calendar", isOn: $fastingGoalEnabled)
                     .accessibilityIdentifier("fasting-goal-enabled")
                 if fastingGoalEnabled {
@@ -931,12 +935,14 @@ struct FoodLogSettingsView: View {
                             Text("Fasting goal")
                             Text(FastTimeText.compactDuration(fastingGoalHours * 3_600))
                                 .font(.footnote)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(FoodTheme.secondaryText)
                         }
                     }
                     .accessibilityIdentifier("fasting-goal-hours")
                     .accessibilityValue(FastTimeText.duration(fastingGoalHours * 3_600))
                 }
+            } header: {
+                Text("Fasting").foregroundStyle(FoodTheme.secondaryText)
             }
 
             Section {
@@ -947,7 +953,7 @@ struct FoodLogSettingsView: View {
                              ? "Require \(biometricAvailability.name) when opening Savour"
                              : "Face ID or Touch ID is unavailable")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(FoodTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -962,18 +968,19 @@ struct FoodLogSettingsView: View {
                 .pickerStyle(.menu)
                 .accessibilityIdentifier("relock-delay")
             } header: {
-                Text("Privacy")
+                Text("Privacy").foregroundStyle(FoodTheme.secondaryText)
             } footer: {
                 Text("Savour stays hidden in the background. A new launch always requires authentication when app lock is enabled.")
+                    .foregroundStyle(FoodTheme.secondaryText)
             }
 
-            Section("Your data") {
+            Section {
                 Button(action: exportCSV) {
                     HStack {
                         Text("Export CSV")
                         Spacer()
                         Text("\(entries.count) \(entries.count == 1 ? "entry" : "entries")")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(FoodTheme.secondaryText)
                     }
                     .foregroundStyle(.primary)
                 }
@@ -992,6 +999,8 @@ struct FoodLogSettingsView: View {
                 Button("Erase all entries", role: .destructive) { confirmErase = true }
                     .disabled(entries.isEmpty)
                     .accessibilityIdentifier("settings-erase-entries")
+            } header: {
+                Text("Your data").foregroundStyle(FoodTheme.secondaryText)
             }
 
             Section {
@@ -999,12 +1008,13 @@ struct FoodLogSettingsView: View {
                     .foregroundStyle(.primary)
                     .accessibilityIdentifier("dime-source-link")
             } header: {
-                Text("About")
+                Text("About").foregroundStyle(FoodTheme.secondaryText)
             } footer: {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Savour \(appVersion)")
                     Text("Adapted from Dime's open-source SwiftUI code and interaction ideas under GPLv3.")
                 }
+                .foregroundStyle(FoodTheme.secondaryText)
             }
         }
         .formStyle(.grouped)

@@ -67,6 +67,11 @@ The primary-screen audit separately reports contrast on the existing editor's
 Cancel control. Functional passes and screenshot review are not a full
 accessibility sign-off. The full UI suite was not run.
 
+Follow-up polish uses higher-contrast semantic label colors for app-owned
+Settings headings/secondary text and a neutral tint on the native editor Cancel
+action. No audit exceptions were added. These changes need an opt-in simulator
+re-audit before either finding can be marked resolved.
+
 Result bundles and light/dark/large-text attachments for this local run are in
 `/private/tmp/savour-settings-sim.2xAMDZ`. Normal text size was restored afterward.
 

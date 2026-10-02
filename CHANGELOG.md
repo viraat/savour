@@ -9,6 +9,9 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Strengthened contrast for Settings section headings, footnotes, and entry
+  counts; the editor's native Cancel action uses neutral label tint. Prior
+  simulator audit findings still require an explicitly requested re-audit.
 - Reorganized existing settings into native grouped form sections with standard
   separators, aligned controls, compact appearance/accent selection rows, and
   version/attribution footers. No settings, preference keys, defaults, or actions
