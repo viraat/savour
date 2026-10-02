@@ -9,6 +9,11 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Reorganized existing settings into native grouped form sections with standard
+  separators, aligned controls, compact appearance/accent selection rows, and
+  version/attribution footers. No settings, preference keys, defaults, or actions
+  were added or removed. Unsigned device build and test-target compilation passed;
+  settings UI regressions were added but not executed, with no simulator run.
 - Renamed the app from FoodLog to Savour on the Home Screen, Journal heading,
   About section, lock screen, authentication prompt, permission descriptions,
   user-facing errors, and new CSV export filenames.

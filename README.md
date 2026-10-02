@@ -49,6 +49,7 @@ the core experience is a neutral record.
 - Common places and companions
 - CSV export and import with a preview of entries, duplicate detection, and row errors
 - Light, dark, and system appearance with five saved accent colors
+- Native grouped Settings sections with compact selection rows and standard toggles
 - Native navigation, sheets, bottom toolbars, and iOS 26 Liquid Glass styling
 - Optional automatic biometric app lock, immediate/1-minute/5-minute relocking, and background privacy shielding
 - Fully local Core Data storage with no account required

@@ -449,10 +449,12 @@ final class FoodLogUITests: XCTestCase {
         }
 
         app.buttons["Settings"].tap()
+        let appearance = app.buttons["settings-appearance"]
+        appearance.tap()
         let dark = app.buttons["Dark"]
         XCTAssertTrue(dark.waitForExistence(timeout: 2))
         dark.tap()
-        XCTAssertTrue(dark.isSelected)
+        XCTAssertTrue(appearance.label.contains("Dark"))
     }
 
     func testBottomNavigationCapturesTouchesAcrossButtonEdges() {
@@ -606,10 +608,46 @@ final class FoodLogUITests: XCTestCase {
     func testFastingSettingsContainGoalControlsInsteadOfDuplicatePage() {
         launch(resetStore: true)
         app.buttons["Settings"].tap()
-        app.swipeUp()
+        revealAboveNavigation(app.switches["fasting-goal-enabled"])
         XCTAssertTrue(app.switches["fasting-goal-enabled"].exists)
         XCTAssertTrue(app.steppers["fasting-goal-hours"].exists)
         XCTAssertFalse(app.buttons.matching(identifier: "Fasts").allElementsBoundByIndex.count > 1)
+    }
+
+    func testGroupedSettingsPreserveExistingOptionsAndAccentSelection() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-map"])
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        XCTAssertTrue(app.buttons["settings-appearance"].exists)
+        let accent = app.buttons["settings-accent-color"]
+        accent.tap()
+        XCTAssertTrue(app.navigationBars["Accent color"].waitForExistence(timeout: 3))
+        for color in ["Teal", "Ocean", "Blue", "Violet", "Rose"] {
+            XCTAssertTrue(app.buttons[color].exists)
+        }
+        app.buttons["Blue"].tap()
+        if app.navigationBars["Accent color"].exists {
+            app.navigationBars["Accent color"].buttons.firstMatch.tap()
+        }
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+        XCTAssertTrue(accent.label.contains("Blue"))
+        XCTAssertTrue(app.switches["settings-meal-labels"].exists)
+        app.buttons["settings-meal-times"].tap()
+        XCTAssertTrue(app.navigationBars["Default meal times"].waitForExistence(timeout: 3))
+        app.navigationBars["Default meal times"].buttons.firstMatch.tap()
+        for identifier in ["fasting-goal-enabled", "fasting-goal-hours",
+                           "relock-delay", "settings-export-csv", "settings-import-csv",
+                           "settings-erase-entries", "dime-source-link"] {
+            revealAboveNavigation(app.descendants(matching: .any)[identifier])
+            if identifier == "relock-delay" {
+                // App lock remains visible even when biometrics are unavailable
+                // and its native toggle is intentionally disabled.
+                XCTAssertTrue(app.switches["settings-app-lock"].exists)
+            }
+        }
+        app.terminate()
+        launch(resetStore: false)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        XCTAssertTrue(accent.label.contains("Blue"))
     }
 
     func testNativeNavigationTitlesOnEveryPage() {
@@ -816,7 +854,7 @@ final class FoodLogUITests: XCTestCase {
         for _ in 0..<4 {
             let barTop = app.buttons["bottom-add-entry"].frame.minY
             if fixture.isHittable && fixture.frame.maxY < barTop - 8 { break }
-            app.scrollViews.firstMatch.swipeUp()
+            app.swipeUp()
         }
         XCTAssertTrue(fixture.isHittable)
         XCTAssertLessThan(fixture.frame.maxY, app.buttons["bottom-add-entry"].frame.minY)
@@ -826,7 +864,8 @@ final class FoodLogUITests: XCTestCase {
     private func revealAboveNavigation(_ element: XCUIElement) {
         for _ in 0..<12 {
             if element.isHittable && element.frame.maxY < app.buttons["bottom-add-entry"].frame.minY - 8 { break }
-            app.scrollViews.firstMatch.swipeUp()
+            // Works for both ScrollView content and native Form/List sections.
+            app.swipeUp()
         }
         if !element.isHittable {
             let capture = XCTAttachment(screenshot: app.screenshot())

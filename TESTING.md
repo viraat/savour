@@ -32,6 +32,10 @@ all-completed-fasts average unaffected by View more or calendar navigation.
 These new UI regressions are compile-checked during routine work, not run unless
 simulator testing is explicitly requested.
 
+Settings-layout coverage retains all existing controls and the five accent
+choices, checks selection persistence, and exercises access to meal defaults,
+fasting goals, privacy, CSV actions, and attribution in the grouped form.
+
 During routine development, prefer a build and targeted logic checks. Run the
 full simulator suite only when explicitly requested; the commands below are
 available for that opt-in verification.
