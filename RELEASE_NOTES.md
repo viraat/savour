@@ -1,4 +1,29 @@
-# FoodLog 0.5.1
+# FoodLog releases
+
+## FoodLog 0.5.2
+
+Repository release · 2 October 2026 · app version 0.5.2, build 7
+
+Merged `feature/bottom-add-action` into main. Add entry now uses native prominent
+trailing tab placement on iOS 27, on the same row as Journal, Fasts, Patterns, and
+Settings. A public UIKit selection delegate opens the existing pop-up entry sheet
+and rejects selection of Add, leaving the current destination unchanged.
+
+Earlier systems retain native tab navigation with a separate bottom-right Add
+button above it: native `.glass` and `safeAreaBar` on iOS 26, bordered controls and
+`safeAreaInset` on older supported versions. No custom tab background, blur,
+selection animation, or frame override is introduced. Data models, entries,
+drafts, fasting data, and CSV formats are unchanged.
+
+The unsigned device Release build and device test-target compilation passed.
+Regression tests were added but not executed; no simulator tests were run.
+Visual placement and animations still need an on-device check.
+
+See [CHANGELOG.md](CHANGELOG.md) for the cumulative release history. No Git remote
+is configured, so this is a local repository release, not a published remote
+release, TestFlight build, or App Store submission.
+
+## FoodLog 0.5.1
 
 Repository release · 2 October 2026 · app version 0.5.1, build 6
 
@@ -33,7 +58,7 @@ or App Store submission.
 - Existing food entries, saved fasting records, Core Data models, draft storage,
   and CSV formats remain unchanged.
 
-## Verification
+### Verification
 
 Swift syntax checks and focused local logic checks passed for calendar layout,
 daylight-saving transitions, opacity, contrast, optional/custom goals, compact
@@ -71,7 +96,7 @@ is ready for a 1.0 release. Build numbers continue increasing independently.
 | v0.8.0 (originally v2.2.0) | v0.4.0 | Fasting, date picker, persistent drafts | b9ad9fbe6c8d8b8bf622cedea6055fe2e1719cc8 |
 | v0.9.0 (originally v2.3.0) | v0.5.0 | Fasts tab, automatic estimates, biometric unlock | 756b94afbae266c81e3d19762b0fc9707c7fddb4 |
 
-The current UI-polish release is `v0.5.1` on main, with app version `0.5.1`
+The UI-polish release was tagged `v0.5.1`, with app version `0.5.1`
 and build number `6`. It includes the Current fast summary added while the
 release renumbering was in progress. The former `v0.9.1` tag has been retired;
 its commit `4f947ead42eb5cfe68800579f777098c0ef4981b` remains in main's history.

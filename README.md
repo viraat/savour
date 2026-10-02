@@ -4,6 +4,9 @@ FoodLog is a deliberately simple, private food journal for iPhone. It borrows
 Dime's excellent low-friction interaction model, but records food instead of
 money.
 
+Current repository release: **0.5.2** (build 7). See the
+[changelog](CHANGELOG.md) and [release notes](RELEASE_NOTES.md).
+
 The app answers four questions:
 
 - What did I eat?
@@ -48,6 +51,9 @@ the core experience is a neutral record.
 1. Open `FoodLog.xcodeproj` in Xcode 15 or later.
 2. Select the `FoodLog` scheme and an iPhone simulator.
 3. Press Run.
+
+Use Xcode 27 or later to build the iOS 27 same-row Add action. Older SDKs retain
+the native bottom-button fallback.
 
 The shared scheme also includes unit and UI reliability tests. See
 [`TESTING.md`](TESTING.md) for the simulator matrix and permission setup.
