@@ -9,6 +9,17 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Added opt-in daily local notifications under Settings → Notifications, with
+  morning (8 AM), evening (8 PM), or a custom time. Off by default; permission is
+  requested only when enabling. One stable repeating notification is replaced
+  on time edits and removed when disabled. Denied permission links to iOS
+  Settings; reminder text never includes journal or draft content.
+- Preserved reminder choices across launches, reconciled permission/time changes,
+  and serialized scheduling operations. Failed time edits retain the old
+  preference and request. Added 12 reminder logic tests runnable on the Mac
+  without a simulator, plus compile-checked UI regressions. All 12 logic tests,
+  unsigned device Release build, and Debug test-target compilation passed;
+  no simulator run or real notification delivery test was performed.
 - Strengthened contrast for Settings section headings, footnotes, and entry
   counts; the editor's native Cancel action uses neutral label tint. Prior
   simulator audit findings still require an explicitly requested re-audit.

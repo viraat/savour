@@ -650,6 +650,45 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertEqual(accent.value as? String, "Blue")
     }
 
+    func testNotificationTimeAndEnableSettingPersistAcrossRelaunch() {
+        launch(resetStore: true)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        revealAboveNavigation(app.buttons["settings-notifications"])
+        app.buttons["settings-notifications"].tap()
+        XCTAssertTrue(app.navigationBars["Notifications"].waitForExistence(timeout: 3))
+        let enabled = app.switches["notifications-enabled"]
+        XCTAssertEqual(enabled.value as? String, "0")
+        app.buttons["Custom time"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["notifications-custom-time"].waitForExistence(timeout: 3))
+        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Every evening")).firstMatch.tap()
+        XCTAssertFalse(app.descendants(matching: .any)["notifications-custom-time"].exists)
+        enabled.tap()
+        let on = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1"), object: enabled)
+        XCTAssertEqual(XCTWaiter.wait(for: [on], timeout: 3), .completed)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "One daily reminder at")).firstMatch.exists)
+        app.terminate()
+        launch(resetStore: false)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        revealAboveNavigation(app.buttons["settings-notifications"])
+        app.buttons["settings-notifications"].tap()
+        XCTAssertEqual(enabled.value as? String, "1")
+        enabled.tap()
+        let off = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "0"), object: enabled)
+        XCTAssertEqual(XCTWaiter.wait(for: [off], timeout: 3), .completed)
+    }
+
+    func testDeniedNotificationPermissionLeavesReminderOffWithSettingsLink() {
+        launch(resetStore: true, extraArguments: ["--simulate-notifications-denied"])
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        revealAboveNavigation(app.buttons["settings-notifications"])
+        app.buttons["settings-notifications"].tap()
+        let enabled = app.switches["notifications-enabled"]
+        XCTAssertTrue(enabled.waitForExistence(timeout: 3))
+        enabled.tap()
+        XCTAssertTrue(app.buttons["notifications-open-settings"].waitForExistence(timeout: 3))
+        XCTAssertEqual(enabled.value as? String, "0")
+    }
+
     func testSettingsGroupedLayoutInLightAndDarkMode() {
         for appearance in ["1", "2"] {
             launch(resetStore: true, extraArguments: ["--seed-ui-test-map", "-foodLogAppearance", appearance])

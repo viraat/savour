@@ -25,6 +25,30 @@ the UI suite does not depend on a simulator's permission history.
 
 ## Run the automated suite
 
+### Reminder logic without a simulator
+
+The root Swift package builds only `FoodReminder.swift` and its tests. It has no
+external dependencies and does not build/launch the iOS UI. All permission and
+notification clients/preferences in these tests are in-memory fakes; they
+neither display a real permission prompt nor schedule a real notification.
+
+```sh
+swift test --scratch-path /private/tmp/savour-reminder-logic-build
+```
+
+All 12 tests passed on the Mac on 2026-10-03. They cover default-off behavior,
+permission grant/denial/revocation/provisional status, morning/evening/custom and
+midnight times, persistence across model recreation, invalid preferences,
+one-request replacement, disable/cancel, scheduling and permission failures,
+and Disable queued during a slow permission request. Calendar components omit
+fixed dates/time zones and notification content excludes all journal details.
+
+The native iOS Notifications screen and added UI regressions are build-checked,
+not simulator-tested. Real permission prompts, notification delivery after
+force-quitting, Focus/Scheduled Summary behavior, notification taps through App
+Lock, and delivery after time-zone/DST changes still need an opt-in simulator or
+device check. No extra simulator run was performed for this feature.
+
 Native navigation/search/statistics regressions cover system page titles,
 Clear versus Cancel, retaining Journal queries across the Add sheet, accessible
 count bars without task-progress semantics, inclusive goal labels, and an
@@ -148,6 +172,14 @@ Some system integrations need a real device or direct Simulator interaction:
    records should still be present; missing meal days must not create estimates.
    In Patterns, check average, latest, and range estimates for 7 days, 30 days,
    and All; the prior day's last meal must be included at a range boundary.
+9. In Settings → Notifications, confirm no permission prompt appears until
+   Enable notifications is switched on. Test Allow and Don't Allow, then change
+   permission in iOS Settings and return. Verify morning, evening, custom, and
+   midnight times, one reminder after repeated changes/relaunch, and no reminder
+   after disabling. With a near-future custom time, background/force-quit Savour
+   and check delivery. Change time zone and check it follows local clock time.
+   With App Lock enabled, notification content must contain no journal/draft
+   data, and tapping it must require normal authentication.
 
 Automated tests cover export to a fresh Core Data store, repeat imports,
 legacy CSV, mixed valid and invalid rows, and text with commas, quotes, and line

@@ -922,6 +922,10 @@ struct FoodLogSettingsView: View {
                     MealDefaultTimesSettingsView()
                 }
                 .accessibilityIdentifier("settings-meal-times")
+                NavigationLink("Notifications") {
+                    FoodReminderSettingsView()
+                }
+                .accessibilityIdentifier("settings-notifications")
             } header: {
                 Text("Meals").foregroundStyle(FoodTheme.secondaryText)
             }
@@ -1140,6 +1144,89 @@ struct FoodLogSettingsView: View {
             context.rollback()
             importMessage = error.localizedDescription
         }
+    }
+}
+
+struct FoodReminderSettingsView: View {
+    @StateObject private var reminder = FoodDailyReminder.shared
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Enable notifications", isOn: Binding(
+                    get: { reminder.isEnabled },
+                    set: { enabled in Task { await reminder.setEnabled(enabled) } }
+                ))
+                .disabled(reminder.isUpdating)
+                .accessibilityIdentifier("notifications-enabled")
+            }
+            Section {
+                Picker("Reminder time", selection: Binding(
+                    get: { reminder.time },
+                    set: { time in Task { await reminder.setTime(time) } }
+                )) {
+                    Text("Every morning (\(clockTime(minutes: 8 * 60)))").tag(FoodReminderTime.morning)
+                    Text("Every evening (\(clockTime(minutes: 20 * 60)))").tag(FoodReminderTime.evening)
+                    Text("Custom time").tag(FoodReminderTime.custom)
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+                .disabled(reminder.isUpdating)
+                .accessibilityIdentifier("notifications-schedule")
+
+                if reminder.time == .custom {
+                    DatePicker("Time", selection: Binding(
+                        get: { date(minutes: reminder.customMinutes) },
+                        set: { date in
+                            let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+                            Task { await reminder.setCustomMinutes((components.hour ?? 8) * 60 + (components.minute ?? 0)) }
+                        }
+                    ), displayedComponents: .hourAndMinute)
+                    .datePickerStyle(.compact)
+                    .disabled(reminder.isUpdating)
+                    .accessibilityIdentifier("notifications-custom-time")
+                }
+            } footer: {
+                Text(reminder.isEnabled
+                     ? "One daily reminder at \(clockTime(minutes: reminder.scheduledMinutes))."
+                     : "Choose a time, then enable notifications.")
+                    .foregroundStyle(FoodTheme.secondaryText)
+            }
+
+            if reminder.permission == .denied {
+                Section {
+                    Button("Open Settings") {
+                        if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                    }
+                    .accessibilityIdentifier("notifications-open-settings")
+                } footer: {
+                    Text("Notifications are disabled for Savour in iOS Settings.")
+                        .foregroundStyle(FoodTheme.secondaryText)
+                }
+            }
+            if let message = reminder.errorMessage {
+                Section {
+                    Text(message).foregroundStyle(FoodTheme.secondaryText)
+                        .accessibilityIdentifier("notifications-error")
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .textCase(nil)
+        .scrollContentBackground(.hidden)
+        .background(FoodTheme.background)
+        .navigationTitle("Notifications")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await reminder.refresh() }
+    }
+
+    private func date(minutes: Int) -> Date {
+        Calendar.current.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: Date()) ?? Date()
+    }
+
+    private func clockTime(minutes: Int) -> String {
+        date(minutes: minutes).formatted(date: .omitted, time: .shortened)
     }
 }
 

@@ -26,6 +26,8 @@
 		A00000000000000000000012 /* Fasting.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000026 /* Fasting.swift */; };
 		A00000000000000000000013 /* DateTimePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000028 /* DateTimePickerSheet.swift */; };
 		A00000000000000000000014 /* FoodEntryDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000029 /* FoodEntryDraftStore.swift */; };
+		A00000000000000000000015 /* FoodReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000030 /* FoodReminder.swift */; };
+		A00000000000000000000016 /* FoodReminderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000031 /* FoodReminderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -73,6 +75,8 @@
 		B00000000000000000000027 /* FoodLogV5.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV5.xcdatamodel; sourceTree = "<group>"; };
 		B00000000000000000000028 /* DateTimePickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateTimePickerSheet.swift; sourceTree = "<group>"; };
 		B00000000000000000000029 /* FoodEntryDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodEntryDraftStore.swift; sourceTree = "<group>"; };
+		B00000000000000000000030 /* FoodReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodReminder.swift; sourceTree = "<group>"; };
+		B00000000000000000000031 /* FoodReminderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodReminderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -128,6 +132,7 @@
 				B00000000000000000000026 /* Fasting.swift */,
 				B00000000000000000000028 /* DateTimePickerSheet.swift */,
 				B00000000000000000000029 /* FoodEntryDraftStore.swift */,
+				B00000000000000000000030 /* FoodReminder.swift */,
 				B00000000000000000000008 /* FoodLog.xcdatamodeld */,
 				B00000000000000000000007 /* Assets.xcassets */,
 				B00000000000000000000010 /* Info.plist */,
@@ -139,6 +144,7 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000021 /* FoodLogLogicTests.swift */,
+				B00000000000000000000031 /* FoodReminderTests.swift */,
 			);
 			path = FoodLogTests;
 			sourceTree = "<group>";
@@ -306,6 +312,7 @@
 				A00000000000000000000012 /* Fasting.swift in Sources */,
 				A00000000000000000000013 /* DateTimePickerSheet.swift in Sources */,
 				A00000000000000000000014 /* FoodEntryDraftStore.swift in Sources */,
+				A00000000000000000000015 /* FoodReminder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -314,6 +321,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A0000000000000000000000F /* FoodLogLogicTests.swift in Sources */,
+				A00000000000000000000016 /* FoodReminderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

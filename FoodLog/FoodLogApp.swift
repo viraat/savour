@@ -1,8 +1,11 @@
 import SwiftUI
+import UIKit
 
 @main
 struct FoodLogApp: App {
     private let persistence: PersistenceController
+    @StateObject private var reminder = FoodDailyReminder.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
 #if DEBUG
@@ -150,6 +153,13 @@ struct FoodLogApp: App {
                 ContentView()
             }
             .environment(\.managedObjectContext, persistence.container.viewContext)
+            .task { await reminder.refresh() }
+            .onChange(of: scenePhase) { phase in
+                if phase == .active { Task { await reminder.refresh() } }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                if scenePhase == .active { Task { await reminder.refresh() } }
+            }
         }
     }
 }
