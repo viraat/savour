@@ -1,8 +1,68 @@
 import CoreData
+import SwiftUI
+import UIKit
 import XCTest
 @testable import FoodLog
 
 final class FoodLogLogicTests: XCTestCase {
+#if compiler(>=6.4)
+    @MainActor
+    func testProminentAddOpensSheetWithoutSelectingItsPlaceholder() throws {
+        guard #available(iOS 27.0, *) else { throw XCTSkip("Prominent tab layout requires iOS 27") }
+        for initial in FoodTab.allCases {
+            var selected = initial
+            var requests = 0
+            let navigation = FoodNativeTabNavigation(
+                selection: Binding(get: { selected }, set: { selected = $0 }),
+                addEntry: { requests += 1 }, content: { _ in EmptyView() }
+            )
+            let coordinator = navigation.makeCoordinator()
+            let controller = UITabBarController()
+            let original = UITab(title: initial.rawValue, image: nil,
+                                 identifier: initial.rawValue) { _ in UIViewController() }
+            let add = UITab(title: "Add entry", image: nil,
+                            identifier: FoodNativeTabNavigation<EmptyView>.addIdentifier) { _ in UIViewController() }
+            controller.tabs = [original, add]
+            controller.selectedTab = original
+            for count in 1...2 {
+                XCTAssertFalse(coordinator.tabBarController(controller, shouldSelectTab: add))
+                XCTAssertEqual(requests, count)
+                XCTAssertEqual(selected, initial)
+                XCTAssertTrue(controller.selectedTab === original)
+            }
+            // Even an unexpected selection notification for the action must
+            // never overwrite the saved navigation selection.
+            coordinator.tabBarController(controller, didSelectTab: add, previousTab: original)
+            XCTAssertEqual(selected, initial)
+        }
+    }
+
+    @MainActor
+    func testNativeNavigationAcceptsRealTabsAndUpdatesSelectionOnlyForThem() throws {
+        guard #available(iOS 27.0, *) else { throw XCTSkip("Prominent tab layout requires iOS 27") }
+        var selected = FoodTab.journal
+        var requests = 0
+        let navigation = FoodNativeTabNavigation(
+            selection: Binding(get: { selected }, set: { selected = $0 }),
+            addEntry: { requests += 1 }, content: { _ in EmptyView() }
+        )
+        let coordinator = navigation.makeCoordinator()
+        let controller = UITabBarController()
+        for destination in FoodTab.allCases {
+            let tab = UITab(title: destination.rawValue, image: nil,
+                            identifier: destination.rawValue) { _ in UIViewController() }
+            XCTAssertTrue(coordinator.tabBarController(controller, shouldSelectTab: tab))
+            coordinator.tabBarController(controller, didSelectTab: tab, previousTab: nil)
+            XCTAssertEqual(selected, destination)
+            XCTAssertEqual(requests, 0)
+        }
+        let unknown = UITab(title: "Unknown", image: nil, identifier: "unknown") { _ in UIViewController() }
+        XCTAssertFalse(coordinator.tabBarController(controller, shouldSelectTab: unknown))
+        coordinator.tabBarController(controller, didSelectTab: unknown, previousTab: nil)
+        XCTAssertEqual(selected, .settings)
+    }
+#endif
+
     private var utcCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
