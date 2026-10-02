@@ -1,6 +1,6 @@
-# FoodLog 0.9.1
+# FoodLog 0.5.1
 
-Repository release · 2 October 2026 · app version 0.9.1, build 6
+Repository release · 2 October 2026 · app version 0.5.1, build 6
 
 Changes from `feature/fasts-copy-polish` are merged into main. Historical release
 tags have been renumbered below 1.0 without changing their release commits.
@@ -44,10 +44,11 @@ and native-glass appearance still need a manual check on the device.
 
 ## Historical tag renumbering
 
-Tags `v0.1.0` through `v0.5.0` are unchanged. The replacement annotated tags
-below point to the exact same historical commits; their old names have been
-removed. Historical commits and app versions embedded in older builds have not
-been rewritten. The old names can be recreated at the preserved commits if needed.
+The initial `v0.1.0` tag is unchanged. Early MVP enhancements are `v0.1.1`
+through `v0.1.5`; subsequent milestones are `v0.2.0` through `v0.5.0`.
+Historical commits and app versions embedded in older builds have not been
+rewritten. Some tag names now identify different releases, as documented below;
+the previous naming can be restored at the recorded commits if needed.
 
 Versioning policy: milestone releases increment the minor component (`0.5.0`
 to `0.6.0`). Smaller feature, fix, and polish releases increment the patch
@@ -56,11 +57,16 @@ is ready for a 1.0 release. Build numbers continue increasing independently.
 
 | Old tag | Replacement | Release scope | Preserved commit |
 | --- | --- | --- | --- |
-| v1.0.0 | v0.5.1 | Now shortcut in time editor | 1e48e2f1ca5cd1dcd1ee89bd263d258cc0f2f590 |
-| v2.0.0 | v0.6.0 | UI and Patterns redesign | 1bcb3f69cdd67c347ce95abec068c8827f0840e0 |
-| v2.1.0 | v0.7.0 | CSV import, migration, reliability, autocomplete | 84a8ca4183fcfcc7304f76ea09a1c810be41ff59 |
-| v2.2.0 | v0.8.0 | Fasting, date picker, persistent drafts | b9ad9fbe6c8d8b8bf622cedea6055fe2e1719cc8 |
-| v2.3.0 | v0.9.0 | Fasts tab, automatic estimates, biometric unlock | 756b94afbae266c81e3d19762b0fc9707c7fddb4 |
+| v0.2.0 | v0.1.1 | Individual companions | 99b60ca0cb4d6e16cc045a0818db2e625f0d27ac |
+| v0.3.0 | v0.1.2 | Reusable locations and entry redesign | 209b073c04ca1a3c2fd517b48456677786e34add |
+| v0.4.0 | v0.1.3 | Meal suggestions and app lock | fac4433818340a4611fb936aa50378adc7d4e988 |
+| v0.5.0 | v0.1.4 | Configurable meal times | de0a52537c8dfefa5f909b4df8aa5eda3cce6d7c |
+| v0.5.1 (originally v1.0.0) | v0.1.5 | Now shortcut in time editor | 1e48e2f1ca5cd1dcd1ee89bd263d258cc0f2f590 |
+| v0.6.0 (originally v2.0.0) | v0.2.0 | UI and Patterns redesign | 1bcb3f69cdd67c347ce95abec068c8827f0840e0 |
+| v0.7.0 (originally v2.1.0) | v0.3.0 | CSV import, migration, reliability, autocomplete | 84a8ca4183fcfcc7304f76ea09a1c810be41ff59 |
+| v0.8.0 (originally v2.2.0) | v0.4.0 | Fasting, date picker, persistent drafts | b9ad9fbe6c8d8b8bf622cedea6055fe2e1719cc8 |
+| v0.9.0 (originally v2.3.0) | v0.5.0 | Fasts tab, automatic estimates, biometric unlock | 756b94afbae266c81e3d19762b0fc9707c7fddb4 |
 
-The current UI-polish release is `v0.9.1` on main, with app version `0.9.1`
-and build number `6`.
+The former `v0.9.1` UI-polish release is now `v0.5.1` on main, with app version
+`0.5.1` and build number `6`. Its release-metadata commit updates the version
+and this document; application code is unchanged.
