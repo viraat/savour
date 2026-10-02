@@ -303,7 +303,7 @@ struct FoodEntryEditor: View {
                 }
 
                 if entry != nil {
-                    ToolbarItem(placement: .secondaryAction) {
+                    ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             Button("Delete entry", systemImage: "trash", role: .destructive) {
                                 confirmDelete = true
@@ -407,11 +407,9 @@ struct FoodEntryEditor: View {
                             } label: {
                                 Text(suggestion)
                                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                                    .foregroundColor(FoodTheme.ink)
-                                    .padding(.horizontal, 11)
-                                    .padding(.vertical, 8)
-                                    .foodGlass(cornerRadius: 10, interactive: true)
                             }
+                            .foodSecondaryActionStyle()
+                            .buttonBorderShape(.roundedRectangle(radius: 10))
                         }
                     }
                 }
@@ -558,14 +556,14 @@ struct FoodEntryEditor: View {
                         Label("Camera", systemImage: "camera.fill")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(PhotoActionButtonStyle())
+                    .foodSecondaryActionStyle()
                 }
 
                 PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                     Label(photoData == nil ? "Photos" : "Replace", systemImage: "photo.on.rectangle")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(PhotoActionButtonStyle())
+                .foodSecondaryActionStyle()
                 .onChange(of: selectedPhotoItem) { item in
                     guard let item else { return }
                     isLoadingPhoto = true
@@ -596,7 +594,7 @@ struct FoodEntryEditor: View {
                         Image(systemName: "trash")
                             .frame(width: 18, height: 18)
                     }
-                    .buttonStyle(PhotoActionButtonStyle())
+                    .foodSecondaryActionStyle()
                     .accessibilityLabel("Remove photo")
                 }
             }
@@ -1060,18 +1058,6 @@ struct FoodEntryEditor: View {
             || !entry.companionNames.isEmpty
             || !entry.wrappedNote.isEmpty
             || entry.photoData != nil
-    }
-}
-
-private struct PhotoActionButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-            .foregroundColor(FoodTheme.ink)
-            .padding(.vertical, 11)
-            .padding(.horizontal, 12)
-            .foodGlass(cornerRadius: 12, interactive: true)
-            .opacity(configuration.isPressed ? 0.65 : 1)
     }
 }
 

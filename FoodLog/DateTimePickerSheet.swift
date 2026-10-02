@@ -95,6 +95,7 @@ struct FoodLogDateTimeSheet: View {
             dismiss()
         }
         .font(.system(.body, design: .rounded).weight(.semibold))
+        .foodPrimaryActionStyle()
         .frame(minWidth: 44, minHeight: 44)
         .accessibilityIdentifier("date-time-done")
     }
@@ -104,10 +105,8 @@ private extension View {
     func quickTimeButton() -> some View {
         self
             .font(.system(.subheadline, design: .rounded).weight(.medium))
-            .foregroundStyle(FoodTheme.ink)
+            .foodSecondaryActionStyle()
+            .buttonBorderShape(.capsule)
             .frame(minWidth: 48, minHeight: 44)
-            .padding(.horizontal, 8)
-            .background(Color(uiColor: .tertiarySystemFill), in: Capsule())
-            .buttonStyle(.plain)
     }
 }

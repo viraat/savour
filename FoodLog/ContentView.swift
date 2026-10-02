@@ -35,7 +35,7 @@ private enum FoodTab: String, CaseIterable {
     var icon: String {
         switch self {
         case .journal: return "book.closed.fill"
-        case .fasts: return "moon.fill"
+        case .fasts: return "hourglass"
         case .patterns: return "chart.bar.fill"
         case .settings: return "gearshape.fill"
         }
@@ -55,10 +55,16 @@ struct FoodLogRootView: View {
 
     @ViewBuilder
     var body: some View {
-        NavigationStack {
-            selectedContent
-                .modifier(FoodBottomBarPlacement(selection: $selectedTab, addEntry: addEntry))
+        TabView(selection: $selectedTab) {
+            ForEach(FoodTab.allCases, id: \.self) { tab in
+                NavigationStack {
+                    content(for: tab)
+                }
+                .tabItem { Label(tab.rawValue, systemImage: tab.icon) }
+                .tag(tab)
+            }
         }
+        .environment(\.addFoodEntry, addEntry)
         .sheet(item: $editorPresentation) { presentation in
             FoodEntryEditor(entry: presentation.entry, draftKey: presentation.draftKey)
                 .presentationDragIndicator(.visible)
@@ -67,8 +73,8 @@ struct FoodLogRootView: View {
     }
 
     @ViewBuilder
-    private var selectedContent: some View {
-        switch selectedTab {
+    private func content(for tab: FoodTab) -> some View {
+        switch tab {
         case .journal:
             JournalView()
         case .fasts:
@@ -104,99 +110,64 @@ struct FoodLogRootView: View {
     }
 }
 
-private struct FoodBottomBarPlacement: ViewModifier {
-    @Binding var selection: FoodTab
-    let addEntry: () -> Void
+struct FoodPageHeader<Actions: View>: View {
+    @Environment(\.addFoodEntry) private var addEntry
+    let title: String
+    let identifier: String
+    let actions: Actions
 
-    func body(content: Content) -> some View {
-        // Keep scroll content under the native glass, but reserve enough scroll
-        // inset to bring the final row clear on every tab and supported OS.
-        content.safeAreaInset(edge: .bottom, spacing: 0) { bar }
+    init(_ title: String, identifier: String, @ViewBuilder actions: () -> Actions) {
+        self.title = title
+        self.identifier = identifier
+        self.actions = actions()
     }
 
-    private var bar: some View {
-        FoodBottomBar(selection: $selection, addEntry: addEntry)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-            .simultaneousGesture(TapGesture().onEnded {})
-    }
-}
-
-private struct FoodBottomBar: View {
-    @Environment(\.foodAccentColor) private var accentColor
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Binding var selection: FoodTab
-    let addEntry: () -> Void
-
-    @ViewBuilder
-    var body: some View {
-#if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
-            GlassEffectContainer(spacing: 12) { controls }
-        } else {
-            controls
-        }
-#else
-        controls
-#endif
+    private var heading: some View {
+        Text(title)
+            .font(.system(.largeTitle).weight(.bold))
+            .foregroundStyle(FoodTheme.ink)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityIdentifier(identifier)
     }
 
     private var controls: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 2) {
-                ForEach(FoodTab.allCases, id: \.self) { tab in
-                    navigationButton(for: tab)
-                }
+        HStack(spacing: 10) {
+            actions
+            Button(action: addEntry) {
+                Image(systemName: "plus")
+                    .font(.system(size: 20, weight: .medium))
+                    .frame(width: 24, height: 24)
             }
-            .padding(5)
-            .frame(maxWidth: .infinity)
-            .foodGlass(cornerRadius: 32, interactive: true)
-
-            addButton
+            .foodPrimaryActionStyle()
+            .buttonBorderShape(.capsule)
+            .accessibilityLabel("Add entry")
+            .accessibilityHint("Opens the food entry sheet")
         }
+        .fixedSize()
     }
 
-    private func navigationButton(for tab: FoodTab) -> some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) { selection = tab }
-        } label: {
-            VStack(spacing: 3) {
-                Image(systemName: tab.icon)
-                    .font(.system(size: 18, weight: .semibold))
-                if !dynamicTypeSize.isAccessibilitySize {
-                    Text(tab.rawValue)
-                        .font(.system(.caption2, design: .rounded).weight(.semibold))
-                }
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 12) {
+                heading.fixedSize()
+                Spacer(minLength: 0)
+                controls
             }
-            .foregroundStyle(selection == tab ? FoodTheme.ink : FoodTheme.secondaryText)
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: 50)
-            .contentShape(Rectangle())
-            .background(
-                selection == tab ? Color(uiColor: .tertiarySystemFill) : .clear,
-                in: Capsule()
-            )
+            VStack(alignment: .leading, spacing: 8) {
+                heading
+                HStack { Spacer(); controls }
+            }
         }
-        .frame(maxWidth: .infinity)
-        .buttonStyle(.plain)
-        .accessibilityLabel(tab.rawValue)
-        .accessibilityAddTraits(selection == tab ? .isSelected : [])
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
     }
+}
 
-    private var addButton: some View {
-        Button(action: addEntry) {
-            Image(systemName: "plus")
-                .font(.system(size: 24, weight: .medium))
-                .frame(width: 48, height: 48)
-        }
-        .foodPrimaryActionStyle()
-        .buttonBorderShape(.capsule)
-        .tint(accentColor)
-        .foregroundStyle(FoodTheme.onAccent)
-        .accessibilityLabel("Add entry")
-        .accessibilityHint("Opens the food entry sheet")
+extension FoodPageHeader where Actions == EmptyView {
+    init(_ title: String, identifier: String) {
+        self.init(title, identifier: identifier) { EmptyView() }
     }
 }
 
@@ -211,6 +182,9 @@ enum FoodTheme {
     })
     static let secondaryText = Color(uiColor: .label).opacity(0.75)
     static let outline = Color(uiColor: .separator).opacity(0.35)
+    static let fastGoalBorder = Color(uiColor: UIColor { traits in
+        UIColor(Color(hex: traits.userInterfaceStyle == .dark ? "D4D8DE" : "777F8A"))
+    })
     static func color(for mealType: String) -> Color {
         switch mealType {
         case "Breakfast": return Color(hex: "E9A23B")
@@ -283,7 +257,16 @@ private struct FoodAccentColorKey: EnvironmentKey {
     static let defaultValue = FoodAccentOption.teal.color
 }
 
+private struct FoodAddEntryActionKey: EnvironmentKey {
+    static let defaultValue: () -> Void = {}
+}
+
 extension EnvironmentValues {
+    var addFoodEntry: () -> Void {
+        get { self[FoodAddEntryActionKey.self] }
+        set { self[FoodAddEntryActionKey.self] = newValue }
+    }
+
     var foodAccentColor: Color {
         get { self[FoodAccentColorKey.self] }
         set { self[FoodAccentColorKey.self] = newValue }
@@ -305,6 +288,21 @@ private struct FoodPrimaryActionModifier: ViewModifier {
 #else
         content.buttonStyle(.borderedProminent)
             .tint(accentColor)
+#endif
+    }
+}
+
+private struct FoodSecondaryActionModifier: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+#if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content.buttonStyle(.glass)
+        } else {
+            content.buttonStyle(.bordered)
+        }
+#else
+        content.buttonStyle(.bordered)
 #endif
     }
 }
@@ -350,6 +348,10 @@ private struct FoodPanelModifier: ViewModifier {
 }
 
 extension View {
+    func foodSecondaryActionStyle() -> some View {
+        modifier(FoodSecondaryActionModifier())
+    }
+
     func foodPrimaryActionStyle() -> some View {
         modifier(FoodPrimaryActionModifier())
     }

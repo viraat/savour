@@ -227,7 +227,7 @@ final class FoodLogUITests: XCTestCase {
             ]
         )
         XCTAssertTrue(app.staticTexts["FoodLog is locked"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.navigationBars["Food log"].exists)
+        XCTAssertFalse(app.staticTexts["journal-title"].exists)
         XCTAssertTrue(app.buttons["Unlock"].waitForExistence(timeout: 3))
     }
 
@@ -235,12 +235,12 @@ final class FoodLogUITests: XCTestCase {
         launch(resetStore: true, extraArguments: [
             "-foodLogBiometricLockEnabled", "YES", "--simulate-biometric-success-once"
         ])
-        XCTAssertTrue(app.navigationBars["Food log"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["journal-title"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["Unlock"].exists)
         XCUIDevice.shared.press(.home)
         app.activate()
         XCTAssertTrue(app.staticTexts["FoodLog is locked"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.navigationBars["Food log"].exists)
+        XCTAssertFalse(app.staticTexts["journal-title"].exists)
         XCTAssertEqual(app.staticTexts["authentication-message"].value as? String, "2")
         app.buttons["Unlock"].tap()
         XCTAssertEqual(app.staticTexts["authentication-message"].value as? String, "3")
@@ -322,6 +322,35 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["FoodLog is locked"].exists)
     }
 
+    func testNativeTabBarSelectionAndHeaderAddAction() {
+        launch(resetStore: true)
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 3))
+        for title in ["Fasts", "Patterns", "Settings", "Journal"] {
+            let tab = tabBar.buttons[title]
+            XCTAssertTrue(tab.isHittable)
+            tab.tap()
+            XCTAssertTrue(tab.isSelected)
+            XCTAssertTrue(app.buttons["Add entry"].isHittable)
+        }
+        app.buttons["Add entry"].tap()
+        XCTAssertTrue(app.navigationBars["New entry"].waitForExistence(timeout: 3))
+    }
+
+    func testEditEntryActionsShowDeleteWithoutAnotherOverflowMenu() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-overnight"])
+        let entry = journalEntry(containing: "Overnight breakfast")
+        revealAboveNavigation(entry)
+        entry.tap()
+        XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 3))
+        app.buttons["Entry actions"].tap()
+        XCTAssertTrue(app.buttons["Delete entry"].waitForExistence(timeout: 2))
+        app.buttons["Delete entry"].tap()
+        XCTAssertTrue(app.alerts["Delete this entry?"].waitForExistence(timeout: 2))
+        app.alerts.buttons["Cancel"].tap()
+        XCTAssertTrue(app.textFields["food-description"].exists)
+    }
+
     func testJournalLastEntryRemainsReachableAboveGlassNavigation() {
         for appearance in ["1", "2"] {
             launch(resetStore: true, extraArguments: [
@@ -381,7 +410,7 @@ final class FoodLogUITests: XCTestCase {
 
     func testBottomNavigationCapturesTouchesAcrossButtonEdges() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-navigation"])
-        XCTAssertTrue(app.navigationBars["Food log"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["journal-title"].waitForExistence(timeout: 3))
 
         let journal = app.buttons["Journal"]
         XCTAssertTrue(journal.waitForExistence(timeout: 2))
@@ -391,11 +420,11 @@ final class FoodLogUITests: XCTestCase {
 
         let patterns = app.buttons["Patterns"]
         patterns.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: 0.88)).tap()
-        XCTAssertTrue(app.navigationBars["Patterns"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["patterns-title"].waitForExistence(timeout: 2))
 
         let journalAgain = app.buttons["Journal"]
         journalAgain.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.12)).tap()
-        XCTAssertTrue(app.navigationBars["Food log"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["journal-title"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.navigationBars["Edit entry"].exists)
     }
 
@@ -442,7 +471,7 @@ final class FoodLogUITests: XCTestCase {
             waitForEditorDismissal()
 
             app.buttons["Settings"].tap()
-            XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+            XCTAssertTrue(app.staticTexts["settings-title"].waitForExistence(timeout: 3))
             // Bring the privacy controls above the glass before checking their
             // text contrast; deliberately refracted offscreen content is not
             // readable text and can produce an unattributed contrast finding.
@@ -509,13 +538,36 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(incrementButton.isHittable)
     }
 
+    func testJournalSearchOpensFromToolbarAndClearsOnClose() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-overnight"])
+        XCTAssertFalse(app.textFields["journal-search-field"].exists)
+        app.buttons["journal-search-button"].tap()
+        let field = app.textFields["journal-search-field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 2))
+        field.typeText("not a logged meal")
+        XCTAssertTrue(app.staticTexts["Nothing found"].waitForExistence(timeout: 2))
+        app.buttons["Close search"].tap()
+        XCTAssertFalse(field.exists)
+        XCTAssertFalse(app.staticTexts["Nothing found"].exists)
+    }
+
+    func testFastingSettingsContainGoalControlsInsteadOfDuplicatePage() {
+        launch(resetStore: true)
+        app.buttons["Settings"].tap()
+        app.swipeUp()
+        XCTAssertTrue(app.switches["fasting-goal-enabled"].exists)
+        XCTAssertTrue(app.steppers["fasting-goal-hours"].exists)
+        XCTAssertFalse(app.buttons.matching(identifier: "Fasts").allElementsBoundByIndex.count > 1)
+    }
+
     func testAutomaticOvernightEstimateRelaunchEditDeleteAndLegacyPreservation() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-overnight"])
-        XCTAssertTrue(app.staticTexts["10h 0m"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["overnight-duration"].exists)
+        verifyFastingDuration("10h 0m")
         XCTAssertFalse(app.buttons["end-fast"].exists)
         app.terminate()
         launch(resetStore: false)
-        XCTAssertTrue(app.staticTexts["10h 0m"].waitForExistence(timeout: 3))
+        verifyFastingDuration("10h 0m")
         app.buttons["Add entry"].tap()
         XCTAssertFalse(app.switches["start-fast-after-meal"].exists)
         app.buttons["Cancel"].tap()
@@ -527,15 +579,15 @@ final class FoodLogUITests: XCTestCase {
         app.buttons["date-time-done"].tap()
         app.buttons["Save"].tap()
         app.scrollViews.firstMatch.swipeDown()
-        XCTAssertTrue(app.staticTexts["10h 5m"].waitForExistence(timeout: 3))
+        verifyFastingDuration("10h 5m")
         revealAboveNavigation(breakfast)
         breakfast.press(forDuration: 1)
         app.buttons["Delete"].tap()
         app.alerts.buttons["Delete"].tap()
         app.scrollViews.firstMatch.swipeDown()
-        XCTAssertTrue(app.staticTexts["14h 0m"].waitForExistence(timeout: 3))
+        verifyFastingDuration("14h 0m")
         app.buttons["Fasts"].tap()
-        XCTAssertTrue(app.navigationBars["Fasts"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["fasts-title"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.buttons["Add"].exists)
         XCTAssertTrue(app.staticTexts["Previously saved fasting records"].exists)
         XCTAssertTrue(app.staticTexts["12h 0m"].exists)
@@ -543,6 +595,27 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["FASTS"].exists)
         XCTAssertTrue(app.staticTexts["Average gap"].exists)
         XCTAssertTrue(app.staticTexts["Latest gap"].exists)
+    }
+
+    private func verifyFastingDuration(_ duration: String) {
+        app.buttons["Fasts"].tap()
+        XCTAssertTrue(app.staticTexts["fasts-title"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.descendants(matching: .any)["fasting-month-calendar"].exists)
+        let row = app.buttons.matching(NSPredicate(
+            format: "identifier BEGINSWITH %@ AND label CONTAINS %@", "fasting-history-", duration
+        )).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 3))
+        if !row.isHittable { app.swipeUp() }
+        row.tap()
+        XCTAssertTrue(app.staticTexts["overnight-duration"].waitForExistence(timeout: 2))
+        XCTAssertEqual(app.staticTexts["overnight-duration"].label, duration)
+        app.buttons["Done"].tap()
+        let dismissed = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: app.staticTexts["overnight-duration"]
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 3), .completed)
+        app.buttons["Journal"].tap()
     }
 
     @available(iOS 17.0, *)
@@ -575,8 +648,8 @@ final class FoodLogUITests: XCTestCase {
             // iOS's screenshot heuristic samples text through the translucent
             // bottom bar even when the foreground tab labels are opaque.
             if issue.auditType == .contrast, let element = issue.element {
-                let bar = self.app.buttons["Journal"].frame.union(self.app.buttons["Add entry"].frame)
-                if element.frame.maxY >= bar.minY - 32 { return true }
+                let tabBar = self.app.tabBars.firstMatch
+                if tabBar.exists && element.frame.maxY >= tabBar.frame.minY - 32 { return true }
                 // Native navigation scroll-edge blur also refracts scrolled
                 // text. Do not exempt the navigation title or toolbar controls.
                 let navigationBar = self.app.navigationBars.firstMatch

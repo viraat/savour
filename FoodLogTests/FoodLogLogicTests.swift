@@ -806,6 +806,51 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertEqual(FastingCalendarMonth.intensity(for: .infinity), 0)
     }
 
+    func testFastingHistoryAddsThirtyAtATimeWithoutExceedingTotal() {
+        XCTAssertEqual(FastingHistory.pageSize, 30)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 30, total: 76), 60)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 60, total: 76), 76)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 76, total: 76), 76)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 30, total: 15), 15)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 30, total: 0), 0)
+    }
+
+    func testCompactFastDurationOmitsZeroMinutesAndRetainsHalfHours() {
+        XCTAssertEqual(FastTimeText.compactDuration(14 * 3_600), "14h")
+        XCTAssertEqual(FastTimeText.compactDuration(14.5 * 3_600), "14h 30m")
+        XCTAssertEqual(FastTimeText.compactDuration(10 * 3_600 + 5 * 60), "10h 5m")
+    }
+
+    func testFastingCalendarTextContrastFollowsTheFilledCell() {
+        let darkAccent = [0.03, 0.48, 0.36]
+        XCTAssertFalse(FastingCalendarMonth.usesLightText(accent: darkAccent, surface: [1, 1, 1], opacity: 0.08))
+        XCTAssertTrue(FastingCalendarMonth.usesLightText(accent: darkAccent, surface: [1, 1, 1], opacity: 1))
+        let lightAccent = [0.4, 0.87, 0.72]
+        XCTAssertTrue(FastingCalendarMonth.usesLightText(accent: lightAccent, surface: [0.1, 0.1, 0.1], opacity: 0.08))
+        XCTAssertFalse(FastingCalendarMonth.usesLightText(accent: lightAccent, surface: [0.1, 0.1, 0.1], opacity: 1))
+    }
+
+    func testFastingGoalDefaultsToFourteenHoursAndHandlesDisabledOrCustomGoals() {
+        XCTAssertEqual(FastingGoalPreference.defaultHours, 14)
+        XCTAssertFalse(FastingGoalPreference.isMet(by: 14 * 3_600 - 1, hours: 14, enabled: true))
+        XCTAssertTrue(FastingGoalPreference.isMet(by: 14 * 3_600, hours: 14, enabled: true))
+        XCTAssertTrue(FastingGoalPreference.isMet(by: 16 * 3_600, hours: 14, enabled: true))
+        XCTAssertFalse(FastingGoalPreference.isMet(by: 16 * 3_600, hours: 14, enabled: false))
+        XCTAssertTrue(FastingGoalPreference.isMet(by: 14.5 * 3_600, hours: 14.5, enabled: true))
+        XCTAssertFalse(FastingGoalPreference.isMet(by: 14 * 3_600, hours: 14.5, enabled: true))
+        XCTAssertFalse(FastingGoalPreference.isMet(by: .infinity, hours: 14, enabled: true))
+        XCTAssertFalse(FastingGoalPreference.isMet(by: 14 * 3_600, hours: .nan, enabled: true))
+        XCTAssertFalse(FastingGoalPreference.isMet(by: 14 * 3_600, hours: 0, enabled: true))
+    }
+
+    func testFastingOpacityIncreasesFromTransparentToOpaque() {
+        XCTAssertEqual(FastingCalendarMonth.opacity(for: 0), 0.08, accuracy: 0.0001)
+        XCTAssertEqual(FastingCalendarMonth.opacity(for: 36 * 3_600), 1, accuracy: 0.0001)
+        XCTAssertGreaterThan(FastingCalendarMonth.opacity(for: 16 * 3_600),
+                             FastingCalendarMonth.opacity(for: 12 * 3_600))
+        XCTAssertEqual(FastingCalendarMonth.opacity(for: 48 * 3_600), 1, accuracy: 0.0001)
+    }
+
     func testOvernightSummaryCalculatesAverageAndRangeAndHandlesNoEstimates() {
         XCTAssertNil(OvernightFasting.summary(of: []))
         let start = date(2026, 9, 14, 22)

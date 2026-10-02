@@ -1,5 +1,6 @@
 import CoreData
 import SwiftUI
+import UIKit
 
 struct OvernightMeal {
     let date: Date
@@ -44,6 +45,30 @@ struct FastingCalendarMonth {
         guard duration.isFinite else { return 0 }
         return min(1, max(0, duration / (36 * 3_600)))
     }
+
+    static func opacity(for duration: TimeInterval) -> Double {
+        0.08 + 0.92 * intensity(for: duration)
+    }
+
+    static func usesLightText(accent: [Double], surface: [Double], opacity: Double) -> Bool {
+        let channels = zip(accent, surface).map { foreground, background in
+            let channel = foreground * opacity + background * (1 - opacity)
+            return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+        }
+        guard channels.count == 3 else { return false }
+        let luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+        return luminance < 0.179
+    }
+}
+
+enum FastingGoalPreference {
+    static let hoursKey = "fastingGoalHours"
+    static let enabledKey = "showFastingGoal"
+    static let defaultHours = 14.0
+
+    static func isMet(by duration: TimeInterval, hours: Double, enabled: Bool) -> Bool {
+        enabled && hours.isFinite && hours > 0 && duration.isFinite && duration >= hours * 3_600
+    }
 }
 
 enum OvernightFasting {
@@ -81,7 +106,7 @@ struct OvernightFastCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Image(systemName: "moon")
+                Image(systemName: "hourglass")
                     .accessibilityHidden(true)
                 Text(FastTimeText.duration(estimate.duration))
                     .accessibilityIdentifier("overnight-duration")
@@ -99,6 +124,10 @@ struct OvernightFastCard: View {
 }
 
 private struct FastingMonthCalendar: View {
+    @Environment(\.foodAccentColor) private var accentColor
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(FastingGoalPreference.hoursKey) private var goalHours = FastingGoalPreference.defaultHours
+    @AppStorage(FastingGoalPreference.enabledKey) private var goalEnabled = true
     let estimates: [OvernightFastEstimate]
     let calendar: Calendar
     @Binding var displayedMonth: Date
@@ -117,14 +146,25 @@ private struct FastingMonthCalendar: View {
         let formatter = DateFormatter()
         formatter.calendar = calendar
         formatter.timeZone = calendar.timeZone
-        formatter.setLocalizedDateFormatFromTemplate("MMMM yyyy")
+        formatter.setLocalizedDateFormatFromTemplate("MMM yyyy")
         return formatter.string(from: month.start)
     }
 
     private func shade(_ intensity: Double) -> Color {
-        Color(red: 0.26 - 0.18 * intensity,
-              green: 0.47 - 0.31 * intensity,
-              blue: 0.67 - 0.39 * intensity)
+        accentColor.opacity(0.08 + 0.92 * intensity)
+    }
+
+    private func textColor(for opacity: Double) -> Color {
+        let traits = UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)
+        func channels(_ color: UIColor) -> [Double] {
+            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+            color.resolvedColor(with: traits).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+            return [Double(red), Double(green), Double(blue)]
+        }
+        let light = FastingCalendarMonth.usesLightText(accent: channels(UIColor(accentColor)),
+                                                      surface: channels(.secondarySystemGroupedBackground),
+                                                      opacity: opacity)
+        return light ? .white : .black
     }
 
     private func moveMonth(by offset: Int) {
@@ -136,7 +176,7 @@ private struct FastingMonthCalendar: View {
     var body: some View {
         let month = month
         let estimatesByDay = estimatesByDay
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             HStack(spacing: 8) {
                 Button { moveMonth(by: -1) } label: {
                     Image(systemName: "chevron.left").frame(width: 44, height: 44)
@@ -153,10 +193,10 @@ private struct FastingMonthCalendar: View {
                 .accessibilityLabel("Next month")
             }
             .buttonStyle(.plain)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 4) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7), spacing: 6) {
                 ForEach(0..<7, id: \.self) { offset in
                     let index = (calendar.firstWeekday - 1 + offset) % 7
-                    Text(calendar.veryShortStandaloneWeekdaySymbols[index])
+                    Text(calendar.shortStandaloneWeekdaySymbols[index])
                         .font(.system(.caption, design: .rounded))
                         .foregroundStyle(FoodTheme.secondaryText)
                         .frame(maxWidth: .infinity)
@@ -170,58 +210,92 @@ private struct FastingMonthCalendar: View {
                     }
                 }
             }
-            HStack(spacing: 6) {
-                Text("Shorter")
-                ForEach(0..<5, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(shade(Double(index) / 4))
-                        .frame(width: 16, height: 12)
-                        .accessibilityHidden(true)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    durationLegend
+                    Spacer(minLength: 0)
+                    if goalEnabled { goalLegend }
                 }
-                Text("Longer")
-                Spacer(minLength: 0)
+                VStack(alignment: .leading, spacing: 8) {
+                    durationLegend
+                    if goalEnabled { goalLegend }
+                }
             }
             .font(.system(.caption, design: .rounded))
             .foregroundStyle(FoodTheme.secondaryText)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Darker dates indicate longer fasts")
-            if !calendar.isDate(Date(), equalTo: month.start, toGranularity: .month) {
-                Button("This month") { displayedMonth = Date() }
-                    .frame(minHeight: 44)
-                    .buttonStyle(.plain)
-            }
         }
         .foregroundStyle(FoodTheme.ink)
-        .padding(12)
-        .foodPanel(cornerRadius: 18)
+        .padding(16)
+        .foodPanel(cornerRadius: 24)
         .accessibilityIdentifier("fasting-month-calendar")
     }
 
+    private var durationLegend: some View {
+        HStack(spacing: 4) {
+            Text("Shorter")
+            ForEach(0..<5, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(shade(Double(index) / 4))
+                    .frame(width: 10, height: 10)
+                    .accessibilityHidden(true)
+            }
+            Text("Longer")
+        }
+        .fixedSize()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("More opaque dates indicate longer fasts")
+    }
+
+    private var goalLegend: some View {
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 3)
+                .strokeBorder(FoodTheme.fastGoalBorder, lineWidth: 2)
+                .frame(width: 12, height: 12)
+                .accessibilityHidden(true)
+            Text(">\(FastTimeText.compactDuration(goalHours * 3_600)) goal")
+        }
+        .fixedSize()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("A silver border marks fasts of at least \(FastTimeText.compactDuration(goalHours * 3_600))")
+    }
+
     private func dayCell(_ day: Date, estimate: OvernightFastEstimate?) -> some View {
-        Button {
+        let opacity = estimate.map { FastingCalendarMonth.opacity(for: $0.duration) } ?? 0
+        let meetsGoal = estimate.map {
+            FastingGoalPreference.isMet(by: $0.duration, hours: goalHours, enabled: goalEnabled)
+        } ?? false
+        let foreground = estimate == nil ? FoodTheme.ink : textColor(for: opacity)
+        return Button {
             selectedEstimate = estimate
         } label: {
             Text("\(calendar.component(.day, from: day))")
                 .font(.system(.subheadline, design: .rounded).weight(.medium))
-                .foregroundStyle(estimate == nil ? FoodTheme.ink : Color.white)
+                .foregroundStyle(foreground)
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .background {
-                    if let estimate {
+                    if estimate != nil {
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(shade(FastingCalendarMonth.intensity(for: estimate.duration)))
+                            .fill(accentColor.opacity(opacity))
                     }
                 }
                 .overlay {
+                    if meetsGoal {
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(FoodTheme.fastGoalBorder, lineWidth: 2)
+                    }
                     if calendar.isDateInToday(day) {
                         RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(estimate == nil ? FoodTheme.ink : Color.white, lineWidth: 2)
+                            .strokeBorder(foreground, style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
+                            .padding(meetsGoal ? 4 : 0)
                     }
                 }
         }
         .buttonStyle(.plain)
         .disabled(estimate == nil)
         .accessibilityLabel(day.formatted(date: .complete, time: .omitted))
-        .accessibilityValue(estimate.map { FastTimeText.duration($0.duration) } ?? "No fast")
+        .accessibilityValue(estimate.map {
+            FastTimeText.duration($0.duration) + (meetsGoal ? ", Goal met" : "")
+        } ?? "No fast")
         .accessibilityHint(estimate == nil ? "" : "Shows meal times")
     }
 }
@@ -368,6 +442,76 @@ enum FastTimeText {
         let minutes = max(0, Int(interval / 60))
         return "\(minutes / 60)h \(minutes % 60)m"
     }
+
+    static func compactDuration(_ interval: TimeInterval) -> String {
+        let minutes = max(0, Int(interval / 60))
+        return minutes % 60 == 0 ? "\(minutes / 60)h" : "\(minutes / 60)h \(minutes % 60)m"
+    }
+}
+
+enum FastingHistory {
+    static let pageSize = 30
+
+    static func nextLimit(current: Int, total: Int) -> Int {
+        min(max(0, total), max(0, current) + pageSize)
+    }
+}
+
+private struct FastHistoryRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let date: String
+    let duration: TimeInterval
+    let detail: String
+    var isSummary = false
+
+    private var durationText: String {
+        FastTimeText.compactDuration(duration)
+    }
+
+    private var compactRow: some View {
+        HStack(spacing: 12) {
+            Text(date).frame(width: 64, alignment: .leading)
+            Text(durationText).frame(width: 76, alignment: .leading)
+            Spacer(minLength: 0)
+            Text(detail)
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(FoodTheme.secondaryText)
+                .fixedSize()
+        }
+    }
+
+    private var expandedRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(date)
+                Spacer()
+                Text(durationText)
+            }
+            Text(detail)
+                .font(.system(.subheadline, design: .monospaced))
+                .foregroundStyle(FoodTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    var body: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                expandedRow
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    compactRow
+                    expandedRow
+                }
+            }
+        }
+        .font(.system(.subheadline, design: .rounded).weight(isSummary ? .bold : .medium))
+        .foregroundStyle(FoodTheme.ink)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
+    }
 }
 
 struct FastSessionsView: View {
@@ -383,21 +527,26 @@ struct FastSessionsView: View {
     @State private var calendar = Calendar.current
     @State private var displayedMonth = Date()
     @State private var selectedEstimate: OvernightFastEstimate?
+    @State private var historyLimit = FastingHistory.pageSize
 
     private var estimates: [OvernightFastEstimate] {
         OvernightFasting.estimates(from: Array(entries), calendar: calendar)
+    }
+
+    private var visibleEstimates: [OvernightFastEstimate] {
+        Array(estimates.prefix(historyLimit))
     }
 
     var body: some View {
         List {
             FastingMonthCalendar(estimates: estimates, calendar: calendar,
                                  displayedMonth: $displayedMonth, selectedEstimate: $selectedEstimate)
-                .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+                .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 12, trailing: 20))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
             if estimates.isEmpty {
                 VStack(spacing: 8) {
-                    Image(systemName: "clock").font(.largeTitle)
+                    Image(systemName: "hourglass").font(.largeTitle)
                     Text("No fasting times yet").font(.headline)
                     Text("Log meals on consecutive days to see your fasting times.").font(.subheadline)
                 }
@@ -405,11 +554,47 @@ struct FastSessionsView: View {
                 .foregroundStyle(FoodTheme.secondaryText)
             }
             Section {
-                ForEach(estimates) { estimate in
-                    OvernightFastCard(estimate: estimate)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+                if let summary = OvernightFasting.summary(of: visibleEstimates) {
+                    FastHistoryRow(date: "Avg", duration: summary.averageDuration,
+                                   detail: "\(summary.count) \(summary.count == 1 ? "fast" : "fasts")", isSummary: true)
+                        .padding(.vertical, 3)
+                        .background(FoodTheme.ink.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(FoodTheme.ink.opacity(0.2), lineWidth: 1)
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityLabel("Average fast, \(FastTimeText.duration(summary.averageDuration)), \(summary.count) fasts")
+                        .accessibilityIdentifier("fasting-history-average")
+                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
+                }
+                ForEach(visibleEstimates) { estimate in
+                    Button { selectedEstimate = estimate } label: {
+                        FastHistoryRow(date: estimate.endDate.formatted(.dateTime.month(.abbreviated).day()),
+                                       duration: estimate.duration,
+                                       detail: "\(estimate.startDate.formatted(date: .omitted, time: .shortened)) → \(estimate.endDate.formatted(date: .omitted, time: .shortened))")
+                    }
+                        .buttonStyle(.plain)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("\(estimate.endDate.formatted(date: .complete, time: .omitted)), \(FastTimeText.duration(estimate.duration)), last meal \(estimate.startDate.formatted(date: .abbreviated, time: .shortened)), first meal \(estimate.endDate.formatted(date: .abbreviated, time: .shortened))")
+                        .accessibilityHint("Shows meal times")
+                        .accessibilityIdentifier("fasting-history-\(estimate.day.timeIntervalSince1970)")
+                        .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                }
+                if historyLimit < estimates.count {
+                    Button("View more") {
+                        historyLimit = FastingHistory.nextLimit(current: historyLimit, total: estimates.count)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .accessibilityHint("Shows up to 30 more fasts")
+                    .accessibilityIdentifier("fasting-history-more")
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
             } footer: {
                 Text("Calculated between meals on consecutive days. Drinks are excluded.")
@@ -438,7 +623,15 @@ struct FastSessionsView: View {
                 }
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(FoodTheme.background)
         .navigationTitle("Fasts")
+        .toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            FoodPageHeader("Fasts", identifier: "fasts-title")
+                .background(FoodTheme.background)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
         }

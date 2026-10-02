@@ -157,6 +157,11 @@ struct PatternsView: View {
         }
         .background(FoodTheme.background)
         .navigationTitle("Patterns")
+        .toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            FoodPageHeader("Patterns", identifier: "patterns-title")
+                .background(FoodTheme.background)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
         }
@@ -187,7 +192,7 @@ struct PatternsView: View {
     private var overnightPatternsCard: some View {
         let estimates = overnightEstimates
         return VStack(alignment: .leading, spacing: 12) {
-            Label("FASTS", systemImage: "moon")
+            Label("FASTS", systemImage: "hourglass")
                 .sectionLabel()
             if let summary = OvernightFasting.summary(of: estimates), let latest = estimates.first {
                 HStack(alignment: .top, spacing: 16) {
@@ -859,6 +864,8 @@ struct FoodLogSettingsView: View {
     @AppStorage("showMealLabels") private var showMealLabels = true
     @AppStorage(BiometricAuthentication.settingKey) private var biometricLockEnabled = false
     @AppStorage(AppRelockDelay.settingKey) private var relockDelaySeconds = 0
+    @AppStorage(FastingGoalPreference.hoursKey) private var fastingGoalHours = FastingGoalPreference.defaultHours
+    @AppStorage(FastingGoalPreference.enabledKey) private var fastingGoalEnabled = true
     @State private var showingShareSheet = false
     @State private var exportURL: URL?
     @State private var showingFileImporter = false
@@ -904,10 +911,20 @@ struct FoodLogSettingsView: View {
                 }
 
                 settingsSection("FASTING") {
-                    NavigationLink {
-                        FastSessionsView()
-                    } label: {
-                        settingsRow(icon: "moon", title: "Fasts", detail: nil)
+                    Toggle("Show goal in calendar", isOn: $fastingGoalEnabled)
+                        .accessibilityIdentifier("fasting-goal-enabled")
+                    if fastingGoalEnabled {
+                        Divider()
+                        Stepper(value: $fastingGoalHours, in: 1...36, step: 0.5) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Fasting goal")
+                                Text(FastTimeText.duration(fastingGoalHours * 3_600))
+                                    .font(.system(.subheadline, design: .rounded))
+                                    .foregroundStyle(FoodTheme.secondaryText)
+                            }
+                        }
+                        .accessibilityIdentifier("fasting-goal-hours")
+                        .accessibilityValue(FastTimeText.duration(fastingGoalHours * 3_600))
                     }
                 }
 
@@ -999,6 +1016,11 @@ struct FoodLogSettingsView: View {
         }
         .background(FoodTheme.background)
         .navigationTitle("Settings")
+        .toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            FoodPageHeader("Settings", identifier: "settings-title")
+                .background(FoodTheme.background)
+        }
         .onAppear {
             biometricAvailability = BiometricAuthentication.availability()
         }
@@ -1197,6 +1219,7 @@ private struct MealDefaultTimesSettingsView: View {
             }
         }
         .navigationTitle("Default meal times")
+        .toolbar(.visible, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
     }
 
