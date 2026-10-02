@@ -1,4 +1,7 @@
-# FoodLog releases
+# Savour releases
+
+Savour was previously named FoodLog. Historical releases below retain their
+original name; see [CHANGELOG.md](CHANGELOG.md) for unreleased changes.
 
 ## FoodLog 0.5.2
 

@@ -53,7 +53,7 @@ enum FoodEntryDraftStoreError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unsupportedVersion: return "This draft was saved by a newer version of FoodLog."
+        case .unsupportedVersion: return "This draft was saved by a newer version of Savour."
         }
     }
 }

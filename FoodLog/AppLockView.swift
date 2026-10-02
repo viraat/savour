@@ -202,7 +202,7 @@ struct AppLockView<Content: View>: View {
                 .foodGlass(cornerRadius: 38)
 
             VStack(spacing: 6) {
-                Text("FoodLog is locked")
+                Text("Savour is locked")
                     .font(.system(.title2, design: .rounded).weight(.bold))
                     .foregroundColor(FoodTheme.ink)
                 Text("Unlock to view your journal.")
@@ -292,7 +292,7 @@ struct AppLockView<Content: View>: View {
         authenticationContext = context
         context.evaluatePolicy(
             .deviceOwnerAuthentication,
-            localizedReason: "Unlock your FoodLog journal"
+            localizedReason: "Unlock your Savour journal"
         ) { success, error in
             DispatchQueue.main.async {
                 guard authenticationContext === context else { return }

@@ -1,11 +1,17 @@
-# FoodLog
+# Savour
 
-FoodLog is a deliberately simple, private food journal for iPhone. It borrows
+Savour (previously FoodLog) is a deliberately simple, private food journal for iPhone. It borrows
 Dime's excellent low-friction interaction model, but records food instead of
 money.
 
 Current repository release: **0.5.2** (build 7). See the
 [changelog](CHANGELOG.md) and [release notes](RELEASE_NOTES.md).
+
+The installed app is named Savour. The Xcode project, target, and scheme remain
+`FoodLog`; the bundle identifier (`com.viraat.foodlog`), Core Data model/store name,
+draft filenames, and saved preferences are unchanged to preserve upgrade and
+data compatibility. Previously exported FoodLog CSV files remain importable;
+new exports are named `Savour.csv` and use the same format.
 
 The app answers four questions:
 
@@ -74,7 +80,7 @@ exports store people as one text field, so names containing commas may be split
 on import. An empty journal exports a valid header-only CSV. CSV files do not
 contain photos.
 
-On iOS 27, FoodLog uses a native `UITabBarController` with a prominent trailing
+On iOS 27, Savour uses a native `UITabBarController` with a prominent trailing
 Add item on the same row as the four navigation tabs. A public selection delegate
 intercepts Add, opens the existing entry sheet, and returns false so the selected
 page never changes. This is intentionally custom action handling for an API
@@ -89,7 +95,7 @@ overrides, shadows, or selection animations. See Apple's
 [prominent tab API](https://developer.apple.com/documentation/uikit/uitabbarcontroller/prominenttabidentifier)
 and [Liquid Glass adoption guidance](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass).
 
-With App lock enabled, FoodLog requests device authentication automatically on
+With App lock enabled, Savour requests device authentication automatically on
 launch and when returning after the relock delay. Cancelled or unsuccessful
 authentication stays on the lock screen until retry; it does not repeatedly
 prompt. Settings → Privacy offers immediate, 1-minute, and 5-minute relocking.
@@ -111,7 +117,7 @@ it does not fill the field. MapKit choices are saved as place name and city, wit
 coordinates stored separately for the eating-place map. Free-text places continue
 to work and previously used places appear as quick fills. Older free-text places
 can be located from Patterns through an explicit MapKit backfill action.
-On upgrade, FoodLog keeps the original place text and any valid saved coordinates.
+On upgrade, Savour keeps the original place text and any valid saved coordinates.
 It leaves unknown city and coordinate fields empty until the user selects a
 MapKit place or explicitly backfills older places from Patterns; it does not
 guess a location from free text. Legacy entries also receive
@@ -119,7 +125,7 @@ stable IDs and structured companion records without changing their original
 people text.
 
 The Contacts button requests access only when you tap it and stays enabled for
-the rest of that entry. It reads formatted names for autocomplete. FoodLog does
+the rest of that entry. It reads formatted names for autocomplete. Savour does
 not read phone numbers or email addresses. Previously selected people appear as
 quick fills. Recurring combinations appear as group suggestions and expand into
 individual people, so each person is counted separately in Patterns.
@@ -144,7 +150,7 @@ Each `FoodEntry` stores:
 
 ## Origin and license
 
-FoodLog is a modified work based on
+Savour is a modified work based on
 [Dime](https://github.com/rafsoh/dimeApp), created by Rafael Soh and Dime's
 contributors. Dime is licensed under GNU GPLv3, so this derivative remains
 GPLv3. See `LICENSE` and `NOTICE`. If you distribute the app, you must comply

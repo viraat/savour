@@ -934,7 +934,7 @@ struct FoodLogSettingsView: View {
                             Text("App lock")
                                 .font(.system(.body, design: .rounded).weight(.medium))
                             Text(biometricAvailability.isAvailable
-                                 ? "Require \(biometricAvailability.name) when opening FoodLog"
+                                 ? "Require \(biometricAvailability.name) when opening Savour"
                                  : "Face ID or Touch ID is unavailable")
                                 .font(.system(.caption, design: .rounded))
                                 .foregroundColor(FoodTheme.ink)
@@ -962,7 +962,7 @@ struct FoodLogSettingsView: View {
                     }
                     .font(.system(.body, design: .rounded).weight(.medium))
 
-                    Text("FoodLog stays hidden in the background. A new launch always requires authentication when app lock is enabled.")
+                    Text("Savour stays hidden in the background. A new launch always requires authentication when app lock is enabled.")
                         .font(.system(.caption, design: .rounded))
                         .foregroundStyle(FoodTheme.ink)
                 }
@@ -995,7 +995,7 @@ struct FoodLogSettingsView: View {
 
                 settingsSection("ABOUT") {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("FoodLog \(appVersion)")
+                        Text("Savour \(appVersion)")
                             .font(.system(.body, design: .rounded).weight(.bold))
                         Text("Adapted from Dime's open-source SwiftUI code and interaction ideas under GPLv3.")
                             .font(.system(.subheadline, design: .rounded))
@@ -1239,7 +1239,7 @@ enum CSVExporter {
         let rows = entries.map(row(for:))
         let csv = FoodLogCSVDocument.encodeExtended(dataRows: rows)
 
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("FoodLog.csv")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Savour.csv")
         do {
             try csv.write(to: url, atomically: true, encoding: .utf8)
             return url

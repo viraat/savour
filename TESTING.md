@@ -1,6 +1,6 @@
-# FoodLog reliability tests
+# Savour reliability tests
 
-FoodLog has two XCTest targets:
+Savour has two XCTest targets (the project and target names remain `FoodLog`):
 
 - `FoodLogTests` checks parsing, meal suggestions, statistics, default times,
   inline food matching and replacement, CSV validation, import round-trips,
@@ -79,7 +79,7 @@ Some system integrations need a real device or direct Simulator interaction:
    requires this device check.
 3. Grant Contacts and confirm matching names and available thumbnails appear;
    revoke access and confirm free-text companions still work.
-4. Grant Location, select a MapKit result, and confirm FoodLog saves only place
+4. Grant Location, select a MapKit result, and confirm Savour saves only place
    name and city. Revoke access and confirm free-text place entry and MapKit text
    search remain available.
 5. Take a photo and choose one from Photos, relaunch, then edit and remove it.
@@ -93,7 +93,7 @@ Some system integrations need a real device or direct Simulator interaction:
 8. Log yesterday's last meal and today's first meal. Check the Fasts tab reports
    the elapsed time without needing Start or End. Add Drink entries before or
    after them and verify the estimate is unchanged. Edit or delete a boundary
-   meal and verify the estimate updates. Change time zone and return to FoodLog
+   meal and verify the estimate updates. Change time zone and return to Savour
    to check grouping follows local calendar days. Previously saved fasting
    records should still be present; missing meal days must not create estimates.
    In Patterns, check average, latest, and range estimates for 7 days, 30 days,

@@ -84,7 +84,7 @@ struct JournalView: View {
             .padding(.bottom, 20)
         }
         .background(FoodTheme.background)
-        .navigationTitle("Food log")
+        .navigationTitle("Savour")
         .toolbar(.hidden, for: .navigationBar)
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
@@ -94,7 +94,7 @@ struct JournalView: View {
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             VStack(spacing: 0) {
-                FoodPageHeader("Food log", identifier: "journal-title") { headerActions }
+                FoodPageHeader("Savour", identifier: "journal-title") { headerActions }
                     .background(FoodTheme.background)
                 if showingSearch { searchBar }
             }
@@ -122,7 +122,7 @@ struct JournalView: View {
             }
             Button("Cancel", role: .cancel) { entryToDelete = nil }
         } message: {
-            Text("This only removes the record from your food log.")
+            Text("This only removes the record from your journal.")
         }
         .alert("Entry could not be deleted", isPresented: Binding(
             get: { fastingMessage != nil }, set: { if !$0 { fastingMessage = nil } }
