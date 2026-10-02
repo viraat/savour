@@ -172,10 +172,9 @@ struct FoodNativeTabNavigation<Page: View>: UIViewControllerRepresentable {
 
     func updateUIViewController(_ controller: UITabBarController, context: Context) {
         context.coordinator.parent = self
-        // Hosting roots must receive the SwiftUI environment across the UIKit
-        // boundary: Core Data, accent, appearance, scene phase, Dynamic Type,
-        // and locale all need to continue updating rather than being captured
-        // only once when a tab is first created.
+        // Update the app-owned environment across the UIKit boundary, while
+        // leaving each hosting controller's rendering/accessibility environment
+        // intact. Copying the entire environment hides hosted content from AX.
         for (tab, host) in context.coordinator.hosts {
             host.rootView = page(for: tab, environment: context.environment)
         }
@@ -190,7 +189,16 @@ struct FoodNativeTabNavigation<Page: View>: UIViewControllerRepresentable {
     }
 
     private func page(for tab: FoodTab, environment: EnvironmentValues) -> AnyView {
-        AnyView(content(tab).environment(\.self, environment))
+        AnyView(content(tab)
+            .environment(\.managedObjectContext, environment.managedObjectContext)
+            .environment(\.foodAccentColor, environment.foodAccentColor)
+            .tint(environment.foodAccentColor)
+            .environment(\.colorScheme, environment.colorScheme)
+            .environment(\.scenePhase, environment.scenePhase)
+            .environment(\.dynamicTypeSize, environment.dynamicTypeSize)
+            .environment(\.locale, environment.locale)
+            .environment(\.calendar, environment.calendar)
+            .environment(\.timeZone, environment.timeZone))
     }
 
     private func applyAppearance(to controller: UITabBarController, environment: EnvironmentValues) {

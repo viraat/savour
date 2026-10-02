@@ -629,7 +629,7 @@ final class FoodLogUITests: XCTestCase {
             app.navigationBars["Accent color"].buttons.firstMatch.tap()
         }
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
-        XCTAssertTrue(accent.label.contains("Blue"))
+        XCTAssertEqual(accent.value as? String, "Blue")
         XCTAssertTrue(app.switches["settings-meal-labels"].exists)
         app.buttons["settings-meal-times"].tap()
         XCTAssertTrue(app.navigationBars["Default meal times"].waitForExistence(timeout: 3))
@@ -647,7 +647,57 @@ final class FoodLogUITests: XCTestCase {
         app.terminate()
         launch(resetStore: false)
         app.tabBars.firstMatch.buttons["Settings"].tap()
-        XCTAssertTrue(accent.label.contains("Blue"))
+        XCTAssertEqual(accent.value as? String, "Blue")
+    }
+
+    func testSettingsGroupedLayoutInLightAndDarkMode() {
+        for appearance in ["1", "2"] {
+            launch(resetStore: true, extraArguments: ["--seed-ui-test-map", "-foodLogAppearance", appearance])
+            app.tabBars.firstMatch.buttons["Settings"].tap()
+            XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+            XCTAssertTrue(app.buttons["settings-appearance"].isHittable)
+            let top = XCTAttachment(screenshot: app.screenshot())
+            top.name = "Settings \(appearance == "1" ? "light" : "dark") upper sections"
+            top.lifetime = .keepAlways
+            add(top)
+            let export = app.buttons["settings-export-csv"]
+            revealAboveNavigation(export)
+            XCTAssertTrue(export.label.contains("1 entry"))
+            revealAboveNavigation(app.descendants(matching: .any)["dime-source-link"])
+            let bottom = XCTAttachment(screenshot: app.screenshot())
+            bottom.name = "Settings \(appearance == "1" ? "light" : "dark") lower sections"
+            bottom.lifetime = .keepAlways
+            add(bottom)
+            app.terminate()
+        }
+    }
+
+    func testAccessibilityAuditOnGroupedSettings() throws {
+        guard #available(iOS 17.0, *) else { return }
+        for appearance in ["1", "2"] {
+            launch(resetStore: true, extraArguments: ["--seed-ui-test-map", "-foodLogAppearance", appearance])
+            app.tabBars.firstMatch.buttons["Settings"].tap()
+            XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+            try auditVisibleUI()
+            revealAboveNavigation(app.descendants(matching: .any)["dime-source-link"])
+            try auditVisibleUI()
+            app.terminate()
+        }
+    }
+
+    func testSettingsAccessibilityHierarchyForDiagnostics() {
+        launch(resetStore: true)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["settings-appearance"].isHittable)
+        let hierarchy = XCTAttachment(string: app.debugDescription)
+        hierarchy.name = "Grouped settings accessibility hierarchy"
+        hierarchy.lifetime = .keepAlways
+        add(hierarchy)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Grouped settings diagnostic screenshot"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
     }
 
     func testNativeNavigationTitlesOnEveryPage() {
@@ -797,6 +847,10 @@ final class FoodLogUITests: XCTestCase {
             auditTypes.insert(.textClipped)
         }
         try app.performAccessibilityAudit(for: auditTypes) { issue in
+            let details = XCTAttachment(string: "\(issue.auditType): \(issue.element?.debugDescription ?? "No identified element")")
+            details.name = "Accessibility finding details"
+            details.lifetime = .keepAlways
+            self.add(details)
             // UIKit renders the searchable placeholder; its clipped/contrast
             // audit findings do not reflect the visible, app-owned content.
             if (issue.element?.elementType == .searchField &&

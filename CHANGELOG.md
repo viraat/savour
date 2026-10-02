@@ -13,7 +13,11 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
   separators, aligned controls, compact appearance/accent selection rows, and
   version/attribution footers. No settings, preference keys, defaults, or actions
   were added or removed. Unsigned device build and test-target compilation passed;
-  settings UI regressions were added but not executed, with no simulator run.
+  one-time requested simulator verification is recorded in `TESTING.md`.
+- Fixed iOS 27 hosted-page accessibility by forwarding app environment values
+  explicitly instead of replacing each hosting controller's entire environment.
+  Native page titles and controls are now exposed to VoiceOver/UI automation;
+  Core Data, accent, appearance, scene phase, locale, and Dynamic Type still update.
 - Renamed the app from FoodLog to Savour on the Home Screen, Journal heading,
   About section, lock screen, authentication prompt, permission descriptions,
   user-facing errors, and new CSV export filenames.
@@ -31,8 +35,9 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
   exception to standard tab-navigation semantics.
 - Added regression coverage for native titles/search, historical count semantics,
   inclusive goal labels, and pagination-independent fasting averages. Unsigned
-  device Release build and Debug app/test-target compilation passed; simulator
-  and UI tests were not executed.
+  device Release build and Debug app/test-target compilation passed. Routine
+  verification was compile-only; explicitly requested simulator checks are
+  recorded in `TESTING.md`.
 
 ## 0.5.2 — 2026-10-02
 

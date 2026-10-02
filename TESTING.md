@@ -36,6 +36,40 @@ Settings-layout coverage retains all existing controls and the five accent
 choices, checks selection persistence, and exercises access to meal defaults,
 fasting goals, privacy, CSV actions, and attribution in the grouped form.
 
+### One-time settings verification — 2026-10-03
+
+At the user's request, targeted tests ran on a fresh **Savour Settings QA**
+iPhone 17 Pro simulator with iOS 27.0 (24A434). Existing simulator stores and
+their unfinished drafts were left untouched. This is not standing authorization
+to run simulator tests during routine work.
+
+- All 55 logic tests passed on the updated implementation, including migration,
+  CSV, drafts, fasting, suggestions, and biometric lifecycle logic.
+- Nine focused UI regressions passed: existing settings/accent persistence,
+  fasting goal controls, relock persistence, map/appearance, native page titles,
+  light/dark layout, tab selection/modal Add, automatic authentication/retry,
+  and concealment of an unfinished draft behind a denied lock.
+- Settings light/dark layout checks passed at normal and the largest
+  accessibility text size. Screenshots of upper/lower sections were inspected;
+  native rows wrap and the final action remains reachable above the tabs.
+- A separate hierarchy regression confirmed that native navigation titles and
+  settings controls are exposed through the UIKit/SwiftUI hosting boundary.
+  Replacing the whole hosting environment had hidden this content from
+  accessibility; explicit app-environment forwarding fixed it. Native pickers
+  expose selected accent through their accessibility **value**, not their label;
+  offscreen Form rows are virtualized, so tests reveal them before inspecting.
+
+**Accessibility audit remains open:** the strict grouped-settings audit reports
+an iOS 27 contrast “nearly passed” finding with no identified element. Its
+attachment and screenshot were inspected, but no specific offending control
+could be established; the check is not exempted or described as passing.
+The primary-screen audit separately reports contrast on the existing editor's
+Cancel control. Functional passes and screenshot review are not a full
+accessibility sign-off. The full UI suite was not run.
+
+Result bundles and light/dark/large-text attachments for this local run are in
+`/private/tmp/savour-settings-sim.2xAMDZ`. Normal text size was restored afterward.
+
 During routine development, prefer a build and targeted logic checks. Run the
 full simulator suite only when explicitly requested; the commands below are
 available for that opt-in verification.
