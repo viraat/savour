@@ -1,11 +1,19 @@
 # Changelog
 
-FoodLog uses pre-1.0 semantic versioning: milestones increment the minor
+Savour uses pre-1.0 semantic versioning: milestones increment the minor
 component (`0.5.0` → `0.6.0`), and smaller features, fixes, and polish increment
 the patch component (`0.5.1` → `0.5.2`). Build numbers increase independently.
 Tags below use the renumbered release history; historical commits and the app
 versions embedded in older builds were not rewritten. The original-to-current
 tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renumbering).
+
+## Unreleased
+
+- Renamed the app from FoodLog to Savour on the Home Screen, Journal heading,
+  About section, lock screen, authentication prompt, permission descriptions,
+  user-facing errors, and new CSV export filenames.
+- Kept the bundle identifier, Core Data models/store, draft storage, preferences,
+  and CSV schema unchanged. The Xcode project and scheme remain `FoodLog`.
 
 ## 0.5.2 — 2026-10-02
 

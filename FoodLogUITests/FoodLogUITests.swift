@@ -161,7 +161,7 @@ final class FoodLogUITests: XCTestCase {
         launch(resetStore: true, extraArguments: [
             "--seed-ui-test-draft", "-foodLogBiometricLockEnabled", "YES", "--simulate-biometric-denied"
         ])
-        XCTAssertTrue(app.staticTexts["FoodLog is locked"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Savour is locked"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["Private unfinished meal"].exists)
         XCTAssertFalse(app.textFields["food-description"].exists)
     }
@@ -226,7 +226,7 @@ final class FoodLogUITests: XCTestCase {
                 "--simulate-biometric-denied"
             ]
         )
-        XCTAssertTrue(app.staticTexts["FoodLog is locked"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Savour is locked"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["journal-title"].exists)
         XCTAssertTrue(app.buttons["Unlock"].waitForExistence(timeout: 3))
     }
@@ -239,7 +239,7 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertFalse(app.buttons["Unlock"].exists)
         XCUIDevice.shared.press(.home)
         app.activate()
-        XCTAssertTrue(app.staticTexts["FoodLog is locked"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Savour is locked"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["journal-title"].exists)
         XCTAssertEqual(app.staticTexts["authentication-message"].value as? String, "2")
         app.buttons["Unlock"].tap()
@@ -276,7 +276,7 @@ final class FoodLogUITests: XCTestCase {
             app.activate()
             XCTAssertTrue(app.navigationBars["New entry"].waitForExistence(timeout: 3))
             XCTAssertEqual(field.value as? String, "Grace period draft")
-            XCTAssertFalse(app.staticTexts["FoodLog is locked"].exists)
+            XCTAssertFalse(app.staticTexts["Savour is locked"].exists)
             app.terminate()
         }
     }
@@ -319,7 +319,7 @@ final class FoodLogUITests: XCTestCase {
         add(capture)
         app.activate()
         XCTAssertEqual(field.value as? String, "Private draft behind lock")
-        XCTAssertFalse(app.staticTexts["FoodLog is locked"].exists)
+        XCTAssertFalse(app.staticTexts["Savour is locked"].exists)
     }
 
     func testNativeTabBarSelectionAndBottomAddAction() {
@@ -504,7 +504,7 @@ final class FoodLogUITests: XCTestCase {
 
             app.buttons["Add entry"].tap()
             XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 3))
-            // Audit FoodLog's editor controls after dismissing the system
+            // Audit Savour's editor controls after dismissing the system
             // keyboard, whose prediction buttons have their own audit issues.
             let dateAndTime = app.buttons["Date and time"]
             dateAndTime.tap()

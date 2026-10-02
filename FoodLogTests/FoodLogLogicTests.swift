@@ -5,6 +5,15 @@ import XCTest
 @testable import FoodLog
 
 final class FoodLogLogicTests: XCTestCase {
+    func testSavourBrandingKeepsExistingAppAndStorageIdentity() {
+        let bundle = Bundle(for: FoodEntry.self)
+        XCTAssertEqual(bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, "Savour")
+        XCTAssertEqual(bundle.object(forInfoDictionaryKey: "CFBundleName") as? String, "Savour")
+        XCTAssertEqual(bundle.bundleIdentifier, "com.viraat.foodlog")
+        XCTAssertNotNil(bundle.url(forResource: "FoodLog", withExtension: "momd"))
+        XCTAssertEqual(FoodEntryDraftStore.defaultURL.lastPathComponent, "FoodLogEntryDrafts.plist")
+    }
+
 #if compiler(>=6.4)
     @MainActor
     func testProminentAddOpensSheetWithoutSelectingItsPlaceholder() throws {

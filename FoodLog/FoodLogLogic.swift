@@ -228,7 +228,7 @@ enum CSVCodecError: Error, Equatable, LocalizedError {
         case .unexpectedQuote: return "A quote appears in an unquoted field."
         case .charactersAfterClosingQuote: return "Unexpected characters follow a closing quote."
         case .missingHeader: return "The CSV header is missing."
-        case .invalidHeader: return "The CSV columns do not match FoodLog."
+        case .invalidHeader: return "The CSV columns do not match Savour."
         case let .wrongColumnCount(row, expected, actual):
             return "Row \(row) has \(actual) columns; \(expected) are required."
         case let .invalidCoordinate(row): return "Row \(row) has invalid coordinates."
