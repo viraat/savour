@@ -68,12 +68,16 @@ exports store people as one text field, so names containing commas may be split
 on import. An empty journal exports a valid header-only CSV. CSV files do not
 contain photos.
 
-On iOS 26, FoodLog uses the system Liquid Glass effects, glass button styles,
-a grouped bottom navigation bar, and a distinct trailing add action. Journal
-content scrolls behind the glass while the final entry can scroll clear of the
-controls. Earlier
-supported iOS versions use native materials and bordered controls through
-availability-gated fallbacks.
+On iOS 26, FoodLog uses a native `TabView` for bottom navigation and a round
+bottom-right Add button with the system `.glass` button style. The action sits
+above the tabs in a `safeAreaBar`, which integrates the system scroll edge effect
+and reserves space so the final entry can scroll clear of the controls. The
+bottom controls have no custom backgrounds or shadows, and tab selection uses
+the system animation. Earlier
+supported iOS versions use `safeAreaInset` and native bordered button styling.
+This follows Apple's [Liquid Glass adoption guidance](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass)
+and keeps actions separate from navigation, as recommended in the
+[tab bar guidelines](https://developer.apple.com/design/human-interface-guidelines/tab-bars).
 
 With App lock enabled, FoodLog requests device authentication automatically on
 launch and when returning after the relock delay. Cancelled or unsuccessful

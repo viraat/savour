@@ -59,12 +59,12 @@ struct FoodLogRootView: View {
             ForEach(FoodTab.allCases, id: \.self) { tab in
                 NavigationStack {
                     content(for: tab)
+                        .modifier(FoodBottomAddAction(action: addEntry))
                 }
                 .tabItem { Label(tab.rawValue, systemImage: tab.icon) }
                 .tag(tab)
             }
         }
-        .environment(\.addFoodEntry, addEntry)
         .sheet(item: $editorPresentation) { presentation in
             FoodEntryEditor(entry: presentation.entry, draftKey: presentation.draftKey)
                 .presentationDragIndicator(.visible)
@@ -110,8 +110,61 @@ struct FoodLogRootView: View {
     }
 }
 
+private struct FoodBottomAddAction: ViewModifier {
+    let action: () -> Void
+
+    // A real TabView owns navigation and its selection animation. Add is an
+    // action, not a fifth (or search-role) tab. safeAreaBar registers the control
+    // with the system scroll edge effect and reserves room for the final row.
+    @ViewBuilder
+    func body(content: Content) -> some View {
+#if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content.safeAreaBar(edge: .bottom, alignment: .trailing, spacing: 0) {
+                control
+            }
+        } else {
+            content.safeAreaInset(edge: .bottom, alignment: .trailing, spacing: 0) {
+                control
+            }
+        }
+#else
+        content.safeAreaInset(edge: .bottom, alignment: .trailing, spacing: 0) {
+            control
+        }
+#endif
+    }
+
+    private var control: some View {
+        roundButton
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+    }
+
+    @ViewBuilder
+    private var roundButton: some View {
+        if #available(iOS 17.0, *) {
+            button.buttonBorderShape(.circle)
+        } else {
+            button.buttonBorderShape(.capsule)
+        }
+    }
+
+    private var button: some View {
+        Button(action: action) {
+            Label("Add entry", systemImage: "plus")
+                .labelStyle(.iconOnly)
+                .font(.title2)
+        }
+        .controlSize(.large)
+        .foodSecondaryActionStyle()
+        .accessibilityLabel("Add entry")
+        .accessibilityHint("Opens the food entry sheet")
+        .accessibilityIdentifier("bottom-add-entry")
+    }
+}
+
 struct FoodPageHeader<Actions: View>: View {
-    @Environment(\.addFoodEntry) private var addEntry
     let title: String
     let identifier: String
     let actions: Actions
@@ -134,15 +187,6 @@ struct FoodPageHeader<Actions: View>: View {
     private var controls: some View {
         HStack(spacing: 10) {
             actions
-            Button(action: addEntry) {
-                Image(systemName: "plus")
-                    .font(.system(size: 20, weight: .medium))
-                    .frame(width: 24, height: 24)
-            }
-            .foodPrimaryActionStyle()
-            .buttonBorderShape(.capsule)
-            .accessibilityLabel("Add entry")
-            .accessibilityHint("Opens the food entry sheet")
         }
         .fixedSize()
     }
@@ -257,16 +301,7 @@ private struct FoodAccentColorKey: EnvironmentKey {
     static let defaultValue = FoodAccentOption.teal.color
 }
 
-private struct FoodAddEntryActionKey: EnvironmentKey {
-    static let defaultValue: () -> Void = {}
-}
-
 extension EnvironmentValues {
-    var addFoodEntry: () -> Void {
-        get { self[FoodAddEntryActionKey.self] }
-        set { self[FoodAddEntryActionKey.self] = newValue }
-    }
-
     var foodAccentColor: Color {
         get { self[FoodAccentColorKey.self] }
         set { self[FoodAccentColorKey.self] = newValue }

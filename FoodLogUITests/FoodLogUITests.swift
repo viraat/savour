@@ -322,7 +322,7 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["FoodLog is locked"].exists)
     }
 
-    func testNativeTabBarSelectionAndHeaderAddAction() {
+    func testNativeTabBarSelectionAndBottomAddAction() {
         launch(resetStore: true)
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 3))
@@ -331,7 +331,13 @@ final class FoodLogUITests: XCTestCase {
             XCTAssertTrue(tab.isHittable)
             tab.tap()
             XCTAssertTrue(tab.isSelected)
-            XCTAssertTrue(app.buttons["Add entry"].isHittable)
+            let addButton = app.buttons["bottom-add-entry"]
+            XCTAssertTrue(addButton.isHittable)
+            XCTAssertGreaterThan(addButton.frame.midY, app.frame.midY)
+            XCTAssertGreaterThan(addButton.frame.midX, app.frame.midX)
+            XCTAssertLessThanOrEqual(addButton.frame.maxY, tabBar.frame.minY)
+            XCTAssertGreaterThanOrEqual(addButton.frame.width, 44)
+            XCTAssertGreaterThanOrEqual(addButton.frame.height, 44)
         }
         app.buttons["Add entry"].tap()
         XCTAssertTrue(app.navigationBars["New entry"].waitForExistence(timeout: 3))
@@ -358,6 +364,7 @@ final class FoodLogUITests: XCTestCase {
             ])
             let last = journalEntry(containing: "Navigation fixture 20")
             let journal = app.buttons["Journal"]
+            let addButton = app.buttons["bottom-add-entry"]
             app.scrollViews.firstMatch.swipeUp()
             XCTAssertGreaterThan(app.scrollViews.firstMatch.frame.maxY, journal.frame.minY)
             let underlap = XCTAttachment(screenshot: app.screenshot())
@@ -365,7 +372,7 @@ final class FoodLogUITests: XCTestCase {
             underlap.lifetime = .keepAlways
             add(underlap)
             for _ in 0..<15 {
-                if last.isHittable && last.frame.maxY < journal.frame.minY - 8 { break }
+                if last.isHittable && last.frame.maxY < addButton.frame.minY - 8 { break }
                 app.scrollViews.firstMatch.swipeUp()
             }
             XCTAssertTrue(last.isHittable)
@@ -373,7 +380,7 @@ final class FoodLogUITests: XCTestCase {
             capture.name = "Glass navigation \(appearance == "1" ? "light" : "dark")"
             capture.lifetime = .keepAlways
             add(capture)
-            XCTAssertLessThan(last.frame.maxY, journal.frame.minY - 8)
+            XCTAssertLessThan(last.frame.maxY, addButton.frame.minY - 8)
             last.tap()
             XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 3))
             XCTAssertEqual(app.textFields["food-description"].value as? String, "Navigation fixture 20")
@@ -712,18 +719,18 @@ final class FoodLogUITests: XCTestCase {
     private func openCSVFixturePreview() {
         let fixture = app.buttons["Preview CSV fixture"]
         for _ in 0..<4 {
-            let barTop = app.buttons["Journal"].frame.minY
+            let barTop = app.buttons["bottom-add-entry"].frame.minY
             if fixture.isHittable && fixture.frame.maxY < barTop - 8 { break }
             app.scrollViews.firstMatch.swipeUp()
         }
         XCTAssertTrue(fixture.isHittable)
-        XCTAssertLessThan(fixture.frame.maxY, app.buttons["Journal"].frame.minY)
+        XCTAssertLessThan(fixture.frame.maxY, app.buttons["bottom-add-entry"].frame.minY)
         fixture.tap()
     }
 
     private func revealAboveNavigation(_ element: XCUIElement) {
         for _ in 0..<12 {
-            if element.isHittable && element.frame.maxY < app.buttons["Journal"].frame.minY - 8 { break }
+            if element.isHittable && element.frame.maxY < app.buttons["bottom-add-entry"].frame.minY - 8 { break }
             app.scrollViews.firstMatch.swipeUp()
         }
         if !element.isHittable {
@@ -737,7 +744,7 @@ final class FoodLogUITests: XCTestCase {
             add(hierarchy)
         }
         XCTAssertTrue(element.isHittable)
-        XCTAssertLessThan(element.frame.maxY, app.buttons["Journal"].frame.minY - 8)
+        XCTAssertLessThan(element.frame.maxY, app.buttons["bottom-add-entry"].frame.minY - 8)
     }
 
     private func waitForEditorDismissal() {
