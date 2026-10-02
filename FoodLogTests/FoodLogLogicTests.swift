@@ -764,6 +764,93 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertEqual(estimates.map(\.duration), [86_400, 86_400])
     }
 
+    func testFastingCalendarUsesLocaleWeekStartAndPadsCompleteWeeks() {
+        var calendar = utcCalendar
+        calendar.firstWeekday = 2
+        let month = FastingCalendarMonth(containing: date(2026, 10, 15), calendar: calendar)
+        XCTAssertEqual(month.start, date(2026, 10, 1))
+        XCTAssertEqual(month.cells.count, 35)
+        XCTAssertTrue(month.cells.prefix(3).allSatisfy { $0 == nil })
+        XCTAssertEqual(month.cells[3], date(2026, 10, 1))
+        XCTAssertEqual(month.cells.compactMap { $0 }.last, date(2026, 10, 31))
+        calendar.firstWeekday = 1
+        let sundayFirst = FastingCalendarMonth(containing: date(2026, 10, 15), calendar: calendar)
+        XCTAssertTrue(sundayFirst.cells.prefix(4).allSatisfy { $0 == nil })
+        XCTAssertEqual(sundayFirst.cells[4], date(2026, 10, 1))
+    }
+
+    func testFastingCalendarHandlesLeapYearsSixWeeksAndMidnightDST() {
+        let leapMonth = FastingCalendarMonth(containing: date(2024, 2, 10), calendar: utcCalendar)
+        XCTAssertEqual(leapMonth.cells.compactMap { $0 }.count, 29)
+        XCTAssertEqual(leapMonth.cells.compactMap { $0 }.last, date(2024, 2, 29))
+        var calendar = utcCalendar
+        calendar.firstWeekday = 1
+        XCTAssertEqual(FastingCalendarMonth(containing: date(2026, 8, 1), calendar: calendar).cells.count, 42)
+        calendar.timeZone = TimeZone(identifier: "America/Santiago")!
+        let september = calendar.date(from: DateComponents(year: 2026, month: 9, day: 15))!
+        let days = FastingCalendarMonth(containing: september, calendar: calendar).cells.compactMap { $0 }
+        XCTAssertEqual(days.count, 30)
+        XCTAssertEqual(days.map { calendar.component(.day, from: $0) }, Array(1...30))
+        XCTAssertTrue(days.allSatisfy { calendar.startOfDay(for: $0) == $0 })
+    }
+
+    func testFastingCalendarShadingIsMonotonicAndBounded() {
+        let durations = [0.0, 4, 8, 12, 16, 24, 36, 48].map { $0 * 3_600 }
+        let shades = durations.map { FastingCalendarMonth.intensity(for: $0) }
+        XCTAssertEqual(shades, shades.sorted())
+        XCTAssertGreaterThan(shades[4], shades[3])
+        XCTAssertEqual(shades.first, 0)
+        XCTAssertEqual(shades.last, 1)
+        XCTAssertEqual(FastingCalendarMonth.intensity(for: -1), 0)
+        XCTAssertEqual(FastingCalendarMonth.intensity(for: .nan), 0)
+        XCTAssertEqual(FastingCalendarMonth.intensity(for: .infinity), 0)
+    }
+
+    func testFastingHistoryAddsThirtyAtATimeWithoutExceedingTotal() {
+        XCTAssertEqual(FastingHistory.pageSize, 30)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 30, total: 76), 60)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 60, total: 76), 76)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 76, total: 76), 76)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 30, total: 15), 15)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 30, total: 0), 0)
+    }
+
+    func testCompactFastDurationOmitsZeroMinutesAndRetainsHalfHours() {
+        XCTAssertEqual(FastTimeText.compactDuration(14 * 3_600), "14h")
+        XCTAssertEqual(FastTimeText.compactDuration(14.5 * 3_600), "14h 30m")
+        XCTAssertEqual(FastTimeText.compactDuration(10 * 3_600 + 5 * 60), "10h 5m")
+    }
+
+    func testFastingCalendarTextContrastFollowsTheFilledCell() {
+        let darkAccent = [0.03, 0.48, 0.36]
+        XCTAssertFalse(FastingCalendarMonth.usesLightText(accent: darkAccent, surface: [1, 1, 1], opacity: 0.08))
+        XCTAssertTrue(FastingCalendarMonth.usesLightText(accent: darkAccent, surface: [1, 1, 1], opacity: 1))
+        let lightAccent = [0.4, 0.87, 0.72]
+        XCTAssertTrue(FastingCalendarMonth.usesLightText(accent: lightAccent, surface: [0.1, 0.1, 0.1], opacity: 0.08))
+        XCTAssertFalse(FastingCalendarMonth.usesLightText(accent: lightAccent, surface: [0.1, 0.1, 0.1], opacity: 1))
+    }
+
+    func testFastingGoalDefaultsToFourteenHoursAndHandlesDisabledOrCustomGoals() {
+        XCTAssertEqual(FastingGoalPreference.defaultHours, 14)
+        XCTAssertFalse(FastingGoalPreference.isMet(by: 14 * 3_600 - 1, hours: 14, enabled: true))
+        XCTAssertTrue(FastingGoalPreference.isMet(by: 14 * 3_600, hours: 14, enabled: true))
+        XCTAssertTrue(FastingGoalPreference.isMet(by: 16 * 3_600, hours: 14, enabled: true))
+        XCTAssertFalse(FastingGoalPreference.isMet(by: 16 * 3_600, hours: 14, enabled: false))
+        XCTAssertTrue(FastingGoalPreference.isMet(by: 14.5 * 3_600, hours: 14.5, enabled: true))
+        XCTAssertFalse(FastingGoalPreference.isMet(by: 14 * 3_600, hours: 14.5, enabled: true))
+        XCTAssertFalse(FastingGoalPreference.isMet(by: .infinity, hours: 14, enabled: true))
+        XCTAssertFalse(FastingGoalPreference.isMet(by: 14 * 3_600, hours: .nan, enabled: true))
+        XCTAssertFalse(FastingGoalPreference.isMet(by: 14 * 3_600, hours: 0, enabled: true))
+    }
+
+    func testFastingOpacityIncreasesFromTransparentToOpaque() {
+        XCTAssertEqual(FastingCalendarMonth.opacity(for: 0), 0.08, accuracy: 0.0001)
+        XCTAssertEqual(FastingCalendarMonth.opacity(for: 36 * 3_600), 1, accuracy: 0.0001)
+        XCTAssertGreaterThan(FastingCalendarMonth.opacity(for: 16 * 3_600),
+                             FastingCalendarMonth.opacity(for: 12 * 3_600))
+        XCTAssertEqual(FastingCalendarMonth.opacity(for: 48 * 3_600), 1, accuracy: 0.0001)
+    }
+
     func testOvernightSummaryCalculatesAverageAndRangeAndHandlesNoEstimates() {
         XCTAssertNil(OvernightFasting.summary(of: []))
         let start = date(2026, 9, 14, 22)
