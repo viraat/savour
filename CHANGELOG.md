@@ -14,7 +14,7 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
   iOS 16). Journal search/filter remain native trailing toolbar controls; no
   separate expanded title band or custom navigation-bar imitation is used.
 - Simplified About to an inline Dime attribution link and a centered bottom
-  footer: “Built with ❤️ by Virat” above the app version and build number.
+  footer: “Built with ❤️ by Viraat” above the app version and build number.
   Removed reminder instruction footers and made the native iOS notification
   settings button available regardless of permission or enabled state.
 - Added opt-in daily local notifications under Settings → Notifications, with

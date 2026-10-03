@@ -1015,7 +1015,7 @@ struct FoodLogSettingsView: View {
                 Text("About").foregroundStyle(FoodTheme.secondaryText)
             } footer: {
                 VStack(spacing: 8) {
-                    Text("Built with ❤️ by Virat")
+                    Text("Built with ❤️ by Viraat")
                         .accessibilityIdentifier("settings-credit")
                     Text("Savour \(appVersion) (Build \(appBuild))")
                         .accessibilityIdentifier("settings-version")

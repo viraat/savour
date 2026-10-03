@@ -733,7 +733,7 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(attribution.exists)
         XCTAssertTrue(attribution.label.contains("Adapted from Dime"))
         XCTAssertFalse(app.buttons["View Dime on GitHub"].exists)
-        XCTAssertEqual(credit.label, "Built with ❤️ by Virat")
+        XCTAssertEqual(credit.label, "Built with ❤️ by Viraat")
         XCTAssertTrue(version.label.hasPrefix("Savour "))
         XCTAssertTrue(version.label.contains("(Build "))
         XCTAssertLessThan(credit.frame.maxY, version.frame.minY)
