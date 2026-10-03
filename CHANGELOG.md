@@ -9,6 +9,10 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- After more than 24 elapsed hours since the latest logged meal, the summary
+  shows “Time since last meal: too long” with a “Log a meal” button opening the
+  existing draft-aware entry sheet. Exactly 24 hours retains the elapsed summary;
+  drinks do not reset it. Added compile-checked boundary and UI regressions.
 - Renamed the current-fast summary to “Time since last logged meal,” including
   VoiceOver wording; its timestamp is labeled “Last meal.” The longer heading
   uses the expanded row layout so it is not constrained to the date column.

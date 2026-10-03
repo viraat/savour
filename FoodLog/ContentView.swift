@@ -97,7 +97,7 @@ struct FoodLogRootView: View {
         case .journal:
             JournalView()
         case .fasts:
-            FastSessionsView()
+            FastSessionsView(onLogMeal: addEntry)
         case .patterns:
             PatternsView()
         case .settings:
