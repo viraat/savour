@@ -14,8 +14,7 @@ final class FoodReminderTests: XCTestCase {
         let center = FakeReminderNotifications()
         let reminder = FoodDailyReminder(preferences: preferences, notifications: center)
         XCTAssertFalse(reminder.isEnabled)
-        XCTAssertEqual(reminder.time, .morning)
-        XCTAssertEqual(reminder.scheduledMinutes, 480)
+        XCTAssertEqual(reminder.times, [480])
         await reminder.refresh()
         XCTAssertEqual(center.authorizationRequests, 0)
         XCTAssertTrue(center.pending.isEmpty)
@@ -46,14 +45,16 @@ final class FoodReminderTests: XCTestCase {
         let center = FakeReminderNotifications()
         center.pending["other-feature"] = UNNotificationRequest(identifier: "other-feature",
             content: UNMutableNotificationContent(), trigger: nil)
-        center.delivered = ["other-feature", FoodReminderSchedule.identifier]
+        center.delivered = Set(["other-feature"] + FoodReminderSchedule.identifiers)
         let reminder = FoodDailyReminder(preferences: preferences, notifications: center)
         await reminder.setEnabled(true)
         XCTAssertTrue(reminder.isEnabled)
         XCTAssertEqual(preferences.object(forKey: FoodReminderSchedule.enabledKey) as? Bool, true)
         await reminder.setEnabled(true)
+        await reminder.addReminder()
+        await reminder.addReminder()
         XCTAssertEqual(center.authorizationRequests, 1)
-        XCTAssertEqual(center.pending.count, 2)
+        XCTAssertEqual(center.pending.count, 4)
         await reminder.setEnabled(false)
         XCTAssertFalse(reminder.isEnabled)
         XCTAssertEqual(Set(center.pending.keys), ["other-feature"])
@@ -73,20 +74,19 @@ final class FoodReminderTests: XCTestCase {
         XCTAssertEqual(center.authorizationRequests, 1)
     }
 
-    func testConfiguringWhileOffDoesNotAskPermissionAndCustomTimeIsRetained() async {
+    func testConfiguringThreeTimesWhileOffDoesNotAskPermissionAndPersists() async {
         let preferences = MemoryReminderPreferences()
         let center = FakeReminderNotifications()
         let reminder = FoodDailyReminder(preferences: preferences, notifications: center)
-        await reminder.setCustomMinutes(777)
-        await reminder.setTime(.evening)
-        XCTAssertEqual(reminder.scheduledMinutes, 1_200)
-        await reminder.setTime(.custom)
-        XCTAssertEqual(reminder.scheduledMinutes, 777)
+        await reminder.setMinutes(777, at: 0)
+        await reminder.addReminder()
+        await reminder.addReminder()
+        await reminder.setMinutes(1_200, at: 2)
+        XCTAssertEqual(reminder.times, [777, 480, 1_200])
         XCTAssertEqual(center.authorizationRequests, 0)
         XCTAssertTrue(center.pending.isEmpty)
         let relaunched = FoodDailyReminder(preferences: preferences, notifications: center)
-        XCTAssertEqual(relaunched.time, .custom)
-        XCTAssertEqual(relaunched.customMinutes, 777)
+        XCTAssertEqual(relaunched.times, [777, 480, 1_200])
         XCTAssertFalse(relaunched.isEnabled)
     }
 
@@ -95,16 +95,15 @@ final class FoodReminderTests: XCTestCase {
         let center = FakeReminderNotifications()
         let reminder = FoodDailyReminder(preferences: preferences, notifications: center)
         await reminder.setEnabled(true)
-        await reminder.setTime(.evening)
-        await reminder.setCustomMinutes(0)
+        await reminder.setMinutes(1_200, at: 0)
+        await reminder.setMinutes(0, at: 0)
         XCTAssertEqual(center.pending.count, 1)
         XCTAssertEqual(center.trigger?.dateComponents.hour, 0)
         XCTAssertEqual(center.trigger?.dateComponents.minute, 0)
         let relaunched = FoodDailyReminder(preferences: preferences, notifications: center)
         await relaunched.refresh()
         XCTAssertTrue(relaunched.isEnabled)
-        XCTAssertEqual(relaunched.time, .custom)
-        XCTAssertEqual(relaunched.customMinutes, 0)
+        XCTAssertEqual(relaunched.times, [0])
         XCTAssertEqual(center.pending.count, 1)
         XCTAssertEqual(center.authorizationRequests, 1)
     }
@@ -115,6 +114,8 @@ final class FoodReminderTests: XCTestCase {
             let center = FakeReminderNotifications()
             let reminder = FoodDailyReminder(preferences: preferences, notifications: center)
             await reminder.setEnabled(true)
+            await reminder.addReminder()
+            await reminder.addReminder()
             center.status = status
             let relaunched = FoodDailyReminder(preferences: preferences, notifications: center)
             await relaunched.refresh()
@@ -154,12 +155,12 @@ final class FoodReminderTests: XCTestCase {
         let reminder = FoodDailyReminder(preferences: preferences, notifications: center)
         await reminder.setEnabled(true)
         center.failScheduling = true
-        await reminder.setTime(.evening)
+        await reminder.setMinutes(1_200, at: 0)
         XCTAssertTrue(reminder.isEnabled)
-        XCTAssertEqual(reminder.time, .morning)
+        XCTAssertEqual(reminder.times, [480])
         XCTAssertEqual(center.trigger?.dateComponents.hour, 8)
         XCTAssertNotNil(reminder.errorMessage)
-        XCTAssertNil(preferences.object(forKey: FoodReminderSchedule.timeKey))
+        XCTAssertEqual(preferences.object(forKey: FoodReminderSchedule.timesKey) as? [Int], [480])
         await reminder.refresh()
         XCTAssertFalse(reminder.isEnabled)
         XCTAssertTrue(center.pending.isEmpty)
@@ -171,8 +172,7 @@ final class FoodReminderTests: XCTestCase {
         for minutes in [-1, 1_440, Int.max] {
             preferences.set(minutes, forKey: FoodReminderSchedule.customMinutesKey)
             let reminder = FoodDailyReminder(preferences: preferences, notifications: FakeReminderNotifications())
-            XCTAssertEqual(reminder.time, .morning)
-            XCTAssertEqual(reminder.customMinutes, 480)
+            XCTAssertEqual(reminder.times, [480])
             XCTAssertEqual(FoodReminderSchedule.request(minutes: minutes).trigger
                 .flatMap { $0 as? UNCalendarNotificationTrigger }?.dateComponents.hour, 8)
         }
@@ -196,6 +196,161 @@ final class FoodReminderTests: XCTestCase {
         XCTAssertFalse(reminder.isUpdating)
         XCTAssertTrue(center.pending.isEmpty)
     }
+
+    func testLegacyUpgradePreservesExactTimeEnabledStateAndOriginalIdentifier() async {
+        for (choice, expected) in [("morning", 480), ("evening", 1_200), ("custom", 777)] {
+            for enabled in [true, false] {
+                let preferences = MemoryReminderPreferences()
+                preferences.set(choice, forKey: FoodReminderSchedule.timeKey)
+                preferences.set(777, forKey: FoodReminderSchedule.customMinutesKey)
+                preferences.set(enabled, forKey: FoodReminderSchedule.enabledKey)
+                let center = FakeReminderNotifications()
+                center.status = .authorized
+                let reminder = FoodDailyReminder(preferences: preferences, notifications: center)
+                XCTAssertEqual(reminder.times, [expected])
+                XCTAssertEqual(reminder.isEnabled, enabled)
+                await reminder.refresh()
+                XCTAssertEqual(Set(center.pending.keys), enabled ? [FoodReminderSchedule.identifier] : [])
+                XCTAssertEqual(center.authorizationRequests, 0)
+                XCTAssertEqual(preferences.object(forKey: FoodReminderSchedule.timesKey) as? [Int], [expected])
+            }
+        }
+    }
+
+    func testThreeIndependentTimesCapAndRelaunchWithoutDuplicates() async {
+        let preferences = MemoryReminderPreferences()
+        let center = FakeReminderNotifications()
+        let reminder = FoodDailyReminder(preferences: preferences, notifications: center)
+        await reminder.setEnabled(true)
+        for _ in 0..<5 { await reminder.addReminder() }
+        XCTAssertEqual(reminder.times, [480, 780, 1_200])
+        await reminder.setMinutes(1_439, at: 2)
+        await reminder.setMinutes(0, at: 1)
+        for (slot, time) in reminder.times.enumerated() {
+            let trigger = center.pending[FoodReminderSchedule.identifiers[slot]]?.trigger as? UNCalendarNotificationTrigger
+            XCTAssertEqual(trigger?.dateComponents.hour, time / 60)
+            XCTAssertEqual(trigger?.dateComponents.minute, time % 60)
+            XCTAssertEqual(trigger?.repeats, true)
+        }
+        let relaunched = FoodDailyReminder(preferences: preferences, notifications: center)
+        await relaunched.refresh()
+        await relaunched.refresh()
+        XCTAssertEqual(relaunched.times, [480, 0, 1_439])
+        XCTAssertEqual(Set(center.pending.keys), Set(FoodReminderSchedule.identifiers))
+        XCTAssertEqual(center.authorizationRequests, 1)
+    }
+
+    func testRemovingMiddleTimeReindexesAndCancelsUnusedSlot() async {
+        let preferences = MemoryReminderPreferences()
+        let center = FakeReminderNotifications()
+        let reminder = FoodDailyReminder(preferences: preferences, notifications: center)
+        await reminder.setEnabled(true)
+        await reminder.addReminder()
+        await reminder.addReminder()
+        center.delivered = Set(FoodReminderSchedule.identifiers)
+        await reminder.removeReminders(at: IndexSet(integer: 1))
+        XCTAssertEqual(reminder.times, [480, 1_200])
+        XCTAssertEqual(center.pending.count, 2)
+        XCTAssertNil(center.pending[FoodReminderSchedule.identifiers[2]])
+        XCTAssertFalse(center.delivered.contains(FoodReminderSchedule.identifiers[2]))
+        let trigger = center.pending[FoodReminderSchedule.identifiers[1]]?.trigger as? UNCalendarNotificationTrigger
+        XCTAssertEqual(trigger?.dateComponents.hour, 20)
+        await reminder.removeReminders(at: IndexSet(integer: 1))
+        await reminder.removeReminders(at: IndexSet(integer: 0))
+        XCTAssertEqual(reminder.times, [480])
+        XCTAssertEqual(center.pending.count, 1)
+        XCTAssertEqual(FoodDailyReminder(preferences: preferences, notifications: center).times, [480])
+    }
+
+    func testDuplicateInvalidAndOutOfBoundsEditsKeepSchedule() async {
+        let center = FakeReminderNotifications()
+        let reminder = FoodDailyReminder(preferences: MemoryReminderPreferences(), notifications: center)
+        await reminder.setEnabled(true)
+        await reminder.addReminder()
+        for value in [480, -1, 1_440, Int.max] {
+            await reminder.setMinutes(value, at: 1)
+            XCTAssertEqual(reminder.times, [480, 780])
+            XCTAssertNotNil(reminder.errorMessage)
+            XCTAssertEqual(center.pending.count, 2)
+        }
+        await reminder.setMinutes(500, at: 9)
+        await reminder.removeReminders(at: IndexSet(integer: 9))
+        XCTAssertEqual(reminder.times, [480, 780])
+    }
+
+    func testStoredTimesAreValidatedDeduplicatedCappedAndTakePrecedenceOverLegacy() {
+        let preferences = MemoryReminderPreferences()
+        preferences.set("evening", forKey: FoodReminderSchedule.timeKey)
+        for (stored, expected) in [([480, 480, -1, 780, 1_200, 1_300], [480, 780, 1_200]),
+                                    ([], [480]), ([1_440, -1], [480]), ([0, 1_439], [0, 1_439])] {
+            preferences.set(stored, forKey: FoodReminderSchedule.timesKey)
+            let reminder = FoodDailyReminder(preferences: preferences, notifications: FakeReminderNotifications())
+            XCTAssertEqual(reminder.times, expected)
+            XCTAssertEqual(preferences.object(forKey: FoodReminderSchedule.timesKey) as? [Int], expected)
+        }
+    }
+
+    func testPartialEnableFailureCancelsAllSlots() async {
+        for failedCall in [2, 3] {
+            let center = FakeReminderNotifications()
+            let reminder = FoodDailyReminder(preferences: MemoryReminderPreferences(), notifications: center)
+            await reminder.addReminder()
+            await reminder.addReminder()
+            center.failedAddCalls = [failedCall]
+            await reminder.setEnabled(true)
+            XCTAssertFalse(reminder.isEnabled)
+            XCTAssertNotNil(reminder.errorMessage)
+            XCTAssertTrue(center.pending.isEmpty)
+        }
+    }
+
+    func testPartialRemovalFailureRestoresOriginalThreeTimes() async {
+        let center = FakeReminderNotifications()
+        let reminder = FoodDailyReminder(preferences: MemoryReminderPreferences(), notifications: center)
+        await reminder.addReminder()
+        await reminder.addReminder()
+        await reminder.setEnabled(true)
+        // Removing the first time replaces slots 0 and 1. Fail the second write.
+        center.failedAddCalls = [center.addCalls + 2]
+        await reminder.removeReminders(at: IndexSet(integer: 0))
+        XCTAssertTrue(reminder.isEnabled)
+        XCTAssertEqual(reminder.times, [480, 780, 1_200])
+        XCTAssertEqual(center.trigger?.dateComponents.hour, 8)
+        XCTAssertEqual(center.pending.count, 3)
+        XCTAssertNotNil(reminder.errorMessage)
+    }
+
+    func testRollbackFailureTurnsNotificationsOffWithoutLosingConfiguredTimes() async {
+        let center = FakeReminderNotifications()
+        let reminder = FoodDailyReminder(preferences: MemoryReminderPreferences(), notifications: center)
+        await reminder.addReminder()
+        await reminder.addReminder()
+        await reminder.setEnabled(true)
+        center.failedAddCalls = [center.addCalls + 2, center.addCalls + 3]
+        await reminder.removeReminders(at: IndexSet(integer: 0))
+        XCTAssertFalse(reminder.isEnabled)
+        XCTAssertEqual(reminder.times, [480, 780, 1_200])
+        XCTAssertTrue(center.pending.isEmpty)
+        XCTAssertNotNil(reminder.errorMessage)
+    }
+
+    func testRefreshCancelsStaleSlotsAndPartialFailureDisablesAll() async {
+        let preferences = MemoryReminderPreferences()
+        let center = FakeReminderNotifications()
+        let reminder = FoodDailyReminder(preferences: preferences, notifications: center)
+        await reminder.setEnabled(true)
+        for slot in [1, 2] {
+            center.pending[FoodReminderSchedule.identifiers[slot]] = FoodReminderSchedule.request(minutes: 600, slot: slot)
+        }
+        await reminder.refresh()
+        XCTAssertEqual(center.pending.count, 1)
+        await reminder.addReminder()
+        await reminder.addReminder()
+        center.failedAddCalls = [center.addCalls + 2]
+        await reminder.refresh()
+        XCTAssertFalse(reminder.isEnabled)
+        XCTAssertTrue(center.pending.isEmpty)
+    }
 }
 
 @MainActor
@@ -212,6 +367,8 @@ private final class FakeReminderNotifications: FoodReminderNotificationCenter {
     var grantPermission = true
     var failPermission = false
     var failScheduling = false
+    var failedAddCalls: Set<Int> = []
+    var addCalls = 0
     var pausePermission = false
     var permissionContinuation: CheckedContinuation<Bool, Error>?
     var authorizationRequests = 0
@@ -231,11 +388,14 @@ private final class FakeReminderNotifications: FoodReminderNotificationCenter {
         return grantPermission
     }
     func add(_ request: UNNotificationRequest) async throws {
-        if failScheduling { throw Failure.simulated }
+        addCalls += 1
+        if failScheduling || failedAddCalls.contains(addCalls) { throw Failure.simulated }
         pending[request.identifier] = request
     }
-    func removeReminder() {
-        pending.removeValue(forKey: FoodReminderSchedule.identifier)
-        delivered.remove(FoodReminderSchedule.identifier)
+    func removeReminders(identifiers: [String]) {
+        for identifier in identifiers {
+            pending.removeValue(forKey: identifier)
+            delivered.remove(identifier)
+        }
     }
 }

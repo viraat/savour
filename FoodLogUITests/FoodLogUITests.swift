@@ -658,23 +658,47 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Notifications"].waitForExistence(timeout: 3))
         let enabled = app.switches["notifications-enabled"]
         XCTAssertEqual(enabled.value as? String, "0")
-        app.buttons["Custom time"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["notifications-custom-time"].waitForExistence(timeout: 3))
-        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Every evening")).firstMatch.tap()
-        XCTAssertFalse(app.descendants(matching: .any)["notifications-custom-time"].exists)
+        let firstTime = app.descendants(matching: .any)["notifications-time-1"].firstMatch
+        XCTAssertTrue(firstTime.waitForExistence(timeout: 3))
+        let initialValue = firstTime.value as? String
+        app.buttons["notifications-add-reminder"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["notifications-time-2"].firstMatch.waitForExistence(timeout: 3))
+        app.buttons["notifications-add-reminder"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["notifications-time-3"].firstMatch.waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["notifications-add-reminder"].exists)
         enabled.tap()
         let on = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1"), object: enabled)
         XCTAssertEqual(XCTWaiter.wait(for: [on], timeout: 3), .completed)
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "One daily reminder at")).firstMatch.exists)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "3 daily reminders.")).firstMatch.exists)
         app.terminate()
         launch(resetStore: false)
         app.tabBars.firstMatch.buttons["Settings"].tap()
         revealAboveNavigation(app.buttons["settings-notifications"])
         app.buttons["settings-notifications"].tap()
         XCTAssertEqual(enabled.value as? String, "1")
+        XCTAssertTrue(app.descendants(matching: .any)["notifications-time-3"].firstMatch.waitForExistence(timeout: 3))
+        XCTAssertEqual(firstTime.value as? String, initialValue)
+        XCTAssertFalse(app.buttons["notifications-add-reminder"].exists)
         enabled.tap()
         let off = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "0"), object: enabled)
         XCTAssertEqual(XCTWaiter.wait(for: [off], timeout: 3), .completed)
+    }
+
+    func testExtraNotificationTimesCanBeRemovedAndAddedAgain() {
+        launch(resetStore: true)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        revealAboveNavigation(app.buttons["settings-notifications"])
+        app.buttons["settings-notifications"].tap()
+        app.buttons["notifications-add-reminder"].tap()
+        let secondTime = app.descendants(matching: .any)["notifications-time-2"].firstMatch
+        XCTAssertTrue(secondTime.waitForExistence(timeout: 3))
+        secondTime.swipeLeft()
+        app.buttons["Delete"].tap()
+        let removed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: secondTime)
+        XCTAssertEqual(XCTWaiter.wait(for: [removed], timeout: 3), .completed)
+        XCTAssertTrue(app.descendants(matching: .any)["notifications-time-1"].firstMatch.exists)
+        app.buttons["notifications-add-reminder"].tap()
+        XCTAssertTrue(secondTime.waitForExistence(timeout: 3))
     }
 
     func testDeniedNotificationPermissionLeavesReminderOffWithSettingsLink() {

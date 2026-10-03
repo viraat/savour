@@ -36,11 +36,14 @@ neither display a real permission prompt nor schedule a real notification.
 swift test --scratch-path /private/tmp/savour-reminder-logic-build
 ```
 
-All 12 tests passed on the Mac on 2026-10-03. They cover default-off behavior,
-permission grant/denial/revocation/provisional status, morning/evening/custom and
-midnight times, persistence across model recreation, invalid preferences,
-one-request replacement, disable/cancel, scheduling and permission failures,
-and Disable queued during a slow permission request. Calendar components omit
+All 21 tests passed on the Mac on 2026-10-03. They cover default-off behavior,
+permission grant/denial/revocation/provisional status, custom and midnight times,
+preserving legacy morning/evening/custom schedules on upgrade, persistence across
+model recreation, invalid preferences, independent replacement, the three-time
+cap, duplicate prevention, removal/reindexing and stale-request cleanup,
+disable/cancel without removing unrelated notifications, partial scheduling
+failures/rollback failures, and Disable queued during a slow permission request.
+Calendar components omit
 fixed dates/time zones and notification content excludes all journal details.
 
 The native iOS Notifications screen and added UI regressions are build-checked,
@@ -174,9 +177,13 @@ Some system integrations need a real device or direct Simulator interaction:
    and All; the prior day's last meal must be included at a range boundary.
 9. In Settings → Notifications, confirm no permission prompt appears until
    Enable notifications is switched on. Test Allow and Don't Allow, then change
-   permission in iOS Settings and return. Verify morning, evening, custom, and
-   midnight times, one reminder after repeated changes/relaunch, and no reminder
-   after disabling. With a near-future custom time, background/force-quit Savour
+   permission in iOS Settings and return. Configure one, two, and three times;
+   check that a fourth cannot be added and duplicate times cannot be set. Verify
+   midnight times, independent time edits, swipe-to-remove, three reminders at
+   most after repeated changes/relaunch, and none after disabling. Saved times
+   should remain when disabled. Upgrade a previous single-reminder configuration
+   (morning, evening, custom; both enabled and disabled) and confirm that only its
+   original time is retained. With near-future times, background/force-quit Savour
    and check delivery. Change time zone and check it follows local clock time.
    With App Lock enabled, notification content must contain no journal/draft
    data, and tapping it must require normal authentication.

@@ -50,7 +50,7 @@ the core experience is a neutral record.
 - CSV export and import with a preview of entries, duplicate detection, and row errors
 - Light, dark, and system appearance with five saved accent colors
 - Native grouped Settings sections with compact selection rows and standard toggles
-- Optional daily meal-logging reminder: 8 AM, 8 PM, or a custom local time
+- Optional meal-logging reminders: up to three custom local times each day
 - Native navigation, sheets, bottom toolbars, and iOS 26 Liquid Glass styling
 - Optional automatic biometric app lock, immediate/1-minute/5-minute relocking, and background privacy shielding
 - Fully local Core Data storage with no account required
@@ -76,13 +76,20 @@ Dime's iCloud container, widgets, budgets, or intent extensions. This lightweigh
 port does not include Dime's original source; attribution and licensing details
 are retained in `NOTICE` and `LICENSE`.
 
-## Daily reminder
+## Daily reminders
 
-Open **Settings → Notifications**. Choose morning (8 AM), evening (8 PM), or
-Custom time, then enable notifications. Reminders are off by default; permission
-is requested only when enabling them. There is one repeating local notification,
-not separate morning and evening reminders. Changing the time replaces it;
-turning the switch off removes it. Denied permission shows a link to iOS Settings.
+Open **Settings → Notifications**. Set a time, then use **Add reminder** for up to
+three independent daily reminders—for example, breakfast, lunch, and dinner.
+Each row uses the native time picker. Swipe left to remove extra times. The
+initial time is 8 AM; additional times initially use 1 PM and 8 PM when available,
+and all can be changed. Existing single-reminder choices migrate unchanged,
+without adding any extra reminders. Duplicate times are not permitted.
+
+Reminders are off by default; permission is requested only when enabling them.
+Each time has a stable repeating local notification. Changing a time replaces
+its request, removing a time cancels it, and turning the enable switch off removes
+all three reminder requests without changing your saved times. Denied permission
+shows a link to iOS Settings.
 
 The notification says “A moment to note your meals.” and never includes food,
 notes, people, or draft details. Opening it still respects App Lock. iOS handles

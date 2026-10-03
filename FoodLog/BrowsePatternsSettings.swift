@@ -1162,35 +1162,29 @@ struct FoodReminderSettingsView: View {
                 .accessibilityIdentifier("notifications-enabled")
             }
             Section {
-                Picker("Reminder time", selection: Binding(
-                    get: { reminder.time },
-                    set: { time in Task { await reminder.setTime(time) } }
-                )) {
-                    Text("Every morning (\(clockTime(minutes: 8 * 60)))").tag(FoodReminderTime.morning)
-                    Text("Every evening (\(clockTime(minutes: 20 * 60)))").tag(FoodReminderTime.evening)
-                    Text("Custom time").tag(FoodReminderTime.custom)
-                }
-                .pickerStyle(.inline)
-                .labelsHidden()
-                .disabled(reminder.isUpdating)
-                .accessibilityIdentifier("notifications-schedule")
-
-                if reminder.time == .custom {
-                    DatePicker("Time", selection: Binding(
-                        get: { date(minutes: reminder.customMinutes) },
+                ForEach(reminder.times.indices, id: \.self) { index in
+                    DatePicker("Reminder \(index + 1)", selection: Binding(
+                        get: { date(minutes: reminder.times.indices.contains(index) ? reminder.times[index] : 480) },
                         set: { date in
                             let components = Calendar.current.dateComponents([.hour, .minute], from: date)
-                            Task { await reminder.setCustomMinutes((components.hour ?? 8) * 60 + (components.minute ?? 0)) }
+                            Task { await reminder.setMinutes((components.hour ?? 8) * 60 + (components.minute ?? 0), at: index) }
                         }
                     ), displayedComponents: .hourAndMinute)
                     .datePickerStyle(.compact)
                     .disabled(reminder.isUpdating)
-                    .accessibilityIdentifier("notifications-custom-time")
+                    .deleteDisabled(reminder.times.count == 1 || reminder.isUpdating)
+                    .accessibilityIdentifier("notifications-time-\(index + 1)")
+                }
+                .onDelete { offsets in Task { await reminder.removeReminders(at: offsets) } }
+                if reminder.times.count < FoodReminderSchedule.maximumCount {
+                    Button {
+                        Task { await reminder.addReminder() }
+                    } label: { Label("Add reminder", systemImage: "plus") }
+                    .disabled(reminder.isUpdating)
+                    .accessibilityIdentifier("notifications-add-reminder")
                 }
             } footer: {
-                Text(reminder.isEnabled
-                     ? "One daily reminder at \(clockTime(minutes: reminder.scheduledMinutes))."
-                     : "Choose a time, then enable notifications.")
+                Text(scheduleDescription)
                     .foregroundStyle(FoodTheme.secondaryText)
             }
 
@@ -1225,8 +1219,11 @@ struct FoodReminderSettingsView: View {
         Calendar.current.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: Date()) ?? Date()
     }
 
-    private func clockTime(minutes: Int) -> String {
-        date(minutes: minutes).formatted(date: .omitted, time: .shortened)
+    private var scheduleDescription: String {
+        let description = reminder.isEnabled
+            ? (reminder.times.count == 1 ? "1 daily reminder." : "\(reminder.times.count) daily reminders.")
+            : "Choose up to three daily times, then enable notifications."
+        return description + (reminder.times.count > 1 ? " Swipe left to remove a time." : "")
     }
 }
 
