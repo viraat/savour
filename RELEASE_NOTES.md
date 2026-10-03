@@ -1,7 +1,41 @@
 # Savour releases
 
 Savour was previously named FoodLog. Historical releases below retain their
-original name; see [CHANGELOG.md](CHANGELOG.md) for unreleased changes.
+original name; see [CHANGELOG.md](CHANGELOG.md) for the cumulative release history.
+
+## Savour 0.5.3
+
+Repository release · 3 October 2026 · app version 0.5.3, build 8
+
+Includes the stacked `codex/native-navigation-refinements`,
+`codex/grouped-settings`, and `codex/daily-notifications` branches, plus the
+previously merged Savour rename.
+
+- Cleaner native grouped Settings, inline Dime attribution, and a centered
+  bottom footer: “Built with ❤️ by Viraat” above the app version and build.
+- Up to three optional daily meal reminders with independent native time
+  pickers, add/remove actions, duplicate prevention, and safe single-reminder
+  migration. Notifications stay off until enabled; permission is requested in
+  context. The iOS notification-settings button is always available.
+- Stable local notification identifiers, serialized scheduling, cancellation,
+  and rollback or safe disable on partial scheduling failures. Notification
+  content contains no journal or draft details.
+- Space-saving native same-row root titles, native Journal search/filter,
+  clearer fasting averages/goal semantics, and native statistical count charts.
+- Hosted-page accessibility fixes and stronger Settings/Cancel contrast.
+- Existing entries, Core Data models, drafts, saved fasting records, bundle
+  identifier, and food-entry CSV formats are preserved.
+
+### Verification
+
+All 21 reminder logic tests passed on the Mac. The final unsigned iPhone Release
+build and Debug test-target compilation passed. The earlier explicitly requested
+one-time Settings simulator checks are documented in [TESTING.md](TESTING.md).
+No additional simulator run was performed for this release. Latest title/footer
+layout, contrast re-audit, and actual notification permission/delivery behavior
+remain device/simulator checks; compiled UI regressions were not executed.
+
+This is a tagged repository release, not a TestFlight build or App Store submission.
 
 ## FoodLog 0.5.2
 

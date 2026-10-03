@@ -9,6 +9,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes.
+
+## 0.5.3 — 2026-10-03
+
+App version 0.5.3 · build 8 · repository tag `v0.5.3`
+
 - Restored space-saving, same-row page headings across Journal, Fasts, Patterns,
   and Settings using native inline-large toolbar titles (compact inline on
   iOS 16). Journal search/filter remain native trailing toolbar controls; no
@@ -36,8 +42,8 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
   simulator audit findings still require an explicitly requested re-audit.
 - Reorganized existing settings into native grouped form sections with standard
   separators, aligned controls, compact appearance/accent selection rows, and
-  version/attribution footers. No settings, preference keys, defaults, or actions
-  were added or removed. Unsigned device build and test-target compilation passed;
+  version/attribution footers. The initial regrouping did not add or remove
+  settings, preference keys, defaults, or actions. Unsigned device build and test-target compilation passed;
   one-time requested simulator verification is recorded in `TESTING.md`.
 - Fixed iOS 27 hosted-page accessibility by forwarding app environment values
   explicitly instead of replacing each hosting controller's entire environment.

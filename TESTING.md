@@ -25,6 +25,15 @@ the UI suite does not depend on a simulator's permission history.
 
 ## Run the automated suite
 
+### Release 0.5.3 — 2026-10-03
+
+Final app metadata is version `0.5.3`, build `8`. All 21 Mac reminder tests,
+the unsigned iPhone Release build, and Debug test-target compilation passed.
+No new simulator run was performed for this release. The latest same-row titles,
+About footer and notification-settings-link UI regressions are compile-checked,
+not executed. Real notification delivery and the Settings contrast re-audit
+remain pending opt-in simulator/device verification.
+
 ### Reminder logic without a simulator
 
 The root Swift package builds only `FoodReminder.swift` and its tests. It has no
