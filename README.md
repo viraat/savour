@@ -149,8 +149,10 @@ or history pagination. History initially shows 30 rows; View more adds up to 30
 without changing the average. Calendar goal borders include the exact target
 duration (`14h+ goal` by default). This explanation appears once, not on every row.
 
-Journal, Fasts, Patterns, and Settings use native large navigation titles and
-system scrolling transitions. Journal uses SwiftUI `searchable`; on iOS 17 and
+Journal, Fasts, Patterns, and Settings use native same-row navigation titles:
+`toolbarTitleDisplayMode(.inlineLarge)` on iOS 17 and later, and compact inline
+titles on iOS 16. Titles no longer occupy a separate expanded band below the
+toolbar controls. Journal uses SwiftUI `searchable`; on iOS 17 and
 later its toolbar search button activates the native field, while iOS 16 shows
 the standard search drawer. Statistical count bars use Swift Charts `BarMark`,
 not task-progress indicators, with visible counts and accessible row descriptions.

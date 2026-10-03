@@ -53,6 +53,7 @@ Lock, and delivery after time-zone/DST changes still need an opt-in simulator or
 device check. No extra simulator run was performed for this feature.
 
 Native navigation/search/statistics regressions cover system page titles,
+same-row inline-large root headings aligned with Journal search/filter controls,
 Clear versus Cancel, retaining Journal queries across the Add sheet, accessible
 count bars without task-progress semantics, inclusive goal labels, and an
 all-completed-fasts average unaffected by View more or calendar navigation.

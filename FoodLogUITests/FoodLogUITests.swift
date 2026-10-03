@@ -800,6 +800,30 @@ final class FoodLogUITests: XCTestCase {
         }
     }
 
+    func testCompactNativeTitlesShareTheJournalControlsRow() {
+        guard #available(iOS 17.0, *) else { return }
+        launch(resetStore: true)
+        let journalBar = app.navigationBars["Savour"]
+        XCTAssertTrue(journalBar.waitForExistence(timeout: 3))
+        let title = journalBar.staticTexts["Savour"].firstMatch
+        let search = app.buttons["journal-search-button"]
+        let filter = app.buttons["Filter by meal type"]
+        XCTAssertTrue(title.exists)
+        XCTAssertTrue(search.isHittable)
+        XCTAssertTrue(filter.isHittable)
+        XCTAssertEqual(title.frame.midY, search.frame.midY, accuracy: 12)
+        XCTAssertEqual(title.frame.midY, filter.frame.midY, accuracy: 12)
+        let titleMidY = title.frame.midY
+        for (tab, page) in [("Fasts", "Fasts"), ("Patterns", "Patterns"), ("Settings", "Settings")] {
+            app.tabBars.firstMatch.buttons[tab].tap()
+            let bar = app.navigationBars[page]
+            XCTAssertTrue(bar.waitForExistence(timeout: 3))
+            let pageTitle = bar.staticTexts[page].firstMatch
+            XCTAssertTrue(pageTitle.exists)
+            XCTAssertEqual(pageTitle.frame.midY, titleMidY, accuracy: 12)
+        }
+    }
+
     func testFastingAverageDoesNotChangeWhenHistoryExpandsOrCalendarMonthChanges() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-fasting-history"])
         app.tabBars.firstMatch.buttons["Fasts"].tap()

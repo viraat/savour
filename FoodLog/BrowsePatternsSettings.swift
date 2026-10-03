@@ -158,7 +158,7 @@ struct PatternsView: View {
         }
         .background(FoodTheme.background)
         .navigationTitle("Patterns")
-        .navigationBarTitleDisplayMode(.large)
+        .foodCompactPageTitle()
         .toolbar(.visible, for: .navigationBar)
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
@@ -1031,7 +1031,7 @@ struct FoodLogSettingsView: View {
         .scrollContentBackground(.hidden)
         .background(FoodTheme.background)
         .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.large)
+        .foodCompactPageTitle()
         .toolbar(.visible, for: .navigationBar)
         .onAppear {
             biometricAvailability = BiometricAuthentication.availability()

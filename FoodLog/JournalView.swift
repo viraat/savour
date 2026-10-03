@@ -104,7 +104,7 @@ struct JournalView: View {
         }
         .background(FoodTheme.background)
         .navigationTitle("Savour")
-        .navigationBarTitleDisplayMode(.large)
+        .foodCompactPageTitle()
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {

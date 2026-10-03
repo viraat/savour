@@ -9,6 +9,10 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Restored space-saving, same-row page headings across Journal, Fasts, Patterns,
+  and Settings using native inline-large toolbar titles (compact inline on
+  iOS 16). Journal search/filter remain native trailing toolbar controls; no
+  separate expanded title band or custom navigation-bar imitation is used.
 - Simplified About to an inline Dime attribution link and a centered bottom
   footer: “Built with ❤️ by Virat” above the app version and build number.
   Removed reminder instruction footers and made the native iOS notification
@@ -44,7 +48,7 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
   user-facing errors, and new CSV export filenames.
 - Kept the bundle identifier, Core Data models/store, draft storage, preferences,
   and CSV schema unchanged. The Xcode project and scheme remain `FoodLog`.
-- Replaced custom page headings with native large navigation titles and moved
+- Replaced custom page headings with native navigation titles and moved
   Journal search/filter actions into the system toolbar. Journal now uses native
   search with separate Clear and Cancel actions and an iOS 16 search-drawer fallback.
 - Made the fasting average cover all completed estimates independently of the

@@ -451,6 +451,17 @@ private struct FoodPanelModifier: ViewModifier {
 }
 
 extension View {
+    /// Keep root-page titles on the controls' row, without an expanded title band.
+    /// Native inline-large titles retain their leading alignment and prominence.
+    @ViewBuilder
+    func foodCompactPageTitle() -> some View {
+        if #available(iOS 17.0, *) {
+            self.toolbarTitleDisplayMode(.inlineLarge)
+        } else {
+            self.navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
     func foodSecondaryActionStyle() -> some View {
         modifier(FoodSecondaryActionModifier())
     }

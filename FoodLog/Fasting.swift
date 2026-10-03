@@ -691,7 +691,7 @@ struct FastSessionsView: View {
         .scrollContentBackground(.hidden)
         .background(FoodTheme.background)
         .navigationTitle("Fasts")
-        .navigationBarTitleDisplayMode(.large)
+        .foodCompactPageTitle()
         .toolbar(.visible, for: .navigationBar)
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
