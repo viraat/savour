@@ -9,12 +9,16 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Simplified About to an inline Dime attribution link and a centered bottom
+  footer: “Built with ❤️ by Virat” above the app version and build number.
+  Removed reminder instruction footers and made the native iOS notification
+  settings button available regardless of permission or enabled state.
 - Added opt-in daily local notifications under Settings → Notifications, with
   up to three independently adjustable times using native time pickers, an Add
   reminder action, and swipe-to-remove extra times. Existing single reminders
   migrate unchanged without adding extra notifications. Off by default; permission
   is requested only when enabling. Stable repeating notifications are replaced
-  on time edits and cancelled on removal/disable. Denied permission links to iOS
+  on time edits and cancelled on removal/disable. A button links to iOS
   Settings; reminder text never includes journal or draft content.
 - Preserved reminder choices across launches, reconciled permission/time changes,
   and serialized scheduling operations. Duplicate times are prevented; partial

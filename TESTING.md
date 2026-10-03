@@ -62,6 +62,9 @@ simulator testing is explicitly requested.
 Settings-layout coverage retains all existing controls and the five accent
 choices, checks selection persistence, and exercises access to meal defaults,
 fasting goals, privacy, CSV actions, and attribution in the grouped form.
+The About inline attribution, centered credit/version/build footer, and access
+to iOS notification settings before enabling are also covered by compile-checked
+UI regressions. These latest layout changes have not been simulator-tested.
 
 ### One-time settings verification — 2026-10-03
 

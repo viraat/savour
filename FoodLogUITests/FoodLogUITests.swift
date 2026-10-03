@@ -669,7 +669,7 @@ final class FoodLogUITests: XCTestCase {
         enabled.tap()
         let on = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1"), object: enabled)
         XCTAssertEqual(XCTWaiter.wait(for: [on], timeout: 3), .completed)
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "3 daily reminders.")).firstMatch.exists)
+        XCTAssertTrue(app.buttons["notifications-open-settings"].exists)
         app.terminate()
         launch(resetStore: false)
         app.tabBars.firstMatch.buttons["Settings"].tap()
@@ -711,6 +711,34 @@ final class FoodLogUITests: XCTestCase {
         enabled.tap()
         XCTAssertTrue(app.buttons["notifications-open-settings"].waitForExistence(timeout: 3))
         XCTAssertEqual(enabled.value as? String, "0")
+    }
+
+    func testNotificationSettingsLinkIsAvailableBeforeEnabling() {
+        launch(resetStore: true)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        revealAboveNavigation(app.buttons["settings-notifications"])
+        app.buttons["settings-notifications"].tap()
+        XCTAssertEqual(app.switches["notifications-enabled"].value as? String, "0")
+        XCTAssertTrue(app.buttons["notifications-open-settings"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "then enable notifications")).firstMatch.exists)
+    }
+
+    func testSettingsAboutHasInlineAttributionAndCenteredVersionBuildFooter() {
+        launch(resetStore: true)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        let version = app.staticTexts["settings-version"]
+        revealAboveNavigation(version)
+        let credit = app.staticTexts["settings-credit"]
+        let attribution = app.descendants(matching: .any)["dime-source-link"].firstMatch
+        XCTAssertTrue(attribution.exists)
+        XCTAssertTrue(attribution.label.contains("Adapted from Dime"))
+        XCTAssertFalse(app.buttons["View Dime on GitHub"].exists)
+        XCTAssertEqual(credit.label, "Built with ❤️ by Virat")
+        XCTAssertTrue(version.label.hasPrefix("Savour "))
+        XCTAssertTrue(version.label.contains("(Build "))
+        XCTAssertLessThan(credit.frame.maxY, version.frame.minY)
+        XCTAssertEqual(credit.frame.midX, version.frame.midX, accuracy: 2)
+        XCTAssertEqual(version.frame.midX, app.frame.midX, accuracy: 4)
     }
 
     func testSettingsGroupedLayoutInLightAndDarkMode() {

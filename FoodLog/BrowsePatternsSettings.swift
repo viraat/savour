@@ -1008,17 +1008,22 @@ struct FoodLogSettingsView: View {
             }
 
             Section {
-                Link("View Dime on GitHub", destination: URL(string: "https://github.com/rafsoh/dimeApp")!)
-                    .foregroundStyle(.primary)
+                Text("Adapted from [Dime](https://github.com/rafsoh/dimeApp)'s open-source SwiftUI code and interaction ideas under GPLv3.")
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("dime-source-link")
             } header: {
                 Text("About").foregroundStyle(FoodTheme.secondaryText)
             } footer: {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Savour \(appVersion)")
-                    Text("Adapted from Dime's open-source SwiftUI code and interaction ideas under GPLv3.")
+                VStack(spacing: 8) {
+                    Text("Built with ❤️ by Virat")
+                        .accessibilityIdentifier("settings-credit")
+                    Text("Savour \(appVersion) (Build \(appBuild))")
+                        .accessibilityIdentifier("settings-version")
                 }
                 .foregroundStyle(FoodTheme.secondaryText)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 16)
             }
         }
         .formStyle(.grouped)
@@ -1082,7 +1087,11 @@ struct FoodLogSettingsView: View {
     }
 
     private var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.0"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+    }
+
+    private var appBuild: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
     }
 
     private var appearancePicker: some View {
@@ -1183,18 +1192,15 @@ struct FoodReminderSettingsView: View {
                     .disabled(reminder.isUpdating)
                     .accessibilityIdentifier("notifications-add-reminder")
                 }
-            } footer: {
-                Text(scheduleDescription)
-                    .foregroundStyle(FoodTheme.secondaryText)
             }
 
-            if reminder.permission == .denied {
-                Section {
-                    Button("Open Settings") {
-                        if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
-                    }
-                    .accessibilityIdentifier("notifications-open-settings")
-                } footer: {
+            Section {
+                Button("Open notification settings") {
+                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                }
+                .accessibilityIdentifier("notifications-open-settings")
+            } footer: {
+                if reminder.permission == .denied {
                     Text("Notifications are disabled for Savour in iOS Settings.")
                         .foregroundStyle(FoodTheme.secondaryText)
                 }
@@ -1217,13 +1223,6 @@ struct FoodReminderSettingsView: View {
 
     private func date(minutes: Int) -> Date {
         Calendar.current.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: Date()) ?? Date()
-    }
-
-    private var scheduleDescription: String {
-        let description = reminder.isEnabled
-            ? (reminder.times.count == 1 ? "1 daily reminder." : "\(reminder.times.count) daily reminders.")
-            : "Choose up to three daily times, then enable notifications."
-        return description + (reminder.times.count > 1 ? " Swipe left to remove a time." : "")
     }
 }
 

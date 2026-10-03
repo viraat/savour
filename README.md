@@ -88,8 +88,9 @@ without adding any extra reminders. Duplicate times are not permitted.
 Reminders are off by default; permission is requested only when enabling them.
 Each time has a stable repeating local notification. Changing a time replaces
 its request, removing a time cancels it, and turning the enable switch off removes
-all three reminder requests without changing your saved times. Denied permission
-shows a link to iOS Settings.
+all three reminder requests without changing your saved times. **Open notification
+settings** is always available and opens Savour's notification controls in iOS
+Settings, including when notifications are disabled.
 
 The notification says “A moment to note your meals.” and never includes food,
 notes, people, or draft details. Opening it still respects App Lock. iOS handles
