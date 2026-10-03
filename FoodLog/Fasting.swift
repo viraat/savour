@@ -13,6 +13,10 @@ struct CurrentFastEstimate: Equatable {
     func elapsed(at date: Date) -> TimeInterval {
         max(0, date.timeIntervalSince(startDate))
     }
+
+    func needsMealLoggingPrompt(at date: Date) -> Bool {
+        elapsed(at: date) > 24 * 3_600
+    }
 }
 
 enum CurrentFasting {
@@ -494,6 +498,7 @@ private struct FastHistoryRow: View {
     let duration: TimeInterval
     let detail: String
     var isSummary = false
+    var useExpandedLayout = false
 
     private var durationText: String {
         FastTimeText.compactDuration(duration)
@@ -527,7 +532,7 @@ private struct FastHistoryRow: View {
 
     var body: some View {
         Group {
-            if dynamicTypeSize.isAccessibilitySize {
+            if useExpandedLayout || dynamicTypeSize.isAccessibilitySize {
                 expandedRow
             } else {
                 ViewThatFits(in: .horizontal) {
@@ -547,21 +552,44 @@ private struct FastHistoryRow: View {
 
 private struct CurrentFastSummaryRow: View {
     let entries: [FoodEntry]
+    let onLogMeal: () -> Void
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
             if let current = CurrentFasting.estimate(from: entries, at: timeline.date) {
-                FastHistoryRow(date: "Current", duration: current.elapsed(at: timeline.date),
-                               detail: "Started \(current.startDate.formatted(.dateTime.month(.abbreviated).day().hour().minute()))",
-                               isSummary: true)
+                Group {
+                    if current.needsMealLoggingPrompt(at: timeline.date) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Time since last meal: too long")
+                                .font(.system(.subheadline, design: .rounded).bold())
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text("Last meal \(current.startDate.formatted(.dateTime.month(.abbreviated).day().hour().minute()))")
+                                .font(.caption)
+                                .foregroundStyle(FoodTheme.secondaryText)
+                            Button("Log a meal", action: onLogMeal)
+                                .buttonStyle(.bordered)
+                                .frame(minHeight: 44)
+                                .accessibilityIdentifier("fasting-log-meal")
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .accessibilityElement(children: .contain)
+                        .accessibilityLabel("Time since last meal: too long")
+                    } else {
+                        FastHistoryRow(date: "Time since last logged meal", duration: current.elapsed(at: timeline.date),
+                                       detail: "Last meal \(current.startDate.formatted(.dateTime.month(.abbreviated).day().hour().minute()))",
+                                       isSummary: true, useExpandedLayout: true)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("Time since last logged meal, last meal \(current.startDate.formatted(date: .abbreviated, time: .shortened)), elapsed \(FastTimeText.duration(current.elapsed(at: timeline.date)))")
+                    }
+                }
                     .padding(.vertical, 3)
                     .background(FoodTheme.ink.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12)
                             .strokeBorder(FoodTheme.ink.opacity(0.2), lineWidth: 1)
                     }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Current fast estimate, last logged meal \(current.startDate.formatted(date: .abbreviated, time: .shortened)), elapsed \(FastTimeText.duration(current.elapsed(at: timeline.date)))")
                     .accessibilityIdentifier("fasting-current")
             }
         }
@@ -569,6 +597,7 @@ private struct CurrentFastSummaryRow: View {
 }
 
 struct FastSessionsView: View {
+    let onLogMeal: () -> Void
     @Environment(\.managedObjectContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "startDate", ascending: false)])
@@ -603,7 +632,7 @@ struct FastSessionsView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
             if hasCurrentFast {
-                CurrentFastSummaryRow(entries: Array(entries))
+                CurrentFastSummaryRow(entries: Array(entries), onLogMeal: onLogMeal)
                     .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -661,7 +690,7 @@ struct FastSessionsView: View {
                     .listRowSeparator(.hidden)
                 }
             } footer: {
-                Text("Estimates use logged meals and exclude drinks. Current measures time since the last logged meal, not confirmed fasting. Completed fasts span consecutive days; the average includes all completed fasts, not just the selected month.")
+                Text("Estimates use logged meals and exclude drinks. Completed fasts span consecutive days; the average includes all completed fasts, not just the selected month.")
             }
             if !sessions.isEmpty {
                 Section("Previously saved fasting records") {

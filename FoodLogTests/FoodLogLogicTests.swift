@@ -822,6 +822,26 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertNil(CurrentFasting.estimate(from: [OvernightMeal(date: now, mealType: "Drink")], at: now))
     }
 
+    func testMealLoggingPromptOnlyAppearsAfterTwentyFourElapsedHoursAndResetsAfterMeal() {
+        let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let current = CurrentFastEstimate(startDate: start)
+        XCTAssertFalse(current.needsMealLoggingPrompt(at: start.addingTimeInterval(-1)))
+        XCTAssertFalse(current.needsMealLoggingPrompt(at: start.addingTimeInterval(24 * 3_600 - 1)))
+        XCTAssertFalse(current.needsMealLoggingPrompt(at: start.addingTimeInterval(24 * 3_600)))
+        let later = start.addingTimeInterval(24 * 3_600 + 1)
+        XCTAssertTrue(current.needsMealLoggingPrompt(at: later))
+        let refreshed = CurrentFasting.estimate(from: [
+            OvernightMeal(date: start, mealType: "Dinner"),
+            OvernightMeal(date: later, mealType: "Breakfast")
+        ], at: later)
+        XCTAssertEqual(refreshed?.needsMealLoggingPrompt(at: later), false)
+        let drinkOnly = CurrentFasting.estimate(from: [
+            OvernightMeal(date: start, mealType: "Dinner"),
+            OvernightMeal(date: later, mealType: "Drink")
+        ], at: later)
+        XCTAssertEqual(drinkOnly?.needsMealLoggingPrompt(at: later), true)
+    }
+
     func testCurrentFastRecalculatesAfterMealEditsDeletionAndReloadWithoutSavingSessions() throws {
         let context = PersistenceController(inMemory: true).container.viewContext
         let now = date(2026, 10, 2, 10)

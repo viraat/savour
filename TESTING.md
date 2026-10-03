@@ -25,6 +25,16 @@ the UI suite does not depend on a simulator's permission history.
 
 ## Run the automated suite
 
+### Release 0.5.4 — 2026-10-03
+
+App version `0.5.4`, build `9`, includes the meal-summary wording and over-24-hour
+logging action only. Backup/restore remains on its separate feature branch.
+The unsigned iPhone Release build, Debug app/test-target compilation and 21 Mac
+reminder tests passed. New regressions cover the exact 24-hour boundary, the next
+logged meal resetting it, drinks not resetting it, and opening the existing
+entry sheet from Fasts. These regressions are compile-checked, not executed;
+no simulator run was performed.
+
 ### Release 0.5.3 — 2026-10-03
 
 Final app metadata is version `0.5.3`, build `8`. All 21 Mac reminder tests,
