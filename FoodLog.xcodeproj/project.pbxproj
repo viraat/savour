@@ -28,6 +28,10 @@
 		A00000000000000000000014 /* FoodEntryDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000029 /* FoodEntryDraftStore.swift */; };
 		A00000000000000000000015 /* FoodReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000030 /* FoodReminder.swift */; };
 		A00000000000000000000016 /* FoodReminderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000031 /* FoodReminderTests.swift */; };
+		A00000000000000000000017 /* FoodBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000032 /* FoodBackup.swift */; };
+		A00000000000000000000018 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = P00000000000000000000002 /* ZIPFoundation */; };
+		A00000000000000000000019 /* FoodBackupRestore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000033 /* FoodBackupRestore.swift */; };
+		A0000000000000000000001A /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000034 /* ThirdPartyNotices.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -77,6 +81,9 @@
 		B00000000000000000000029 /* FoodEntryDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodEntryDraftStore.swift; sourceTree = "<group>"; };
 		B00000000000000000000030 /* FoodReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodReminder.swift; sourceTree = "<group>"; };
 		B00000000000000000000031 /* FoodReminderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodReminderTests.swift; sourceTree = "<group>"; };
+		B00000000000000000000032 /* FoodBackup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodBackup.swift; sourceTree = "<group>"; };
+		B00000000000000000000033 /* FoodBackupRestore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodBackupRestore.swift; sourceTree = "<group>"; };
+		B00000000000000000000034 /* ThirdPartyNotices.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = ThirdPartyNotices.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -84,6 +91,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A00000000000000000000018 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -133,6 +141,9 @@
 				B00000000000000000000028 /* DateTimePickerSheet.swift */,
 				B00000000000000000000029 /* FoodEntryDraftStore.swift */,
 				B00000000000000000000030 /* FoodReminder.swift */,
+				B00000000000000000000032 /* FoodBackup.swift */,
+				B00000000000000000000033 /* FoodBackupRestore.swift */,
+				B00000000000000000000034 /* ThirdPartyNotices.txt */,
 				B00000000000000000000008 /* FoodLog.xcdatamodeld */,
 				B00000000000000000000007 /* Assets.xcassets */,
 				B00000000000000000000010 /* Info.plist */,
@@ -183,6 +194,9 @@
 			dependencies = (
 			);
 			name = FoodLog;
+			packageProductDependencies = (
+				P00000000000000000000002 /* ZIPFoundation */,
+			);
 			productName = FoodLog;
 			productReference = B00000000000000000000011 /* FoodLog.app */;
 			productType = "com.apple.product-type.application";
@@ -258,6 +272,9 @@
 			productRefGroup = C00000000000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
+			packageReferences = (
+				P00000000000000000000001 /* ZIPFoundation */,
+			);
 			targets = (
 				E00000000000000000000001 /* FoodLog */,
 				E00000000000000000000002 /* FoodLogTests */,
@@ -266,12 +283,29 @@
 		};
 /* End PBXProject section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		P00000000000000000000001 /* ZIPFoundation */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {kind = exactVersion; version = 0.9.20; };
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		P00000000000000000000002 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = P00000000000000000000001 /* ZIPFoundation */;
+			productName = ZIPFoundation;
+		};
+/* End XCSwiftPackageProductDependency section */
+
 /* Begin PBXResourcesBuildPhase section */
 		D00000000000000000000003 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				A00000000000000000000007 /* Assets.xcassets in Resources */,
+				A0000000000000000000001A /* ThirdPartyNotices.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -313,6 +347,8 @@
 				A00000000000000000000013 /* DateTimePickerSheet.swift in Sources */,
 				A00000000000000000000014 /* FoodEntryDraftStore.swift in Sources */,
 				A00000000000000000000015 /* FoodReminder.swift in Sources */,
+				A00000000000000000000017 /* FoodBackup.swift in Sources */,
+				A00000000000000000000019 /* FoodBackupRestore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
