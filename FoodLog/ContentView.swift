@@ -131,8 +131,9 @@ struct FoodLogRootView: View {
 }
 
 #if compiler(>=6.4)
-/// Public UIKit integration for a same-row action without replacing the native
-/// tab bar, abusing the search role, or briefly selecting an empty Add page.
+/// Public UIKit rendering with deliberately custom action semantics: Apple's
+/// prominent-tab API is designed for destinations, not a modal Add action.
+/// We retain this product choice without presenting it as a standard HIG pattern.
 @available(iOS 27.0, *)
 struct FoodNativeTabNavigation<Page: View>: UIViewControllerRepresentable {
     static var addIdentifier: String { "foodlog-add-entry" }
@@ -171,10 +172,9 @@ struct FoodNativeTabNavigation<Page: View>: UIViewControllerRepresentable {
 
     func updateUIViewController(_ controller: UITabBarController, context: Context) {
         context.coordinator.parent = self
-        // Hosting roots must receive the SwiftUI environment across the UIKit
-        // boundary: Core Data, accent, appearance, scene phase, Dynamic Type,
-        // and locale all need to continue updating rather than being captured
-        // only once when a tab is first created.
+        // Update the app-owned environment across the UIKit boundary, while
+        // leaving each hosting controller's rendering/accessibility environment
+        // intact. Copying the entire environment hides hosted content from AX.
         for (tab, host) in context.coordinator.hosts {
             host.rootView = page(for: tab, environment: context.environment)
         }
@@ -189,7 +189,16 @@ struct FoodNativeTabNavigation<Page: View>: UIViewControllerRepresentable {
     }
 
     private func page(for tab: FoodTab, environment: EnvironmentValues) -> AnyView {
-        AnyView(content(tab).environment(\.self, environment))
+        AnyView(content(tab)
+            .environment(\.managedObjectContext, environment.managedObjectContext)
+            .environment(\.foodAccentColor, environment.foodAccentColor)
+            .tint(environment.foodAccentColor)
+            .environment(\.colorScheme, environment.colorScheme)
+            .environment(\.scenePhase, environment.scenePhase)
+            .environment(\.dynamicTypeSize, environment.dynamicTypeSize)
+            .environment(\.locale, environment.locale)
+            .environment(\.calendar, environment.calendar)
+            .environment(\.timeZone, environment.timeZone))
     }
 
     private func applyAppearance(to controller: UITabBarController, environment: EnvironmentValues) {
@@ -271,57 +280,6 @@ private struct FoodBottomAddAction: ViewModifier {
         .accessibilityLabel("Add entry")
         .accessibilityHint("Opens the food entry sheet")
         .accessibilityIdentifier("bottom-add-entry")
-    }
-}
-
-struct FoodPageHeader<Actions: View>: View {
-    let title: String
-    let identifier: String
-    let actions: Actions
-
-    init(_ title: String, identifier: String, @ViewBuilder actions: () -> Actions) {
-        self.title = title
-        self.identifier = identifier
-        self.actions = actions()
-    }
-
-    private var heading: some View {
-        Text(title)
-            .font(.system(.largeTitle).weight(.bold))
-            .foregroundStyle(FoodTheme.ink)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityIdentifier(identifier)
-    }
-
-    private var controls: some View {
-        HStack(spacing: 10) {
-            actions
-        }
-        .fixedSize()
-    }
-
-    var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .center, spacing: 12) {
-                heading.fixedSize()
-                Spacer(minLength: 0)
-                controls
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                heading
-                HStack { Spacer(); controls }
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 8)
-    }
-}
-
-extension FoodPageHeader where Actions == EmptyView {
-    init(_ title: String, identifier: String) {
-        self.init(title, identifier: identifier) { EmptyView() }
     }
 }
 
@@ -493,6 +451,17 @@ private struct FoodPanelModifier: ViewModifier {
 }
 
 extension View {
+    /// Keep root-page titles on the controls' row, without an expanded title band.
+    /// Native inline-large titles retain their leading alignment and prominence.
+    @ViewBuilder
+    func foodCompactPageTitle() -> some View {
+        if #available(iOS 17.0, *) {
+            self.toolbarTitleDisplayMode(.inlineLarge)
+        } else {
+            self.navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
     func foodSecondaryActionStyle() -> some View {
         modifier(FoodSecondaryActionModifier())
     }

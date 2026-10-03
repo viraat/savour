@@ -4,7 +4,7 @@ Savour (previously FoodLog) is a deliberately simple, private food journal for i
 Dime's excellent low-friction interaction model, but records food instead of
 money.
 
-Current repository release: **0.5.2** (build 7). See the
+Current repository release: **0.5.3** (build 8). See the
 [changelog](CHANGELOG.md) and [release notes](RELEASE_NOTES.md).
 
 The installed app is named Savour. The Xcode project, target, and scheme remain
@@ -41,6 +41,7 @@ the core experience is a neutral record.
 - Overnight average, latest, and range estimates in Patterns, respecting the selected date range
 - Autosaved unfinished entries and edits; Cancel offers Keep draft or Discard
 - Search across food, place, people, and notes
+- Native navigation titles and contextual system search with separate Clear and Cancel actions
 - Meal-category filtering
 - Neutral visual summaries for 7 days, 30 days, and all time
 - Current consecutive-day streak derived from journal entries
@@ -48,6 +49,8 @@ the core experience is a neutral record.
 - Common places and companions
 - CSV export and import with a preview of entries, duplicate detection, and row errors
 - Light, dark, and system appearance with five saved accent colors
+- Native grouped Settings sections with compact selection rows and standard toggles
+- Optional meal-logging reminders: up to three custom local times each day
 - Native navigation, sheets, bottom toolbars, and iOS 26 Liquid Glass styling
 - Optional automatic biometric app lock, immediate/1-minute/5-minute relocking, and background privacy shielding
 - Fully local Core Data storage with no account required
@@ -73,6 +76,33 @@ Dime's iCloud container, widgets, budgets, or intent extensions. This lightweigh
 port does not include Dime's original source; attribution and licensing details
 are retained in `NOTICE` and `LICENSE`.
 
+## Daily reminders
+
+Open **Settings → Notifications**. Set a time, then use **Add reminder** for up to
+three independent daily reminders—for example, breakfast, lunch, and dinner.
+Each row uses the native time picker. Swipe left to remove extra times. The
+initial time is 8 AM; additional times initially use 1 PM and 8 PM when available,
+and all can be changed. Existing single-reminder choices migrate unchanged,
+without adding any extra reminders. Duplicate times are not permitted.
+
+Reminders are off by default; permission is requested only when enabling them.
+Each time has a stable repeating local notification. Changing a time replaces
+its request, removing a time cancels it, and turning the enable switch off removes
+all three reminder requests without changing your saved times. **Open notification
+settings** is always available and opens Savour's notification controls in iOS
+Settings, including when notifications are disabled.
+
+The notification says “A moment to note your meals.” and never includes food,
+notes, people, or draft details. Opening it still respects App Lock. iOS handles
+delivery while Savour is closed/backgrounded; Focus, notification settings, and
+Scheduled Summary can affect when it appears. No account, server, push service,
+or new Core Data model is needed.
+
+Implementation follows Apple's [local notification scheduling](https://developer.apple.com/documentation/usernotifications/scheduling-a-notification-locally-from-your-app)
+and [in-context permission guidance](https://developer.apple.com/documentation/usernotifications/asking-permission-to-use-notifications).
+
+## Data and navigation
+
 CSV import accepts older FoodLog exports and the current format. New exports
 include entry IDs, exact timestamps, and structured companion names so repeat
 imports can be skipped and names containing commas can be restored. Older
@@ -84,7 +114,10 @@ On iOS 27, Savour uses a native `UITabBarController` with a prominent trailing
 Add item on the same row as the four navigation tabs. A public selection delegate
 intercepts Add, opens the existing entry sheet, and returns false so the selected
 page never changes. This is intentionally custom action handling for an API
-designed for tab destinations, not a native action slot. SwiftUI page state and
+designed for tab destinations, not a native action slot or Apple's standard
+tab-bar interaction pattern. We deliberately retain the same-row modal action
+as a product choice; Apple's HIG recommends putting actions in toolbars instead.
+SwiftUI page state and
 the full environment (including Core Data, appearance, accent, and scene phase)
 are forwarded through the hosting controllers.
 
@@ -110,6 +143,19 @@ skipped. These are estimates from your journal, not confirmations that nothing
 else was consumed. There is no Start/End fast control or automatic creation of
 `FastSession` records. Previously saved fasting records remain available in the
 Fasts tab; the existing Core Data model and CSV formats are unchanged.
+The Current row estimates elapsed time since the latest logged non-Drink meal.
+The Avg row includes all completed estimates, independent of the calendar month
+or history pagination. History initially shows 30 rows; View more adds up to 30
+without changing the average. Calendar goal borders include the exact target
+duration (`14h+ goal` by default). This explanation appears once, not on every row.
+
+Journal, Fasts, Patterns, and Settings use native same-row navigation titles:
+`toolbarTitleDisplayMode(.inlineLarge)` on iOS 17 and later, and compact inline
+titles on iOS 16. Titles no longer occupy a separate expanded band below the
+toolbar controls. Journal uses SwiftUI `searchable`; on iOS 17 and
+later its toolbar search button activates the native field, while iOS 16 shows
+the standard search drawer. Statistical count bars use Swift Charts `BarMark`,
+not task-progress indicators, with visible counts and accessible row descriptions.
 
 Food entries stay in the app's local Core Data store. The location button enables
 MapKit suggestions and uses foreground location only to prioritize nearby results;

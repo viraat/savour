@@ -299,6 +299,7 @@ struct FoodEntryEditor: View {
                             closeKeepingDraft()
                         }
                     }
+                    .tint(FoodTheme.ink)
                     .accessibilityHint("Choose whether to keep unfinished changes")
                 }
 

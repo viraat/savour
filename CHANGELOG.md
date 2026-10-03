@@ -9,11 +9,66 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes.
+
+## 0.5.3 — 2026-10-03
+
+App version 0.5.3 · build 8 · repository tag `v0.5.3`
+
+- Restored space-saving, same-row page headings across Journal, Fasts, Patterns,
+  and Settings using native inline-large toolbar titles (compact inline on
+  iOS 16). Journal search/filter remain native trailing toolbar controls; no
+  separate expanded title band or custom navigation-bar imitation is used.
+- Simplified About to an inline Dime attribution link and a centered bottom
+  footer: “Built with ❤️ by Viraat” above the app version and build number.
+  Removed reminder instruction footers and made the native iOS notification
+  settings button available regardless of permission or enabled state.
+- Added opt-in daily local notifications under Settings → Notifications, with
+  up to three independently adjustable times using native time pickers, an Add
+  reminder action, and swipe-to-remove extra times. Existing single reminders
+  migrate unchanged without adding extra notifications. Off by default; permission
+  is requested only when enabling. Stable repeating notifications are replaced
+  on time edits and cancelled on removal/disable. A button links to iOS
+  Settings; reminder text never includes journal or draft content.
+- Preserved reminder choices across launches, reconciled permission/time changes,
+  and serialized scheduling operations. Duplicate times are prevented; partial
+  scheduling edits roll back, or safely disable reminders if rollback fails.
+  Added 21 reminder logic tests runnable on the Mac without a simulator, plus
+  compile-checked UI regressions. All 21 logic tests,
+  unsigned device Release build, and Debug test-target compilation passed;
+  no simulator run or real notification delivery test was performed.
+- Strengthened contrast for Settings section headings, footnotes, and entry
+  counts; the editor's native Cancel action uses neutral label tint. Prior
+  simulator audit findings still require an explicitly requested re-audit.
+- Reorganized existing settings into native grouped form sections with standard
+  separators, aligned controls, compact appearance/accent selection rows, and
+  version/attribution footers. The initial regrouping did not add or remove
+  settings, preference keys, defaults, or actions. Unsigned device build and test-target compilation passed;
+  one-time requested simulator verification is recorded in `TESTING.md`.
+- Fixed iOS 27 hosted-page accessibility by forwarding app environment values
+  explicitly instead of replacing each hosting controller's entire environment.
+  Native page titles and controls are now exposed to VoiceOver/UI automation;
+  Core Data, accent, appearance, scene phase, locale, and Dynamic Type still update.
 - Renamed the app from FoodLog to Savour on the Home Screen, Journal heading,
   About section, lock screen, authentication prompt, permission descriptions,
   user-facing errors, and new CSV export filenames.
 - Kept the bundle identifier, Core Data models/store, draft storage, preferences,
   and CSV schema unchanged. The Xcode project and scheme remain `FoodLog`.
+- Replaced custom page headings with native navigation titles and moved
+  Journal search/filter actions into the system toolbar. Journal now uses native
+  search with separate Clear and Cancel actions and an iOS 16 search-drawer fallback.
+- Made the fasting average cover all completed estimates independently of the
+  selected month or visible history. Clarified estimated Current/Avg semantics
+  once per page and changed the inclusive goal legend to `14h+ goal`.
+- Replaced historical count progress controls with native Swift Charts bars,
+  retaining readable labels/counts and accessible descriptions.
+- Retained the same-row Add action and modal editor; documented its deliberate
+  exception to standard tab-navigation semantics.
+- Added regression coverage for native titles/search, historical count semantics,
+  inclusive goal labels, and pagination-independent fasting averages. Unsigned
+  device Release build and Debug app/test-target compilation passed. Routine
+  verification was compile-only; explicitly requested simulator checks are
+  recorded in `TESTING.md`.
 
 ## 0.5.2 — 2026-10-02
 

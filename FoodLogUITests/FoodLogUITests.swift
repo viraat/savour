@@ -227,7 +227,7 @@ final class FoodLogUITests: XCTestCase {
             ]
         )
         XCTAssertTrue(app.staticTexts["Savour is locked"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.staticTexts["journal-title"].exists)
+        XCTAssertFalse(app.navigationBars["Savour"].exists)
         XCTAssertTrue(app.buttons["Unlock"].waitForExistence(timeout: 3))
     }
 
@@ -235,12 +235,12 @@ final class FoodLogUITests: XCTestCase {
         launch(resetStore: true, extraArguments: [
             "-foodLogBiometricLockEnabled", "YES", "--simulate-biometric-success-once"
         ])
-        XCTAssertTrue(app.staticTexts["journal-title"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.navigationBars["Savour"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["Unlock"].exists)
         XCUIDevice.shared.press(.home)
         app.activate()
         XCTAssertTrue(app.staticTexts["Savour is locked"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.staticTexts["journal-title"].exists)
+        XCTAssertFalse(app.navigationBars["Savour"].exists)
         XCTAssertEqual(app.staticTexts["authentication-message"].value as? String, "2")
         app.buttons["Unlock"].tap()
         XCTAssertEqual(app.staticTexts["authentication-message"].value as? String, "3")
@@ -366,7 +366,7 @@ final class FoodLogUITests: XCTestCase {
     func testJournalSearchSurvivesOpeningAndDismissingAddSheet() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-navigation"])
         app.buttons["journal-search-button"].tap()
-        let search = app.textFields["journal-search-field"]
+        let search = app.searchFields["Search entries"]
         XCTAssertTrue(search.waitForExistence(timeout: 2))
         search.tap()
         search.typeText("Navigation fixture 20\n")
@@ -449,15 +449,17 @@ final class FoodLogUITests: XCTestCase {
         }
 
         app.buttons["Settings"].tap()
+        let appearance = app.buttons["settings-appearance"]
+        appearance.tap()
         let dark = app.buttons["Dark"]
         XCTAssertTrue(dark.waitForExistence(timeout: 2))
         dark.tap()
-        XCTAssertTrue(dark.isSelected)
+        XCTAssertTrue(appearance.label.contains("Dark"))
     }
 
     func testBottomNavigationCapturesTouchesAcrossButtonEdges() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-navigation"])
-        XCTAssertTrue(app.staticTexts["journal-title"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.navigationBars["Savour"].waitForExistence(timeout: 3))
 
         let journal = app.buttons["Journal"]
         XCTAssertTrue(journal.waitForExistence(timeout: 2))
@@ -467,11 +469,11 @@ final class FoodLogUITests: XCTestCase {
 
         let patterns = app.buttons["Patterns"]
         patterns.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: 0.88)).tap()
-        XCTAssertTrue(app.staticTexts["patterns-title"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Patterns"].waitForExistence(timeout: 2))
 
         let journalAgain = app.buttons["Journal"]
         journalAgain.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.12)).tap()
-        XCTAssertTrue(app.staticTexts["journal-title"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Savour"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.navigationBars["Edit entry"].exists)
     }
 
@@ -518,7 +520,7 @@ final class FoodLogUITests: XCTestCase {
             waitForEditorDismissal()
 
             app.buttons["Settings"].tap()
-            XCTAssertTrue(app.staticTexts["settings-title"].waitForExistence(timeout: 3))
+            XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
             // Bring the privacy controls above the glass before checking their
             // text contrast; deliberately refracted offscreen content is not
             // readable text and can produce an unattributed contrast finding.
@@ -585,26 +587,282 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(incrementButton.isHittable)
     }
 
-    func testJournalSearchOpensFromToolbarAndClearsOnClose() {
+    func testNativeJournalSearchClearKeepsSearchOpenAndCancelDismissesIt() {
         launch(resetStore: true, extraArguments: ["--seed-ui-test-overnight"])
-        XCTAssertFalse(app.textFields["journal-search-field"].exists)
         app.buttons["journal-search-button"].tap()
-        let field = app.textFields["journal-search-field"]
+        let field = app.searchFields["Search entries"]
         XCTAssertTrue(field.waitForExistence(timeout: 2))
         field.typeText("not a logged meal")
         XCTAssertTrue(app.staticTexts["Nothing found"].waitForExistence(timeout: 2))
-        app.buttons["Close search"].tap()
-        XCTAssertFalse(field.exists)
+        field.buttons["Clear text"].tap()
+        XCTAssertTrue(field.isHittable)
         XCTAssertFalse(app.staticTexts["Nothing found"].exists)
+        field.typeText("not a logged meal")
+        app.buttons["Cancel"].tap()
+        XCTAssertFalse(app.staticTexts["Nothing found"].exists)
+        XCTAssertFalse(app.buttons["Cancel"].exists)
+        XCTAssertFalse(app.keyboards.firstMatch.exists)
+        XCTAssertTrue(app.buttons["journal-search-button"].exists)
     }
 
     func testFastingSettingsContainGoalControlsInsteadOfDuplicatePage() {
         launch(resetStore: true)
         app.buttons["Settings"].tap()
-        app.swipeUp()
+        revealAboveNavigation(app.switches["fasting-goal-enabled"])
         XCTAssertTrue(app.switches["fasting-goal-enabled"].exists)
         XCTAssertTrue(app.steppers["fasting-goal-hours"].exists)
         XCTAssertFalse(app.buttons.matching(identifier: "Fasts").allElementsBoundByIndex.count > 1)
+    }
+
+    func testGroupedSettingsPreserveExistingOptionsAndAccentSelection() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-map"])
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        XCTAssertTrue(app.buttons["settings-appearance"].exists)
+        let accent = app.buttons["settings-accent-color"]
+        accent.tap()
+        XCTAssertTrue(app.navigationBars["Accent color"].waitForExistence(timeout: 3))
+        for color in ["Teal", "Ocean", "Blue", "Violet", "Rose"] {
+            XCTAssertTrue(app.buttons[color].exists)
+        }
+        app.buttons["Blue"].tap()
+        if app.navigationBars["Accent color"].exists {
+            app.navigationBars["Accent color"].buttons.firstMatch.tap()
+        }
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+        XCTAssertEqual(accent.value as? String, "Blue")
+        XCTAssertTrue(app.switches["settings-meal-labels"].exists)
+        app.buttons["settings-meal-times"].tap()
+        XCTAssertTrue(app.navigationBars["Default meal times"].waitForExistence(timeout: 3))
+        app.navigationBars["Default meal times"].buttons.firstMatch.tap()
+        for identifier in ["fasting-goal-enabled", "fasting-goal-hours",
+                           "relock-delay", "settings-export-csv", "settings-import-csv",
+                           "settings-erase-entries", "dime-source-link"] {
+            revealAboveNavigation(app.descendants(matching: .any)[identifier])
+            if identifier == "relock-delay" {
+                // App lock remains visible even when biometrics are unavailable
+                // and its native toggle is intentionally disabled.
+                XCTAssertTrue(app.switches["settings-app-lock"].exists)
+            }
+        }
+        app.terminate()
+        launch(resetStore: false)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        XCTAssertEqual(accent.value as? String, "Blue")
+    }
+
+    func testNotificationTimeAndEnableSettingPersistAcrossRelaunch() {
+        launch(resetStore: true)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        revealAboveNavigation(app.buttons["settings-notifications"])
+        app.buttons["settings-notifications"].tap()
+        XCTAssertTrue(app.navigationBars["Notifications"].waitForExistence(timeout: 3))
+        let enabled = app.switches["notifications-enabled"]
+        XCTAssertEqual(enabled.value as? String, "0")
+        let firstTime = app.descendants(matching: .any)["notifications-time-1"].firstMatch
+        XCTAssertTrue(firstTime.waitForExistence(timeout: 3))
+        let initialValue = firstTime.value as? String
+        app.buttons["notifications-add-reminder"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["notifications-time-2"].firstMatch.waitForExistence(timeout: 3))
+        app.buttons["notifications-add-reminder"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["notifications-time-3"].firstMatch.waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["notifications-add-reminder"].exists)
+        enabled.tap()
+        let on = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1"), object: enabled)
+        XCTAssertEqual(XCTWaiter.wait(for: [on], timeout: 3), .completed)
+        XCTAssertTrue(app.buttons["notifications-open-settings"].exists)
+        app.terminate()
+        launch(resetStore: false)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        revealAboveNavigation(app.buttons["settings-notifications"])
+        app.buttons["settings-notifications"].tap()
+        XCTAssertEqual(enabled.value as? String, "1")
+        XCTAssertTrue(app.descendants(matching: .any)["notifications-time-3"].firstMatch.waitForExistence(timeout: 3))
+        XCTAssertEqual(firstTime.value as? String, initialValue)
+        XCTAssertFalse(app.buttons["notifications-add-reminder"].exists)
+        enabled.tap()
+        let off = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "0"), object: enabled)
+        XCTAssertEqual(XCTWaiter.wait(for: [off], timeout: 3), .completed)
+    }
+
+    func testExtraNotificationTimesCanBeRemovedAndAddedAgain() {
+        launch(resetStore: true)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        revealAboveNavigation(app.buttons["settings-notifications"])
+        app.buttons["settings-notifications"].tap()
+        app.buttons["notifications-add-reminder"].tap()
+        let secondTime = app.descendants(matching: .any)["notifications-time-2"].firstMatch
+        XCTAssertTrue(secondTime.waitForExistence(timeout: 3))
+        secondTime.swipeLeft()
+        app.buttons["Delete"].tap()
+        let removed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: secondTime)
+        XCTAssertEqual(XCTWaiter.wait(for: [removed], timeout: 3), .completed)
+        XCTAssertTrue(app.descendants(matching: .any)["notifications-time-1"].firstMatch.exists)
+        app.buttons["notifications-add-reminder"].tap()
+        XCTAssertTrue(secondTime.waitForExistence(timeout: 3))
+    }
+
+    func testDeniedNotificationPermissionLeavesReminderOffWithSettingsLink() {
+        launch(resetStore: true, extraArguments: ["--simulate-notifications-denied"])
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        revealAboveNavigation(app.buttons["settings-notifications"])
+        app.buttons["settings-notifications"].tap()
+        let enabled = app.switches["notifications-enabled"]
+        XCTAssertTrue(enabled.waitForExistence(timeout: 3))
+        enabled.tap()
+        XCTAssertTrue(app.buttons["notifications-open-settings"].waitForExistence(timeout: 3))
+        XCTAssertEqual(enabled.value as? String, "0")
+    }
+
+    func testNotificationSettingsLinkIsAvailableBeforeEnabling() {
+        launch(resetStore: true)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        revealAboveNavigation(app.buttons["settings-notifications"])
+        app.buttons["settings-notifications"].tap()
+        XCTAssertEqual(app.switches["notifications-enabled"].value as? String, "0")
+        XCTAssertTrue(app.buttons["notifications-open-settings"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "then enable notifications")).firstMatch.exists)
+    }
+
+    func testSettingsAboutHasInlineAttributionAndCenteredVersionBuildFooter() {
+        launch(resetStore: true)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        let version = app.staticTexts["settings-version"]
+        revealAboveNavigation(version)
+        let credit = app.staticTexts["settings-credit"]
+        let attribution = app.descendants(matching: .any)["dime-source-link"].firstMatch
+        XCTAssertTrue(attribution.exists)
+        XCTAssertTrue(attribution.label.contains("Adapted from Dime"))
+        XCTAssertFalse(app.buttons["View Dime on GitHub"].exists)
+        XCTAssertEqual(credit.label, "Built with ❤️ by Viraat")
+        XCTAssertTrue(version.label.hasPrefix("Savour "))
+        XCTAssertTrue(version.label.contains("(Build "))
+        XCTAssertLessThan(credit.frame.maxY, version.frame.minY)
+        XCTAssertEqual(credit.frame.midX, version.frame.midX, accuracy: 2)
+        XCTAssertEqual(version.frame.midX, app.frame.midX, accuracy: 4)
+    }
+
+    func testSettingsGroupedLayoutInLightAndDarkMode() {
+        for appearance in ["1", "2"] {
+            launch(resetStore: true, extraArguments: ["--seed-ui-test-map", "-foodLogAppearance", appearance])
+            app.tabBars.firstMatch.buttons["Settings"].tap()
+            XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+            XCTAssertTrue(app.buttons["settings-appearance"].isHittable)
+            let top = XCTAttachment(screenshot: app.screenshot())
+            top.name = "Settings \(appearance == "1" ? "light" : "dark") upper sections"
+            top.lifetime = .keepAlways
+            add(top)
+            let export = app.buttons["settings-export-csv"]
+            revealAboveNavigation(export)
+            XCTAssertTrue(export.label.contains("1 entry"))
+            revealAboveNavigation(app.descendants(matching: .any)["dime-source-link"])
+            let bottom = XCTAttachment(screenshot: app.screenshot())
+            bottom.name = "Settings \(appearance == "1" ? "light" : "dark") lower sections"
+            bottom.lifetime = .keepAlways
+            add(bottom)
+            app.terminate()
+        }
+    }
+
+    func testAccessibilityAuditOnGroupedSettings() throws {
+        guard #available(iOS 17.0, *) else { return }
+        for appearance in ["1", "2"] {
+            launch(resetStore: true, extraArguments: ["--seed-ui-test-map", "-foodLogAppearance", appearance])
+            app.tabBars.firstMatch.buttons["Settings"].tap()
+            XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+            try auditVisibleUI()
+            revealAboveNavigation(app.descendants(matching: .any)["dime-source-link"])
+            try auditVisibleUI()
+            app.terminate()
+        }
+    }
+
+    func testSettingsAccessibilityHierarchyForDiagnostics() {
+        launch(resetStore: true)
+        app.tabBars.firstMatch.buttons["Settings"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["settings-appearance"].isHittable)
+        let hierarchy = XCTAttachment(string: app.debugDescription)
+        hierarchy.name = "Grouped settings accessibility hierarchy"
+        hierarchy.lifetime = .keepAlways
+        add(hierarchy)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Grouped settings diagnostic screenshot"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
+    func testNativeNavigationTitlesOnEveryPage() {
+        launch(resetStore: true)
+        for (tab, title) in [("Journal", "Savour"), ("Fasts", "Fasts"),
+                             ("Patterns", "Patterns"), ("Settings", "Settings")] {
+            app.tabBars.firstMatch.buttons[tab].tap()
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 3))
+        }
+    }
+
+    func testCompactNativeTitlesShareTheJournalControlsRow() {
+        guard #available(iOS 17.0, *) else { return }
+        launch(resetStore: true)
+        let journalBar = app.navigationBars["Savour"]
+        XCTAssertTrue(journalBar.waitForExistence(timeout: 3))
+        let title = journalBar.staticTexts["Savour"].firstMatch
+        let search = app.buttons["journal-search-button"]
+        let filter = app.buttons["Filter by meal type"]
+        XCTAssertTrue(title.exists)
+        XCTAssertTrue(search.isHittable)
+        XCTAssertTrue(filter.isHittable)
+        XCTAssertEqual(title.frame.midY, search.frame.midY, accuracy: 12)
+        XCTAssertEqual(title.frame.midY, filter.frame.midY, accuracy: 12)
+        let titleMidY = title.frame.midY
+        for (tab, page) in [("Fasts", "Fasts"), ("Patterns", "Patterns"), ("Settings", "Settings")] {
+            app.tabBars.firstMatch.buttons[tab].tap()
+            let bar = app.navigationBars[page]
+            XCTAssertTrue(bar.waitForExistence(timeout: 3))
+            let pageTitle = bar.staticTexts[page].firstMatch
+            XCTAssertTrue(pageTitle.exists)
+            XCTAssertEqual(pageTitle.frame.midY, titleMidY, accuracy: 12)
+        }
+    }
+
+    func testFastingAverageDoesNotChangeWhenHistoryExpandsOrCalendarMonthChanges() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-fasting-history"])
+        app.tabBars.firstMatch.buttons["Fasts"].tap()
+        let average = app.descendants(matching: .any)["fasting-history-average"]
+        XCTAssertTrue(average.waitForExistence(timeout: 3))
+        XCTAssertTrue(average.label.contains("all 65 completed fasts"))
+        let originalLabel = average.label
+        XCTAssertTrue(app.descendants(matching: .any)["fasting-goal-legend"].label.contains("at least 14h"))
+        app.buttons["Previous month"].tap()
+        XCTAssertEqual(average.label, originalLabel)
+        let more = app.buttons["fasting-history-more"]
+        for _ in 0..<20 {
+            if more.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(more.isHittable)
+        more.tap()
+        for _ in 0..<25 {
+            if average.isHittable { break }
+            app.swipeDown()
+        }
+        XCTAssertTrue(average.isHittable)
+        XCTAssertEqual(average.label, originalLabel)
+    }
+
+    func testPatternCountsAreNotExposedAsTaskProgress() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-suggestions"])
+        app.tabBars.firstMatch.buttons["Patterns"].tap()
+        app.buttons["Overview"].tap()
+        XCTAssertTrue(app.navigationBars["Overview"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["DAYS WITH ENTRIES"].exists)
+        XCTAssertEqual(app.progressIndicators.count, 0)
+        app.buttons["Done"].tap()
+        app.buttons["Foods noted"].tap()
+        XCTAssertTrue(app.navigationBars["Foods noted"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.progressIndicators.count, 0)
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(
+            format: "label == %@ AND value CONTAINS %@", "Toast", "2"
+        )).firstMatch.exists)
     }
 
     func testCurrentFastRestoresOnRelaunchAndRestartsWithNextMeal() {
@@ -612,7 +870,7 @@ final class FoodLogUITests: XCTestCase {
         app.buttons["Fasts"].tap()
         let current = app.descendants(matching: .any)["fasting-current"]
         XCTAssertTrue(current.waitForExistence(timeout: 3))
-        XCTAssertTrue(current.label.contains("Current fast, started"))
+        XCTAssertTrue(current.label.contains("Current fast estimate, last logged meal"))
         app.terminate()
         launch(resetStore: false)
         app.buttons["Fasts"].tap()
@@ -660,7 +918,7 @@ final class FoodLogUITests: XCTestCase {
         app.scrollViews.firstMatch.swipeDown()
         verifyFastingDuration("14h 0m")
         app.buttons["Fasts"].tap()
-        XCTAssertTrue(app.staticTexts["fasts-title"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Fasts"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.buttons["Add"].exists)
         XCTAssertTrue(app.staticTexts["Previously saved fasting records"].exists)
         XCTAssertTrue(app.staticTexts["12h 0m"].exists)
@@ -672,7 +930,7 @@ final class FoodLogUITests: XCTestCase {
 
     private func verifyFastingDuration(_ duration: String) {
         app.buttons["Fasts"].tap()
-        XCTAssertTrue(app.staticTexts["fasts-title"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Fasts"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.descendants(matching: .any)["fasting-month-calendar"].exists)
         let row = app.buttons.matching(NSPredicate(
             format: "identifier BEGINSWITH %@ AND label CONTAINS %@", "fasting-history-", duration
@@ -704,6 +962,10 @@ final class FoodLogUITests: XCTestCase {
             auditTypes.insert(.textClipped)
         }
         try app.performAccessibilityAudit(for: auditTypes) { issue in
+            let details = XCTAttachment(string: "\(issue.auditType): \(issue.element?.debugDescription ?? "No identified element")")
+            details.name = "Accessibility finding details"
+            details.lifetime = .keepAlways
+            self.add(details)
             // UIKit renders the searchable placeholder; its clipped/contrast
             // audit findings do not reflect the visible, app-owned content.
             if (issue.element?.elementType == .searchField &&
@@ -761,7 +1023,7 @@ final class FoodLogUITests: XCTestCase {
         for _ in 0..<4 {
             let barTop = app.buttons["bottom-add-entry"].frame.minY
             if fixture.isHittable && fixture.frame.maxY < barTop - 8 { break }
-            app.scrollViews.firstMatch.swipeUp()
+            app.swipeUp()
         }
         XCTAssertTrue(fixture.isHittable)
         XCTAssertLessThan(fixture.frame.maxY, app.buttons["bottom-add-entry"].frame.minY)
@@ -771,7 +1033,8 @@ final class FoodLogUITests: XCTestCase {
     private func revealAboveNavigation(_ element: XCUIElement) {
         for _ in 0..<12 {
             if element.isHittable && element.frame.maxY < app.buttons["bottom-add-entry"].frame.minY - 8 { break }
-            app.scrollViews.firstMatch.swipeUp()
+            // Works for both ScrollView content and native Form/List sections.
+            app.swipeUp()
         }
         if !element.isHittable {
             let capture = XCTAttachment(screenshot: app.screenshot())

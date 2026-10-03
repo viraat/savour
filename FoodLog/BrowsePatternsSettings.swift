@@ -1,3 +1,4 @@
+import Charts
 import CoreData
 import MapKit
 import SwiftUI
@@ -157,11 +158,8 @@ struct PatternsView: View {
         }
         .background(FoodTheme.background)
         .navigationTitle("Patterns")
-        .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            FoodPageHeader("Patterns", identifier: "patterns-title")
-                .background(FoodTheme.background)
-        }
+        .foodCompactPageTitle()
+        .toolbar(.visible, for: .navigationBar)
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
         }
@@ -513,13 +511,16 @@ struct PatternsView: View {
                             Text(day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
                                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                                 .frame(width: 82, alignment: .leading)
-                            ProgressView(value: Double(count), total: Double(dailyCounts.map(\.1).max() ?? 1))
-                                .tint(accentColor)
+                            PatternCountBar(category: day.formatted(date: .abbreviated, time: .omitted),
+                                            count: count, maximum: dailyCounts.map(\.1).max() ?? 1)
                             Text("\(count)")
                                 .font(.system(.subheadline, design: .rounded).weight(.bold))
                                 .foregroundStyle(FoodTheme.secondaryText)
                                 .frame(minWidth: 20, alignment: .trailing)
                         }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(day.formatted(date: .complete, time: .omitted))
+                        .accessibilityValue("\(count) \(count == 1 ? "entry" : "entries")")
                     }
                 }
                 .padding(17)
@@ -654,10 +655,12 @@ struct PatternsView: View {
                                 .font(.system(.body, design: .rounded).weight(.bold))
                                 .foregroundStyle(FoodTheme.secondaryText)
                         }
-                        ProgressView(value: Double(item.1), total: Double(maximum))
-                            .tint(accentColor)
+                        PatternCountBar(category: item.0, count: item.1, maximum: maximum)
                     }
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(item.0)
+                .accessibilityValue("Count: \(item.1)")
             }
         }
         .padding(17)
@@ -666,6 +669,30 @@ struct PatternsView: View {
 
     private func frequency(of values: [String]) -> [(String, Int)] {
         FoodLogStatistics.frequencies(values).map { ($0.name, $0.count) }
+    }
+}
+
+/// A historical count, not task progress. Labels and counts remain outside the
+/// chart for long names and Dynamic Type; each surrounding row is one complete
+/// accessibility element, so VoiceOver doesn't announce the value twice.
+private struct PatternCountBar: View {
+    @Environment(\.foodAccentColor) private var accentColor
+    let category: String
+    let count: Int
+    let maximum: Int
+
+    var body: some View {
+        Chart {
+            BarMark(x: .value("Count", count), y: .value("Category", category))
+                .foregroundStyle(accentColor)
+                .cornerRadius(3)
+        }
+        .chartXScale(domain: 0...max(1, maximum))
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartLegend(.hidden)
+        .frame(height: 12)
+        .accessibilityHidden(true)
     }
 }
 
@@ -855,7 +882,6 @@ private enum PlaceCoordinateBackfill {
 
 struct FoodLogSettingsView: View {
     @Environment(\.managedObjectContext) private var context
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FetchRequest(sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)])
     private var entries: FetchedResults<FoodEntry>
 
@@ -879,148 +905,134 @@ struct FoodLogSettingsView: View {
     }
 
     private var settingsContent: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 20) {
-                settingsSection("APPEARANCE") {
-                    if dynamicTypeSize.isAccessibilitySize {
-                        appearancePicker.pickerStyle(.menu)
-                    } else {
-                        appearancePicker.pickerStyle(.segmented)
-                    }
+        Form {
+            Section {
+                appearancePicker
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier("settings-appearance")
+                accentPicker
+            } header: {
+                Text("Appearance").foregroundStyle(FoodTheme.secondaryText)
+            }
 
-                    Divider()
-
-                    accentPicker
-
-                    Divider()
-
-                    Toggle("Show meal labels in journal", isOn: $showMealLabels)
-                        .font(.system(.body, design: .rounded).weight(.medium))
+            Section {
+                Toggle("Show meal labels in journal", isOn: $showMealLabels)
+                    .accessibilityIdentifier("settings-meal-labels")
+                NavigationLink("Default meal times") {
+                    MealDefaultTimesSettingsView()
                 }
-
-                settingsSection("MEALS") {
-                    NavigationLink {
-                        MealDefaultTimesSettingsView()
-                    } label: {
-                        settingsRow(
-                            icon: "clock",
-                            title: "Default meal times",
-                            detail: nil
-                        )
-                    }
+                .accessibilityIdentifier("settings-meal-times")
+                NavigationLink("Notifications") {
+                    FoodReminderSettingsView()
                 }
+                .accessibilityIdentifier("settings-notifications")
+            } header: {
+                Text("Meals").foregroundStyle(FoodTheme.secondaryText)
+            }
 
-                settingsSection("FASTING") {
-                    Toggle("Show goal in calendar", isOn: $fastingGoalEnabled)
-                        .accessibilityIdentifier("fasting-goal-enabled")
-                    if fastingGoalEnabled {
-                        Divider()
-                        Stepper(value: $fastingGoalHours, in: 1...36, step: 0.5) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("Fasting goal")
-                                Text(FastTimeText.duration(fastingGoalHours * 3_600))
-                                    .font(.system(.subheadline, design: .rounded))
-                                    .foregroundStyle(FoodTheme.secondaryText)
-                            }
-                        }
-                        .accessibilityIdentifier("fasting-goal-hours")
-                        .accessibilityValue(FastTimeText.duration(fastingGoalHours * 3_600))
-                    }
-                }
-
-                settingsSection("PRIVACY") {
-                    HStack(spacing: 12) {
+            Section {
+                Toggle("Show goal in calendar", isOn: $fastingGoalEnabled)
+                    .accessibilityIdentifier("fasting-goal-enabled")
+                if fastingGoalEnabled {
+                    Stepper(value: $fastingGoalHours, in: 1...36, step: 0.5) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("App lock")
-                                .font(.system(.body, design: .rounded).weight(.medium))
-                            Text(biometricAvailability.isAvailable
-                                 ? "Require \(biometricAvailability.name) when opening Savour"
-                                 : "Face ID or Touch ID is unavailable")
-                                .font(.system(.caption, design: .rounded))
-                                .foregroundColor(FoodTheme.ink)
+                            Text("Fasting goal")
+                            Text(FastTimeText.compactDuration(fastingGoalHours * 3_600))
+                                .font(.footnote)
+                                .foregroundStyle(FoodTheme.secondaryText)
                         }
-                        Spacer()
-                        Toggle("App lock", isOn: $biometricLockEnabled)
-                            .labelsHidden()
-                            .disabled(!biometricAvailability.isAvailable && !biometricLockEnabled)
                     }
-
-                    Divider()
-
-                    HStack {
-                        Text("Relock")
-                        Spacer()
-                        Picker("Relock", selection: $relockDelaySeconds) {
-                            ForEach(AppRelockDelay.allCases) { delay in
-                                Text(delay.title).tag(delay.rawValue)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .accessibilityIdentifier("relock-delay")
-                        .frame(minHeight: 44)
-                    }
-                    .font(.system(.body, design: .rounded).weight(.medium))
-
-                    Text("Savour stays hidden in the background. A new launch always requires authentication when app lock is enabled.")
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundStyle(FoodTheme.ink)
+                    .accessibilityIdentifier("fasting-goal-hours")
+                    .accessibilityValue(FastTimeText.duration(fastingGoalHours * 3_600))
                 }
+            } header: {
+                Text("Fasting").foregroundStyle(FoodTheme.secondaryText)
+            }
 
-                settingsSection("YOUR DATA") {
-                    Button(action: exportCSV) {
-                        settingsRow(icon: "square.and.arrow.up", title: "Export CSV", detail: "\(entries.count) entries")
+            Section {
+                Toggle(isOn: $biometricLockEnabled) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("App lock")
+                        Text(biometricAvailability.isAvailable
+                             ? "Require \(biometricAvailability.name) when opening Savour"
+                             : "Face ID or Touch ID is unavailable")
+                            .font(.footnote)
+                            .foregroundStyle(FoodTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
+                }
+                .disabled(!biometricAvailability.isAvailable && !biometricLockEnabled)
+                .accessibilityIdentifier("settings-app-lock")
 
-                    Divider()
-
-                    Button { showingFileImporter = true } label: {
-                        settingsRow(icon: "square.and.arrow.down", title: "Import CSV", detail: nil)
+                Picker("Relock", selection: $relockDelaySeconds) {
+                    ForEach(AppRelockDelay.allCases) { delay in
+                        Text(delay.title).tag(delay.rawValue)
                     }
+                }
+                .pickerStyle(.menu)
+                .accessibilityIdentifier("relock-delay")
+            } header: {
+                Text("Privacy").foregroundStyle(FoodTheme.secondaryText)
+            } footer: {
+                Text("Savour stays hidden in the background. A new launch always requires authentication when app lock is enabled.")
+                    .foregroundStyle(FoodTheme.secondaryText)
+            }
 
-                    Divider()
+            Section {
+                Button(action: exportCSV) {
+                    HStack {
+                        Text("Export CSV")
+                        Spacer()
+                        Text("\(entries.count) \(entries.count == 1 ? "entry" : "entries")")
+                            .foregroundStyle(FoodTheme.secondaryText)
+                    }
+                    .foregroundStyle(.primary)
+                }
+                .accessibilityIdentifier("settings-export-csv")
+
+                Button("Import CSV") { showingFileImporter = true }
+                    .foregroundStyle(.primary)
+                    .accessibilityIdentifier("settings-import-csv")
 
 #if DEBUG
-                    if ProcessInfo.processInfo.arguments.contains("--ui-test-csv-fixture") {
-                        Button("Preview CSV fixture", action: previewCSVFixture)
-                        Divider()
-                    }
+                if ProcessInfo.processInfo.arguments.contains("--ui-test-csv-fixture") {
+                    Button("Preview CSV fixture", action: previewCSVFixture)
+                }
 #endif
 
-                    Button { confirmErase = true } label: {
-                        settingsRow(icon: "trash", title: "Erase all entries", detail: nil, destructive: true)
-                    }
+                Button("Erase all entries", role: .destructive) { confirmErase = true }
                     .disabled(entries.isEmpty)
-                }
-
-                settingsSection("ABOUT") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Savour \(appVersion)")
-                            .font(.system(.body, design: .rounded).weight(.bold))
-                        Text("Adapted from Dime's open-source SwiftUI code and interaction ideas under GPLv3.")
-                            .font(.system(.subheadline, design: .rounded))
-                            .foregroundColor(FoodTheme.secondaryText)
-                        Link(destination: URL(string: "https://github.com/rafsoh/dimeApp")!) {
-                            Text("View Dime on GitHub")
-                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                                .frame(minHeight: 44, alignment: .leading)
-                                .contentShape(Rectangle())
-                        }
-                        .accessibilityIdentifier("dime-source-link")
-                    }
-                }
+                    .accessibilityIdentifier("settings-erase-entries")
+            } header: {
+                Text("Your data").foregroundStyle(FoodTheme.secondaryText)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 20)
+
+            Section {
+                Text("Adapted from [Dime](https://github.com/rafsoh/dimeApp)'s open-source SwiftUI code and interaction ideas under GPLv3.")
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("dime-source-link")
+            } header: {
+                Text("About").foregroundStyle(FoodTheme.secondaryText)
+            } footer: {
+                VStack(spacing: 8) {
+                    Text("Built with ❤️ by Viraat")
+                        .accessibilityIdentifier("settings-credit")
+                    Text("Savour \(appVersion) (Build \(appBuild))")
+                        .accessibilityIdentifier("settings-version")
+                }
+                .foregroundStyle(FoodTheme.secondaryText)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 16)
+            }
         }
+        .formStyle(.grouped)
+        .textCase(nil)
+        .scrollContentBackground(.hidden)
         .background(FoodTheme.background)
         .navigationTitle("Settings")
-        .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            FoodPageHeader("Settings", identifier: "settings-title")
-                .background(FoodTheme.background)
-        }
+        .foodCompactPageTitle()
+        .toolbar(.visible, for: .navigationBar)
         .onAppear {
             biometricAvailability = BiometricAuthentication.availability()
         }
@@ -1075,7 +1087,11 @@ struct FoodLogSettingsView: View {
     }
 
     private var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.0"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+    }
+
+    private var appBuild: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
     }
 
     private var appearancePicker: some View {
@@ -1087,79 +1103,21 @@ struct FoodLogSettingsView: View {
     }
 
     private var accentPicker: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Accent color")
-                .font(.system(.body, design: .rounded).weight(.medium))
-
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: dynamicTypeSize.isAccessibilitySize ? 90 : 48))],
-                spacing: 12
-            ) {
-                ForEach(FoodAccentOption.allCases) { option in
-                    Button {
-                        accentValue = option.rawValue
-                    } label: {
-                        VStack(spacing: 6) {
-                            ZStack {
-                                Circle()
-                                    .fill(option.color)
-                                    .frame(width: 34, height: 34)
-
-                                if accentValue == option.rawValue {
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundStyle(FoodTheme.onAccent)
-                                }
-                            }
-                            .overlay {
-                                Circle()
-                                    .stroke(
-                                        accentValue == option.rawValue ? FoodTheme.ink : .clear,
-                                        lineWidth: 2
-                                    )
-                                    .padding(-3)
-                            }
-
-                            Text(option.name)
-                                .font(.system(.caption2, design: .rounded).weight(.medium))
-                                .foregroundStyle(FoodTheme.ink)
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(option.name)
-                    .accessibilityValue(accentValue == option.rawValue ? "Selected" : "")
+        Picker("Accent color", selection: $accentValue) {
+            ForEach(FoodAccentOption.allCases) { option in
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(option.color)
+                        .frame(width: 20, height: 20)
+                        .accessibilityHidden(true)
+                    Text(option.name)
                 }
+                .tag(option.rawValue)
+                .accessibilityLabel(option.name)
             }
         }
-    }
-
-    private func settingsSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title).sectionLabel()
-            VStack(spacing: 12) { content() }
-                .padding(16)
-                .foodPanel(cornerRadius: 18)
-        }
-    }
-
-    private func settingsRow(icon: String, title: String, detail: String?, destructive: Bool = false) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .frame(width: 24)
-            Text(title)
-                .font(.system(.body, design: .rounded).weight(.medium))
-            Spacer()
-            if let detail {
-                Text(detail)
-                    .font(.system(.subheadline, design: .rounded))
-                    .foregroundColor(FoodTheme.ink)
-            }
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(FoodTheme.secondaryText)
-        }
-        .foregroundColor(destructive ? .red : FoodTheme.ink)
+        .pickerStyle(.navigationLink)
+        .accessibilityIdentifier("settings-accent-color")
     }
 
     private func exportCSV() {
@@ -1195,6 +1153,76 @@ struct FoodLogSettingsView: View {
             context.rollback()
             importMessage = error.localizedDescription
         }
+    }
+}
+
+struct FoodReminderSettingsView: View {
+    @StateObject private var reminder = FoodDailyReminder.shared
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Enable notifications", isOn: Binding(
+                    get: { reminder.isEnabled },
+                    set: { enabled in Task { await reminder.setEnabled(enabled) } }
+                ))
+                .disabled(reminder.isUpdating)
+                .accessibilityIdentifier("notifications-enabled")
+            }
+            Section {
+                ForEach(reminder.times.indices, id: \.self) { index in
+                    DatePicker("Reminder \(index + 1)", selection: Binding(
+                        get: { date(minutes: reminder.times.indices.contains(index) ? reminder.times[index] : 480) },
+                        set: { date in
+                            let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+                            Task { await reminder.setMinutes((components.hour ?? 8) * 60 + (components.minute ?? 0), at: index) }
+                        }
+                    ), displayedComponents: .hourAndMinute)
+                    .datePickerStyle(.compact)
+                    .disabled(reminder.isUpdating)
+                    .deleteDisabled(reminder.times.count == 1 || reminder.isUpdating)
+                    .accessibilityIdentifier("notifications-time-\(index + 1)")
+                }
+                .onDelete { offsets in Task { await reminder.removeReminders(at: offsets) } }
+                if reminder.times.count < FoodReminderSchedule.maximumCount {
+                    Button {
+                        Task { await reminder.addReminder() }
+                    } label: { Label("Add reminder", systemImage: "plus") }
+                    .disabled(reminder.isUpdating)
+                    .accessibilityIdentifier("notifications-add-reminder")
+                }
+            }
+
+            Section {
+                Button("Open notification settings") {
+                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                }
+                .accessibilityIdentifier("notifications-open-settings")
+            } footer: {
+                if reminder.permission == .denied {
+                    Text("Notifications are disabled for Savour in iOS Settings.")
+                        .foregroundStyle(FoodTheme.secondaryText)
+                }
+            }
+            if let message = reminder.errorMessage {
+                Section {
+                    Text(message).foregroundStyle(FoodTheme.secondaryText)
+                        .accessibilityIdentifier("notifications-error")
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .textCase(nil)
+        .scrollContentBackground(.hidden)
+        .background(FoodTheme.background)
+        .navigationTitle("Notifications")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await reminder.refresh() }
+    }
+
+    private func date(minutes: Int) -> Date {
+        Calendar.current.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: Date()) ?? Date()
     }
 }
 

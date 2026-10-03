@@ -87,6 +87,10 @@ enum FastingGoalPreference {
     static let enabledKey = "showFastingGoal"
     static let defaultHours = 14.0
 
+    static func legend(hours: Double) -> String {
+        "\(FastTimeText.compactDuration(hours * 3_600))+ goal"
+    }
+
     static func isMet(by duration: TimeInterval, hours: Double, enabled: Bool) -> Bool {
         enabled && hours.isFinite && hours > 0 && duration.isFinite && duration >= hours * 3_600
     }
@@ -273,11 +277,12 @@ private struct FastingMonthCalendar: View {
                 .strokeBorder(FoodTheme.fastGoalBorder, lineWidth: 2)
                 .frame(width: 12, height: 12)
                 .accessibilityHidden(true)
-            Text(">\(FastTimeText.compactDuration(goalHours * 3_600)) goal")
+            Text(FastingGoalPreference.legend(hours: goalHours))
         }
         .fixedSize()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("A silver border marks fasts of at least \(FastTimeText.compactDuration(goalHours * 3_600))")
+        .accessibilityIdentifier("fasting-goal-legend")
     }
 
     private func dayCell(_ day: Date, estimate: OvernightFastEstimate?) -> some View {
@@ -316,7 +321,7 @@ private struct FastingMonthCalendar: View {
         .accessibilityLabel(day.formatted(date: .complete, time: .omitted))
         .accessibilityValue(estimate.map {
             FastTimeText.duration($0.duration) + (meetsGoal ? ", Goal met" : "")
-        } ?? "No fast")
+        } ?? "No fasting estimate")
         .accessibilityHint(estimate == nil ? "" : "Shows meal times")
     }
 }
@@ -473,6 +478,11 @@ enum FastTimeText {
 enum FastingHistory {
     static let pageSize = 30
 
+    // Pagination changes only the visible rows, never the reporting cohort.
+    static func summary(of estimates: [OvernightFastEstimate]) -> OvernightFastSummary? {
+        OvernightFasting.summary(of: estimates)
+    }
+
     static func nextLimit(current: Int, total: Int) -> Int {
         min(max(0, total), max(0, current) + pageSize)
     }
@@ -551,7 +561,7 @@ private struct CurrentFastSummaryRow: View {
                             .strokeBorder(FoodTheme.ink.opacity(0.2), lineWidth: 1)
                     }
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Current fast, started \(current.startDate.formatted(date: .abbreviated, time: .shortened)), elapsed \(FastTimeText.duration(current.elapsed(at: timeline.date)))")
+                    .accessibilityLabel("Current fast estimate, last logged meal \(current.startDate.formatted(date: .abbreviated, time: .shortened)), elapsed \(FastTimeText.duration(current.elapsed(at: timeline.date)))")
                     .accessibilityIdentifier("fasting-current")
             }
         }
@@ -608,9 +618,9 @@ struct FastSessionsView: View {
                 .foregroundStyle(FoodTheme.secondaryText)
             }
             Section {
-                if let summary = OvernightFasting.summary(of: visibleEstimates) {
+                if let summary = FastingHistory.summary(of: estimates) {
                     FastHistoryRow(date: "Avg", duration: summary.averageDuration,
-                                   detail: "\(summary.count) \(summary.count == 1 ? "fast" : "fasts")", isSummary: true)
+                                   detail: "All \(summary.count) completed \(summary.count == 1 ? "fast" : "fasts")", isSummary: true)
                         .padding(.vertical, 3)
                         .background(FoodTheme.ink.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                         .overlay {
@@ -619,7 +629,7 @@ struct FastSessionsView: View {
                         }
                         .accessibilityElement(children: .ignore)
                         .accessibilityAddTraits(.isHeader)
-                        .accessibilityLabel("Average fast, \(FastTimeText.duration(summary.averageDuration)), \(summary.count) fasts")
+                        .accessibilityLabel("Average fast estimate, \(FastTimeText.duration(summary.averageDuration)), all \(summary.count) completed fasts, independent of the displayed calendar month")
                         .accessibilityIdentifier("fasting-history-average")
                         .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
                         .listRowBackground(Color.clear)
@@ -651,7 +661,7 @@ struct FastSessionsView: View {
                     .listRowSeparator(.hidden)
                 }
             } footer: {
-                Text("Calculated between meals on consecutive days. Drinks are excluded.")
+                Text("Estimates use logged meals and exclude drinks. Current measures time since the last logged meal, not confirmed fasting. Completed fasts span consecutive days; the average includes all completed fasts, not just the selected month.")
             }
             if !sessions.isEmpty {
                 Section("Previously saved fasting records") {
@@ -681,11 +691,8 @@ struct FastSessionsView: View {
         .scrollContentBackground(.hidden)
         .background(FoodTheme.background)
         .navigationTitle("Fasts")
-        .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            FoodPageHeader("Fasts", identifier: "fasts-title")
-                .background(FoodTheme.background)
-        }
+        .foodCompactPageTitle()
+        .toolbar(.visible, for: .navigationBar)
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
         }
