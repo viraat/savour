@@ -3,6 +3,30 @@
 Savour was previously named FoodLog. Historical releases below retain their
 original name; see [CHANGELOG.md](CHANGELOG.md) for the cumulative release history.
 
+## Savour 0.5.4
+
+Repository release · 3 October 2026 · app version 0.5.4, build 9
+
+Merged `codex/meal-logging-prompt` into main. The live summary now says
+“Time since last logged meal,” with “Last meal” labeling its timestamp and matching
+VoiceOver wording. Its longer heading uses a wrapping row layout.
+
+After more than 24 elapsed hours it shows “Time since last meal: too long” and a
+“Log a meal” button opening the same draft-aware entry sheet as Add. Exactly 24
+hours keeps the elapsed summary. Logging another meal resets it; drinks do not.
+No food entry is created before Save.
+
+Full backup/restore is not included: it remains on `codex/full-backup-restore`,
+rebased onto this main release. Entries, Core Data models, drafts and CSV formats
+are unchanged.
+
+The unsigned iPhone Release build and Debug test-target compilation passed.
+All 21 Mac reminder regression tests passed. New threshold/UI regressions were
+compiled but not executed, and no simulator run was performed.
+
+This is a local tagged repository release, not a TestFlight build or App Store
+submission. It has not been pushed or published remotely.
+
 ## Savour 0.5.3
 
 Repository release · 3 October 2026 · app version 0.5.3, build 8

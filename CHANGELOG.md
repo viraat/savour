@@ -9,6 +9,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes.
+
+## 0.5.4 — 2026-10-03
+
+App version 0.5.4 · build 9 · repository tag `v0.5.4`
+
 - After more than 24 elapsed hours since the latest logged meal, the summary
   shows “Time since last meal: too long” with a “Log a meal” button opening the
   existing draft-aware entry sheet. Exactly 24 hours retains the elapsed summary;
@@ -16,6 +22,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 - Renamed the current-fast summary to “Time since last logged meal,” including
   VoiceOver wording; its timestamp is labeled “Last meal.” The longer heading
   uses the expanded row layout so it is not constrained to the date column.
+- Existing entry-sheet behavior, draft restoration, meal detection and stored
+  entries remain unchanged. Full backup/restore is excluded from this release
+  and remains on `codex/full-backup-restore`.
+- Verification: unsigned iPhone Release build, Debug app/test-target compilation
+  and 21 Mac reminder regressions passed. New prompt boundary/UI regressions are
+  compile-checked, not executed. No simulator run was performed.
 
 ## 0.5.3 — 2026-10-03
 
