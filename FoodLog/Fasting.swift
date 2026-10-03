@@ -494,6 +494,7 @@ private struct FastHistoryRow: View {
     let duration: TimeInterval
     let detail: String
     var isSummary = false
+    var useExpandedLayout = false
 
     private var durationText: String {
         FastTimeText.compactDuration(duration)
@@ -527,7 +528,7 @@ private struct FastHistoryRow: View {
 
     var body: some View {
         Group {
-            if dynamicTypeSize.isAccessibilitySize {
+            if useExpandedLayout || dynamicTypeSize.isAccessibilitySize {
                 expandedRow
             } else {
                 ViewThatFits(in: .horizontal) {
@@ -551,9 +552,9 @@ private struct CurrentFastSummaryRow: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
             if let current = CurrentFasting.estimate(from: entries, at: timeline.date) {
-                FastHistoryRow(date: "Current", duration: current.elapsed(at: timeline.date),
-                               detail: "Started \(current.startDate.formatted(.dateTime.month(.abbreviated).day().hour().minute()))",
-                               isSummary: true)
+                FastHistoryRow(date: "Time since last logged meal", duration: current.elapsed(at: timeline.date),
+                               detail: "Last meal \(current.startDate.formatted(.dateTime.month(.abbreviated).day().hour().minute()))",
+                               isSummary: true, useExpandedLayout: true)
                     .padding(.vertical, 3)
                     .background(FoodTheme.ink.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                     .overlay {
@@ -561,7 +562,7 @@ private struct CurrentFastSummaryRow: View {
                             .strokeBorder(FoodTheme.ink.opacity(0.2), lineWidth: 1)
                     }
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Current fast estimate, last logged meal \(current.startDate.formatted(date: .abbreviated, time: .shortened)), elapsed \(FastTimeText.duration(current.elapsed(at: timeline.date)))")
+                    .accessibilityLabel("Time since last logged meal, last meal \(current.startDate.formatted(date: .abbreviated, time: .shortened)), elapsed \(FastTimeText.duration(current.elapsed(at: timeline.date)))")
                     .accessibilityIdentifier("fasting-current")
             }
         }
@@ -661,7 +662,7 @@ struct FastSessionsView: View {
                     .listRowSeparator(.hidden)
                 }
             } footer: {
-                Text("Estimates use logged meals and exclude drinks. Current measures time since the last logged meal, not confirmed fasting. Completed fasts span consecutive days; the average includes all completed fasts, not just the selected month.")
+                Text("Estimates use logged meals and exclude drinks. Completed fasts span consecutive days; the average includes all completed fasts, not just the selected month.")
             }
             if !sessions.isEmpty {
                 Section("Previously saved fasting records") {

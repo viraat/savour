@@ -9,7 +9,9 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
-No unreleased changes.
+- Renamed the current-fast summary to “Time since last logged meal,” including
+  VoiceOver wording; its timestamp is labeled “Last meal.” The longer heading
+  uses the expanded row layout so it is not constrained to the date column.
 
 ## 0.5.3 — 2026-10-03
 

@@ -870,7 +870,8 @@ final class FoodLogUITests: XCTestCase {
         app.buttons["Fasts"].tap()
         let current = app.descendants(matching: .any)["fasting-current"]
         XCTAssertTrue(current.waitForExistence(timeout: 3))
-        XCTAssertTrue(current.label.contains("Current fast estimate, last logged meal"))
+        XCTAssertTrue(current.label.contains("Time since last logged meal"))
+        XCTAssertFalse(current.label.contains("Current fast"))
         app.terminate()
         launch(resetStore: false)
         app.buttons["Fasts"].tap()
