@@ -25,6 +25,13 @@ the UI suite does not depend on a simulator's permission history.
 
 ## Run the automated suite
 
+### Release 0.5.5 — 2026-10-04
+
+App version `0.5.5`, build `10`, adds smaller adaptive-gray Fasts footer text and
+removes its section's bottom separator. The unsigned iPhone Release build and
+Debug test-target compilation passed. No simulator run or visual verification
+was performed. Full backup/restore is excluded from this release.
+
 ### Release 0.5.4 — 2026-10-03
 
 App version `0.5.4`, build `9`, includes the meal-summary wording and over-24-hour

@@ -11,6 +11,17 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 No unreleased changes.
 
+## 0.5.5 — 2026-10-04
+
+App version 0.5.5 · build 10 · repository tag `v0.5.5`
+
+- Made the Fasts estimates footer smaller with a native caption font and adaptive
+  secondary-label gray, and hid its section's bottom separator. Dynamic Type
+  and light/dark-mode adaptation are retained.
+- Full backup/restore remains unmerged on its separate feature branch.
+- Unsigned iPhone Release build and Debug test-target compilation passed;
+  no simulator run or visual verification was performed.
+
 ## 0.5.4 — 2026-10-03
 
 App version 0.5.4 · build 9 · repository tag `v0.5.4`
