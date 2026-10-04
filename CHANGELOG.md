@@ -9,7 +9,9 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
-No unreleased changes.
+- Made the Fasts estimates footer smaller with a native caption font and adaptive
+  secondary-label gray, and hid its section's bottom separator. Dynamic Type
+  and light/dark-mode adaptation are retained.
 
 ## 0.5.4 — 2026-10-03
 

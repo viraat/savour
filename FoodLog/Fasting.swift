@@ -691,7 +691,11 @@ struct FastSessionsView: View {
                 }
             } footer: {
                 Text("Estimates use logged meals and exclude drinks. Completed fasts span consecutive days; the average includes all completed fasts, not just the selected month.")
+                    .font(.caption)
+                    .foregroundStyle(Color(uiColor: .secondaryLabel))
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .listSectionSeparator(.hidden, edges: .bottom)
             if !sessions.isEmpty {
                 Section("Previously saved fasting records") {
                     ForEach(sessions, id: \.objectID) { session in
