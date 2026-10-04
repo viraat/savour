@@ -118,23 +118,6 @@ final class PersistenceController {
     }
 }
 
-enum CompanionNames {
-    static func parse(_ legacyValue: String) -> [String] {
-        let separated = legacyValue
-            .replacingOccurrences(of: " and ", with: ",", options: .caseInsensitive)
-            .replacingOccurrences(of: " & ", with: ",")
-        return normalized(separated.components(separatedBy: CharacterSet(charactersIn: ",;\n")))
-    }
-
-    static func normalized(_ values: [String]) -> [String] {
-        var seen = Set<String>()
-        return values.compactMap { value in
-            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted else { return nil }
-            return trimmed
-        }
-    }
-}
 
 extension FoodEntry {
     var wrappedID: UUID { id ?? UUID() }

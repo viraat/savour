@@ -22,6 +22,21 @@ private struct JournalSearch: ViewModifier {
     }
 }
 
+private struct JournalCacheKey: Equatable {
+    let query: String
+    let meal: String
+    let calendar: Calendar
+    let day: Date
+    let locale: String
+}
+
+private struct JournalHistory {
+    let filtered: [FoodEntry]
+    let groups: [EntryDayGroup]
+    let thisWeek: [FoodEntry]
+    let mealCounts: [(String, Int)]
+}
+
 struct JournalView: View {
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -38,37 +53,40 @@ struct JournalView: View {
     @State private var mealFilter = "All"
     @State private var fastingMessage: String?
     @State private var calendar = Calendar.current
+    @StateObject private var historyCache = FoodHistoryCache<JournalCacheKey, JournalHistory>()
 
-    private var thisWeek: [FoodEntry] {
-        guard let interval = calendar.dateInterval(of: .weekOfYear, for: Date()) else {
-            return Array(entries)
+    private var history: JournalHistory {
+        let now = Date()
+        let query = self.query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return historyCache.value(for: JournalCacheKey(query: query, meal: mealFilter, calendar: calendar,
+                                                       day: calendar.startOfDay(for: now),
+                                                       locale: Locale.current.identifier)) {
+            let filtered = entries.filter { entry in
+                let matchesMeal = mealFilter == "All" || entry.wrappedMealType == mealFilter
+                guard matchesMeal else { return false }
+                return query.isEmpty
+                    || entry.wrappedFood.localizedCaseInsensitiveContains(query)
+                    || entry.wrappedPlace.localizedCaseInsensitiveContains(query)
+                    || entry.companionNames.contains { $0.localizedCaseInsensitiveContains(query) }
+                    || entry.wrappedNote.localizedCaseInsensitiveContains(query)
+            }
+            let interval = calendar.dateInterval(of: .weekOfYear, for: now)
+            let week = entries.filter { interval?.contains($0.wrappedDate) ?? true }
+            let counts = Dictionary(grouping: week, by: \.wrappedMealType).mapValues(\.count)
+                .sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
+            return JournalHistory(filtered: filtered, groups: groupEntriesByDay(filtered, calendar: calendar),
+                                  thisWeek: week, mealCounts: counts)
         }
-        return entries.filter { interval.contains($0.wrappedDate) }
     }
 
-    private var filteredEntries: [FoodEntry] {
-        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        return entries.filter { entry in
-            let matchesMeal = mealFilter == "All" || entry.wrappedMealType == mealFilter
-            let matchesQuery = trimmedQuery.isEmpty
-                || entry.wrappedFood.localizedCaseInsensitiveContains(trimmedQuery)
-                || entry.wrappedPlace.localizedCaseInsensitiveContains(trimmedQuery)
-                || entry.companionNames.contains { $0.localizedCaseInsensitiveContains(trimmedQuery) }
-                || entry.wrappedNote.localizedCaseInsensitiveContains(trimmedQuery)
-            return matchesMeal && matchesQuery
-        }
-    }
+    private var thisWeek: [FoodEntry] { history.thisWeek }
+    private var filteredEntries: [FoodEntry] { history.filtered }
 
     private var isFiltering: Bool {
         mealFilter != "All" || !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private var mealCounts: [(String, Int)] {
-        let counts = Dictionary(grouping: thisWeek, by: \.wrappedMealType).mapValues(\.count)
-        return counts.sorted { lhs, rhs in
-            lhs.value == rhs.value ? lhs.key < rhs.key : lhs.value > rhs.value
-        }
-    }
+    private var mealCounts: [(String, Int)] { history.mealCounts }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -93,7 +111,7 @@ struct JournalView: View {
                         }
                     }
 
-                    ForEach(groupEntriesByDay(filteredEntries)) { group in
+                    ForEach(history.groups) { group in
                         daySection(group)
                     }
                 }
@@ -120,11 +138,20 @@ struct JournalView: View {
             }
         }
         .modifier(JournalSearch(text: $query, isPresented: $showingSearch))
+        .onAppear { historyCache.observe(context) }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+            calendar = .current
+            historyCache.invalidate()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
+            calendar = .current
+            historyCache.invalidate()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
         }
         .onChange(of: scenePhase) { phase in
-            if phase == .active { calendar = .current }
+            if phase == .active { calendar = .current; historyCache.invalidate() }
         }
         .sheet(item: $selectedEntry) { entry in
             FoodEntryEditor(entry: entry)

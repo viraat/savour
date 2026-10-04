@@ -37,6 +37,28 @@ private enum PatternDetail: String, Identifiable {
     }
 }
 
+private struct PatternCacheKey: Equatable {
+    let range: Int
+    let calendar: Calendar
+    let day: Date
+    let locale: String
+}
+
+private struct PatternHistory {
+    let selectedEntries: [FoodEntry]
+    let overnightEstimates: [OvernightFastEstimate]
+    let overnightSummary: OvernightFastSummary?
+    let daysRepresented: Int
+    let individualFoodCounts: [(String, Int)]
+    let peopleCounts: [(String, Int)]
+    let currentStreak: Int
+    let dailyCounts: [(Date, Int)]
+    let mappedPlaces: [EatingPlacePoint]
+    let entriesWithoutCoordinates: [FoodEntry]
+    let dailyMaximum: Int
+}
+
+
 struct PatternsView: View {
     @Environment(\.managedObjectContext) private var context
     @Environment(\.foodAccentColor) private var accentColor
@@ -53,89 +75,111 @@ struct PatternsView: View {
     @State private var calendar = Calendar.current
     @StateObject private var contactPhotos = ContactsSearchModel(includesImages: true)
 
-    private var selectedEntries: [FoodEntry] {
-        guard range.rawValue > 0,
-              let start = Calendar.current.date(byAdding: .day, value: -(range.rawValue - 1), to: Calendar.current.startOfDay(for: Date()))
-        else { return Array(entries) }
-        return entries.filter { $0.wrappedDate >= start }
-    }
+    @StateObject private var historyCache = FoodHistoryCache<PatternCacheKey, PatternHistory>()
 
-    private var overnightEstimates: [OvernightFastEstimate] {
-        let estimates = OvernightFasting.estimates(from: Array(entries), calendar: calendar)
-        guard range.rawValue > 0,
-              let start = calendar.date(byAdding: .day, value: -(range.rawValue - 1),
-                                        to: calendar.startOfDay(for: Date())) else { return estimates }
-        // Select by the first meal's day, retaining the previous day's last
-        // meal even when it falls outside the selected reporting range.
-        return estimates.filter { $0.endDate >= start }
-    }
-
-    private var daysRepresented: Int {
-        Set(selectedEntries.map { Calendar.current.startOfDay(for: $0.wrappedDate) }).count
-    }
-
-    private var individualFoodCounts: [(String, Int)] {
-        frequency(of: selectedEntries.flatMap { entry in
-            entry.wrappedFood
-                .split(separator: ",", omittingEmptySubsequences: true)
-                .map(String.init)
-        })
-    }
-
-    private var peopleCounts: [(String, Int)] {
-        frequency(of: selectedEntries.flatMap(\.companionNames))
-    }
-
-    private var currentStreak: Int {
-        FoodLogStatistics.currentStreak(entryDates: entries.map(\.wrappedDate))
-    }
-
-    private var dailyCounts: [(Date, Int)] {
-        Dictionary(
-            grouping: selectedEntries,
-            by: { Calendar.current.startOfDay(for: $0.wrappedDate) }
-        )
-        .map { ($0.key, $0.value.count) }
-        .sorted { $0.0 > $1.0 }
-    }
-
-    private var mappedPlaces: [EatingPlacePoint] {
-        var points: [String: EatingPlacePoint] = [:]
-
-        for entry in selectedEntries {
-            guard let coordinates = entry.placeCoordinates else { continue }
-            let displayName = PlaceFormatting.conciseName(
-                place: entry.wrappedPlace,
-                city: entry.wrappedPlaceCity
-            )
-            guard !displayName.isEmpty else { continue }
-
-            let key = "\(displayName.lowercased())|\(coordinates.latitude)|\(coordinates.longitude)"
-            if var point = points[key] {
-                point.count += 1
-                points[key] = point
-            } else {
-                points[key] = EatingPlacePoint(
-                    id: key,
-                    displayName: displayName,
-                    latitude: coordinates.latitude,
-                    longitude: coordinates.longitude,
-                    count: 1
+    private var history: PatternHistory {
+        let now = Date()
+        return historyCache.value(for: PatternCacheKey(range: range.rawValue, calendar: calendar,
+                                                       day: calendar.startOfDay(for: now),
+                                                       locale: Locale.current.identifier)) {
+            let selectedEntries: [FoodEntry] = {
+                guard range.rawValue > 0,
+                      let start = calendar.date(byAdding: .day, value: -(range.rawValue - 1), to: calendar.startOfDay(for: now))
+                else { return Array(entries) }
+                return entries.filter { $0.wrappedDate >= start }
+            }()
+            let overnightEstimates: [OvernightFastEstimate] = {
+                let estimates = OvernightFasting.estimates(from: Array(entries), calendar: calendar)
+                guard range.rawValue > 0,
+                      let start = calendar.date(byAdding: .day, value: -(range.rawValue - 1),
+                                                to: calendar.startOfDay(for: now)) else { return estimates }
+                // Select by the first meal's day, retaining the previous day's last
+                // meal even when it falls outside the selected reporting range.
+                return estimates.filter { $0.endDate >= start }
+            }()
+            let daysRepresented: Int = {
+                Set(selectedEntries.map { calendar.startOfDay(for: $0.wrappedDate) }).count
+            }()
+            let individualFoodCounts: [(String, Int)] = {
+                frequency(of: selectedEntries.flatMap { entry in
+                    entry.wrappedFood
+                        .split(separator: ",", omittingEmptySubsequences: true)
+                        .map(String.init)
+                })
+            }()
+            let peopleCounts: [(String, Int)] = {
+                frequency(of: selectedEntries.flatMap(\.companionNames))
+            }()
+            let currentStreak: Int = {
+                FoodLogStatistics.currentStreak(entryDates: entries.map(\.wrappedDate), relativeTo: now, calendar: calendar)
+            }()
+            let dailyCounts: [(Date, Int)] = {
+                Dictionary(
+                    grouping: selectedEntries,
+                    by: { calendar.startOfDay(for: $0.wrappedDate) }
                 )
-            }
-        }
+                .map { ($0.key, $0.value.count) }
+                .sorted { $0.0 > $1.0 }
+            }()
+            let mappedPlaces: [EatingPlacePoint] = {
+                var points: [String: EatingPlacePoint] = [:]
 
-        return points.values.sorted {
-            if $0.count != $1.count { return $0.count > $1.count }
-            return $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+                for entry in selectedEntries {
+                    guard let coordinates = entry.placeCoordinates else { continue }
+                    let displayName = PlaceFormatting.conciseName(
+                        place: entry.wrappedPlace,
+                        city: entry.wrappedPlaceCity
+                    )
+                    guard !displayName.isEmpty else { continue }
+
+                    let key = "\(displayName.lowercased())|\(coordinates.latitude)|\(coordinates.longitude)"
+                    if var point = points[key] {
+                        point.count += 1
+                        points[key] = point
+                    } else {
+                        points[key] = EatingPlacePoint(
+                            id: key,
+                            displayName: displayName,
+                            latitude: coordinates.latitude,
+                            longitude: coordinates.longitude,
+                            count: 1
+                        )
+                    }
+                }
+
+                return points.values.sorted {
+                    if $0.count != $1.count { return $0.count > $1.count }
+                    return $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+                }
+            }()
+            let entriesWithoutCoordinates: [FoodEntry] = {
+                entries.filter {
+                    !$0.wrappedPlace.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !$0.hasPlaceCoordinates
+                }
+            }()
+            return PatternHistory(selectedEntries: selectedEntries,
+                                  overnightEstimates: overnightEstimates,
+                                  overnightSummary: OvernightFasting.summary(of: overnightEstimates),
+                                  daysRepresented: daysRepresented,
+                                  individualFoodCounts: individualFoodCounts,
+                                  peopleCounts: peopleCounts,
+                                  currentStreak: currentStreak,
+                                  dailyCounts: dailyCounts,
+                                  mappedPlaces: mappedPlaces,
+                                  entriesWithoutCoordinates: entriesWithoutCoordinates,
+                                  dailyMaximum: dailyCounts.map(\.1).max() ?? 1)
         }
     }
 
-    private var entriesWithoutCoordinates: [FoodEntry] {
-        entries.filter {
-            !$0.wrappedPlace.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !$0.hasPlaceCoordinates
-        }
-    }
+    private var selectedEntries: [FoodEntry] { history.selectedEntries }
+    private var overnightEstimates: [OvernightFastEstimate] { history.overnightEstimates }
+    private var daysRepresented: Int { history.daysRepresented }
+    private var individualFoodCounts: [(String, Int)] { history.individualFoodCounts }
+    private var peopleCounts: [(String, Int)] { history.peopleCounts }
+    private var currentStreak: Int { history.currentStreak }
+    private var dailyCounts: [(Date, Int)] { history.dailyCounts }
+    private var mappedPlaces: [EatingPlacePoint] { history.mappedPlaces }
+    private var entriesWithoutCoordinates: [FoodEntry] { history.entriesWithoutCoordinates }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -164,9 +208,20 @@ struct PatternsView: View {
             calendar = .current
         }
         .onChange(of: scenePhase) { phase in
-            if phase == .active { calendar = .current }
+            if phase == .active { calendar = .current; historyCache.invalidate() }
         }
-        .onAppear(perform: contactPhotos.loadIfAuthorized)
+        .onAppear {
+            historyCache.observe(context)
+            contactPhotos.loadIfAuthorized()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+            calendar = .current
+            historyCache.invalidate()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
+            calendar = .current
+            historyCache.invalidate()
+        }
         .sheet(item: $selectedDetail, content: detailSheet)
     }
 
@@ -192,7 +247,7 @@ struct PatternsView: View {
         return VStack(alignment: .leading, spacing: 12) {
             Label("FASTS", systemImage: "hourglass")
                 .sectionLabel()
-            if let summary = OvernightFasting.summary(of: estimates), let latest = estimates.first {
+            if let summary = history.overnightSummary, let latest = estimates.first {
                 HStack(alignment: .top, spacing: 16) {
                     overnightMetric("Average gap", duration: summary.averageDuration)
                     overnightMetric("Latest gap", duration: latest.duration)
@@ -512,7 +567,7 @@ struct PatternsView: View {
                                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                                 .frame(width: 82, alignment: .leading)
                             PatternCountBar(category: day.formatted(date: .abbreviated, time: .omitted),
-                                            count: count, maximum: dailyCounts.map(\.1).max() ?? 1)
+                                            count: count, maximum: history.dailyMaximum)
                             Text("\(count)")
                                 .font(.system(.subheadline, design: .rounded).weight(.bold))
                                 .foregroundStyle(FoodTheme.secondaryText)

@@ -521,8 +521,7 @@ struct EntryDayGroup: Identifiable {
     var id: Date { date }
 }
 
-func groupEntriesByDay(_ entries: [FoodEntry]) -> [EntryDayGroup] {
-    let calendar = Calendar.current
+func groupEntriesByDay(_ entries: [FoodEntry], calendar: Calendar = .current) -> [EntryDayGroup] {
     let grouped = Dictionary(grouping: entries) { calendar.startOfDay(for: $0.wrappedDate) }
     return grouped.keys.sorted(by: >).map { day in
         EntryDayGroup(date: day, entries: grouped[day, default: []].sorted { $0.wrappedDate > $1.wrappedDate })

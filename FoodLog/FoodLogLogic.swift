@@ -1,5 +1,23 @@
 import Foundation
 
+enum CompanionNames {
+    static func parse(_ legacyValue: String) -> [String] {
+        let separated = legacyValue
+            .replacingOccurrences(of: " and ", with: ",", options: .caseInsensitive)
+            .replacingOccurrences(of: " & ", with: ",")
+        return normalized(separated.components(separatedBy: CharacterSet(charactersIn: ",;\n")))
+    }
+
+    static func normalized(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values.compactMap { value in
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted else { return nil }
+            return trimmed
+        }
+    }
+}
+
 enum FoodItemParser {
     static func items(in description: String) -> [String] {
         description
@@ -26,63 +44,64 @@ struct FoodSuggestionSource {
 enum FoodSuggestionEngine {
     private struct Candidate {
         let name: String
+        let words: [String]
         var count: Int
-        var mealCount: Int
+        var mealCounts: [String: Int]
         var lastUsed: Date
     }
 
-    static func suggestions(
-        from sources: [FoodSuggestionSource],
-        mealType: String,
-        currentFood: String,
-        limit: Int = 8
-    ) -> [String] {
-        let query = key(for: currentSegment(in: currentFood))
-        let selected = Set(FoodItemParser.items(in: currentFood).map(key(for:)))
-        let selectedMeal = key(for: mealType)
-        var candidates: [String: Candidate] = [:]
+    /// Parsing, normalization and history aggregation happen once, not once
+    /// per keystroke. Query matching retains the original ranking rules.
+    struct Index {
+        private var candidates: [String: Candidate] = [:]
 
-        for source in sources {
-            var countedForEntry = Set<String>()
-            for item in FoodItemParser.items(in: source.food) {
-                let name = normalizedWhitespace(item)
-                let itemKey = key(for: name)
-                guard countedForEntry.insert(itemKey).inserted else { continue }
-                var candidate = candidates[itemKey] ?? Candidate(
-                    name: name,
-                    count: 0,
-                    mealCount: 0,
-                    lastUsed: .distantPast
-                )
-                candidate.count += 1
-                if key(for: source.mealType) == selectedMeal {
-                    candidate.mealCount += 1
+        init(sources: [FoodSuggestionSource]) {
+            for source in sources {
+                let meal = key(for: source.mealType)
+                var countedForEntry = Set<String>()
+                for item in FoodItemParser.items(in: source.food) {
+                    let name = normalizedWhitespace(item)
+                    let itemKey = key(for: name)
+                    guard countedForEntry.insert(itemKey).inserted else { continue }
+                    var candidate = candidates[itemKey] ?? Candidate(
+                        name: name, words: itemKey.split(separator: " ").map(String.init),
+                        count: 0, mealCounts: [:], lastUsed: .distantPast
+                    )
+                    candidate.count += 1
+                    candidate.mealCounts[meal, default: 0] += 1
+                    candidate.lastUsed = max(candidate.lastUsed, source.date)
+                    candidates[itemKey] = candidate
                 }
-                candidate.lastUsed = max(candidate.lastUsed, source.date)
-                candidates[itemKey] = candidate
             }
         }
 
-        return candidates.compactMap { itemKey, candidate -> (Candidate, Int)? in
-            guard !selected.contains(itemKey), let match = matchRank(itemKey, query: query) else {
-                return nil
+        var uniqueFoodCount: Int { candidates.count }
+
+        func suggestions(mealType: String, currentFood: String, limit: Int = 8) -> [String] {
+            let query = key(for: currentSegment(in: currentFood))
+            let selected = Set(FoodItemParser.items(in: currentFood).map(key(for:)))
+            let selectedMeal = key(for: mealType)
+            return candidates.compactMap { itemKey, candidate -> (Candidate, Int, Int)? in
+                guard !selected.contains(itemKey),
+                      let match = matchRank(itemKey, words: candidate.words, query: query) else { return nil }
+                return (candidate, match, candidate.mealCounts[selectedMeal, default: 0])
             }
-            return (candidate, match)
-        }
             .sorted {
                 if $0.1 != $1.1 { return $0.1 > $1.1 }
-                if ($0.0.mealCount > 0) != ($1.0.mealCount > 0) {
-                    return $0.0.mealCount > 0
-                }
-                if $0.0.mealCount != $1.0.mealCount {
-                    return $0.0.mealCount > $1.0.mealCount
-                }
+                if ($0.2 > 0) != ($1.2 > 0) { return $0.2 > 0 }
+                if $0.2 != $1.2 { return $0.2 > $1.2 }
                 if $0.0.count != $1.0.count { return $0.0.count > $1.0.count }
                 if $0.0.lastUsed != $1.0.lastUsed { return $0.0.lastUsed > $1.0.lastUsed }
                 return $0.0.name.localizedCaseInsensitiveCompare($1.0.name) == .orderedAscending
             }
             .prefix(max(limit, 0))
             .map { $0.0.name }
+        }
+    }
+
+    static func suggestions(from sources: [FoodSuggestionSource], mealType: String,
+                            currentFood: String, limit: Int = 8) -> [String] {
+        Index(sources: sources).suggestions(mealType: mealType, currentFood: currentFood, limit: limit)
     }
 
     static func replacingCurrentSegment(in description: String, with suggestion: String) -> String {
@@ -105,10 +124,9 @@ enum FoodSuggestionEngine {
             .lowercased()
     }
 
-    private static func matchRank(_ candidate: String, query: String) -> Int? {
+    private static func matchRank(_ candidate: String, words: [String], query: String) -> Int? {
         guard !query.isEmpty else { return 0 }
         if candidate.hasPrefix(query) { return 4 }
-        let words = candidate.split(separator: " ").map(String.init)
         if words.contains(where: { $0.hasPrefix(query) }) { return 3 }
         if candidate.contains(query) { return 2 }
 
