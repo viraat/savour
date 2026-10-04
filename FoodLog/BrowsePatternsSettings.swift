@@ -1017,11 +1017,15 @@ struct FoodLogSettingsView: View {
 /// Keeps data operations and their previews scoped to the data page.
 private struct FoodLogDataSettingsView: View {
     @Environment(\.managedObjectContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @FetchRequest(sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)])
     private var entries: FetchedResults<FoodEntry>
 
-    @State private var showingShareSheet = false
-    @State private var exportURL: URL?
+    @State private var shareFile: FoodLogShareFile?
+    @State private var csvFileURL: URL?
+    @State private var csvTask: Task<Void, Never>?
+    @State private var isExportingCSV = false
+    @State private var csvExportMessage: String?
     @State private var showingFileImporter = false
     @State private var importPreview: FoodLogCSVImportPreview?
     @State private var importMessage: String?
@@ -1032,17 +1036,23 @@ private struct FoodLogDataSettingsView: View {
             Section {
                 Button(action: exportCSV) {
                     HStack {
-                        Text("Export CSV")
+                        Text(isExportingCSV ? "Preparing CSV…" : "Export CSV")
                         Spacer()
-                        Text("\(entries.count) \(entries.count == 1 ? "entry" : "entries")")
-                            .foregroundStyle(FoodTheme.secondaryText)
+                        if isExportingCSV {
+                            ProgressView()
+                        } else {
+                            Text("\(entries.count) \(entries.count == 1 ? "entry" : "entries")")
+                                .foregroundStyle(FoodTheme.secondaryText)
+                        }
                     }
                     .foregroundStyle(.primary)
                 }
                 .accessibilityIdentifier("settings-export-csv")
+                .disabled(isExportingCSV)
 
                 Button("Import CSV") { showingFileImporter = true }
                     .foregroundStyle(.primary)
+                    .disabled(isExportingCSV)
                     .accessibilityIdentifier("settings-import-csv")
 
 #if DEBUG
@@ -1052,7 +1062,7 @@ private struct FoodLogDataSettingsView: View {
 #endif
 
                 Button("Erase all entries", role: .destructive) { confirmErase = true }
-                    .disabled(entries.isEmpty)
+                    .disabled(entries.isEmpty || isExportingCSV)
                     .accessibilityIdentifier("settings-erase-entries")
             } header: {
                 Text("Your data").foregroundStyle(FoodTheme.secondaryText)
@@ -1066,11 +1076,32 @@ private struct FoodLogDataSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
         .font(.body)
-        .sheet(isPresented: $showingShareSheet) {
-            if let exportURL {
-                ShareSheet(activityItems: [exportURL])
+        .overlay {
+            if isExportingCSV {
+                ProgressView("Preparing CSV…")
+                    .padding(24)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+                    .accessibilityIdentifier("csv-export-progress")
             }
         }
+        .onDisappear {
+            csvTask?.cancel()
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase != .active {
+                csvTask?.cancel()
+            }
+        }
+        .sheet(item: $shareFile, onDismiss: {
+            if let csvFileURL { try? FileManager.default.removeItem(at: csvFileURL) }
+            csvFileURL = nil
+        }) { file in
+            ShareSheet(activityItems: [file.url])
+        }
+        .alert("CSV export", isPresented: Binding(
+            get: { csvExportMessage != nil },
+            set: { if !$0 { csvExportMessage = nil } }
+        )) { Button("OK") { csvExportMessage = nil } } message: { Text(csvExportMessage ?? "") }
         .fileImporter(
             isPresented: $showingFileImporter,
             allowedContentTypes: [.commaSeparatedText, .plainText]
@@ -1117,8 +1148,26 @@ private struct FoodLogDataSettingsView: View {
     }
 
     private func exportCSV() {
-        exportURL = CSVExporter.makeFile(from: Array(entries))
-        showingShareSheet = exportURL != nil
+        guard !isExportingCSV else { return }
+        guard let coordinator = context.persistentStoreCoordinator else {
+            csvExportMessage = "The journal store is unavailable."
+            return
+        }
+        isExportingCSV = true
+        csvTask = Task { @MainActor in
+            defer { isExportingCSV = false; csvTask = nil }
+            do {
+                let url = try await CSVExporter.export(from: coordinator)
+                guard !Task.isCancelled, scenePhase == .active else {
+                    try? FileManager.default.removeItem(at: url)
+                    return
+                }
+                csvFileURL = url
+                shareFile = FoodLogShareFile(url: url)
+            } catch {
+                if !Task.isCancelled, scenePhase == .active { csvExportMessage = error.localizedDescription }
+            }
+        }
     }
 
 #if DEBUG
@@ -1302,16 +1351,58 @@ private struct MealDefaultTimesSettingsView: View {
 
 enum CSVExporter {
     static func makeFile(from entries: [FoodEntry]) -> URL? {
-        let rows = entries.map(row(for:))
-        let csv = FoodLogCSVDocument.encodeExtended(dataRows: rows)
+        try? writeFile(rows: entries.map(row(for:)))
+    }
 
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Savour.csv")
+    /// Read only committed entries on a private Core Data queue. Neither
+    /// encoding nor writing blocks the UI, and export never saves an edit draft.
+    static func export(from coordinator: NSPersistentStoreCoordinator,
+                       exportedAt: Date = Date(),
+                       temporaryDirectory: URL = FileManager.default.temporaryDirectory) async throws -> URL {
+        try Task.checkCancellation()
+        let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        context.persistentStoreCoordinator = coordinator
+        context.undoManager = nil
+        let url = try await context.perform {
+            defer { context.reset() }
+            if !coordinator.persistentStores.isEmpty,
+               coordinator.persistentStores.allSatisfy({ $0.type == NSSQLiteStoreType }) {
+                try context.setQueryGenerationFrom(.current)
+            }
+            let request = FoodEntry.fetchRequest()
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)]
+            request.fetchBatchSize = 200
+            let entries = try context.fetch(request)
+            return try writeFile(rows: entries.map(row(for:)), exportedAt: exportedAt,
+                                 temporaryDirectory: temporaryDirectory)
+        }
         do {
-            try csv.write(to: url, atomically: true, encoding: .utf8)
+            try Task.checkCancellation()
             return url
         } catch {
-            return nil
+            try? FileManager.default.removeItem(at: url)
+            throw error
         }
+    }
+
+    static func fileName(exportedAt: Date, identifier: UUID) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss-SSS'Z'"
+        // A unique suffix prevents repeated/concurrent exports overwriting a
+        // file still being read by the share sheet.
+        return "Savour-\(formatter.string(from: exportedAt))-\(identifier.uuidString).csv"
+    }
+
+    static func writeFile(rows: [[String]], exportedAt: Date = Date(),
+                          temporaryDirectory: URL = FileManager.default.temporaryDirectory,
+                          identifier: UUID = UUID()) throws -> URL {
+        let csv = FoodLogCSVDocument.encodeExtended(dataRows: rows)
+        let url = temporaryDirectory.appendingPathComponent(fileName(exportedAt: exportedAt, identifier: identifier))
+        try Data(csv.utf8).write(to: url, options: [.atomic, .completeFileProtection])
+        return url
     }
 
     static func row(for entry: FoodEntry) -> [String] {
@@ -1431,11 +1522,19 @@ private struct FoodLogCSVImportPreviewView: View {
     }
 }
 
+/// Item-driven presentation ensures the initial sheet always has a ready file.
+private struct FoodLogShareFile: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
 private struct ShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        controller.view.accessibilityIdentifier = "export-share-sheet"
+        return controller
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}

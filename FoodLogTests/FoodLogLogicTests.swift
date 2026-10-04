@@ -478,6 +478,82 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertTrue(rows.isEmpty)
     }
 
+    func testCSVExportFilenameHasAnUnambiguousTimestampAndUniqueIdentity() throws {
+        let date = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-04T10:20:30Z"))
+        let identifier = try XCTUnwrap(UUID(uuidString: "11111111-2222-3333-4444-555555555555"))
+        XCTAssertEqual(CSVExporter.fileName(exportedAt: date, identifier: identifier),
+                       "Savour-2026-10-04_10-20-30-000Z-11111111-2222-3333-4444-555555555555.csv")
+        XCTAssertNotEqual(CSVExporter.fileName(exportedAt: date, identifier: identifier),
+                          CSVExporter.fileName(exportedAt: date, identifier: UUID()))
+    }
+
+    func testCSVExportsNeverOverwriteThePreviousFile() throws {
+        let first = try CSVExporter.writeFile(rows: [])
+        let second = try CSVExporter.writeFile(rows: [])
+        defer {
+            try? FileManager.default.removeItem(at: first)
+            try? FileManager.default.removeItem(at: second)
+        }
+        XCTAssertNotEqual(first, second)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: first.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: second.path))
+        XCTAssertTrue(first.lastPathComponent.hasPrefix("Savour-"))
+        XCTAssertEqual(first.pathExtension, "csv")
+    }
+
+    func testCSVWriteFailureThrowsRatherThanPresentingAnEmptySheet() {
+        let missing = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        XCTAssertThrowsError(try CSVExporter.writeFile(rows: [], temporaryDirectory: missing))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: missing.path))
+    }
+
+    @MainActor
+    func testAsyncCSVExportUsesSavedEntriesWithoutSavingUnfinishedEdits() async throws {
+        let controller = PersistenceController(inMemory: true)
+        let context = controller.container.viewContext
+        let entry = FoodEntry(context: context)
+        entry.id = UUID()
+        entry.date = Date(timeIntervalSince1970: 1_700_000_000)
+        entry.food = "Saved soup, bread"
+        entry.mealType = "Lunch"
+        entry.note = "A note with \"quotes\"\nand a line break"
+        entry.replaceCompanions(with: ["Ana", "Bob"], in: context)
+        try context.save()
+        let expected = CSVExporter.row(for: entry)
+        entry.food = "Unfinished edit"
+        let draft = FoodEntry(context: context)
+        draft.id = UUID()
+        draft.date = Date()
+        draft.food = "Unfinished entry"
+        draft.mealType = "Dinner"
+        let url = try await CSVExporter.export(from: controller.container.persistentStoreCoordinator)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let rows = try FoodLogCSVDocument.decode(String(contentsOf: url, encoding: .utf8))
+        XCTAssertEqual(rows, [expected])
+        XCTAssertTrue(context.hasChanges)
+        XCTAssertEqual(entry.food, "Unfinished edit")
+        XCTAssertTrue(draft.isInserted)
+    }
+
+    @MainActor
+    func testCancelledCSVExportCreatesNoFile() async throws {
+        let controller = PersistenceController(inMemory: true)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let task = Task { @MainActor in
+            try await CSVExporter.export(from: controller.container.persistentStoreCoordinator,
+                                         temporaryDirectory: directory)
+        }
+        task.cancel()
+        do {
+            _ = try await task.value
+            XCTFail("Cancelled export must not return a shareable file")
+        } catch is CancellationError {
+            XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty)
+        }
+    }
+
     func testExportImportRestoresTextFieldsAndSkipsRepeatImport() throws {
         let source = PersistenceController(inMemory: true).container.viewContext
         let original = FoodEntry(context: source)

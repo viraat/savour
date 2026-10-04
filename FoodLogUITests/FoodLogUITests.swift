@@ -749,6 +749,22 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertEqual(version.frame.midX, app.frame.midX, accuracy: 4)
     }
 
+    func testCSVShareSheetHasContentOnFirstTapAndAfterRelaunch() {
+        for iteration in 0..<2 {
+            launch(resetStore: iteration == 0, extraArguments: ["--seed-ui-test-map"])
+            app.tabBars.firstMatch.buttons["Settings"].tap()
+            openSettingsPage("settings-your-data", title: "Your data")
+            app.buttons["settings-export-csv"].tap()
+            XCTAssertTrue(app.otherElements["export-share-sheet"].waitForExistence(timeout: 10))
+            XCTAssertFalse(app.otherElements["csv-export-progress"].exists)
+            let capture = XCTAttachment(screenshot: app.screenshot())
+            capture.name = "CSV share sheet on first tap \(iteration + 1)"
+            capture.lifetime = .keepAlways
+            add(capture)
+            app.terminate()
+        }
+    }
+
     func testSettingsGroupedLayoutInLightAndDarkMode() {
         for appearance in ["1", "2"] {
             launch(resetStore: true, extraArguments: ["--seed-ui-test-map", "-foodLogAppearance", appearance])

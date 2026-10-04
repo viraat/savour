@@ -9,6 +9,16 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Fixed initial CSV/share-sheet presentation by presenting a ready file as the
+  sheet item instead of capturing a separately updated URL. CSV export runs on
+  a private Core Data queue with a Preparing CSV progress indicator and explicit
+  errors. Only saved entries are exported; no draft or edit is saved by export.
+- CSV filenames include a UTC timestamp and unique export identifier. Files are
+  protected, never overwrite another export, and are removed after sharing or
+  cancellation.
+- CSV regressions cover filename stability/uniqueness, write errors, saved-only
+  exports, cancellation and first-tap sharing after relaunch. App and test
+  targets compile; these new tests were not executed and no simulator was run.
 - Moved Your data and About Savour into their own native Settings detail pages.
   Data actions and project/library credits use matching Dynamic Type body text;
   About retains linked Dime attribution and the centered creator/version footer.
