@@ -15,7 +15,7 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
   errors. Only saved entries are exported; no draft or edit is saved by export.
 - CSV filenames include a UTC timestamp and unique export identifier. Files are
   protected, never overwrite another export, and are removed after sharing or
-  cancellation.
+  cancellation. The same item-driven presentation also applies to ZIP backups.
 - CSV regressions cover filename stability/uniqueness, write errors, saved-only
   exports, cancellation and first-tap sharing after relaunch. App and test
   targets compile; these new tests were not executed and no simulator was run.
