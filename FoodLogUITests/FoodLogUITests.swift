@@ -521,9 +521,7 @@ final class FoodLogUITests: XCTestCase {
 
             app.buttons["Settings"].tap()
             XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
-            // Bring the privacy controls above the glass before checking their
-            // text contrast; deliberately refracted offscreen content is not
-            // readable text and can produce an unattributed contrast finding.
+            openSettingsPage("settings-about-savour", title: "About Savour")
             revealAboveNavigation(app.descendants(matching: .any)["dime-source-link"])
             try auditVisibleUI()
             app.terminate()
@@ -635,8 +633,7 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Default meal times"].waitForExistence(timeout: 3))
         app.navigationBars["Default meal times"].buttons.firstMatch.tap()
         for identifier in ["fasting-goal-enabled", "fasting-goal-hours",
-                           "relock-delay", "settings-export-csv", "settings-import-csv",
-                           "settings-erase-entries", "dime-source-link"] {
+                           "relock-delay", "settings-your-data", "settings-about-savour"] {
             revealAboveNavigation(app.descendants(matching: .any)[identifier])
             if identifier == "relock-delay" {
                 // App lock remains visible even when biometrics are unavailable
@@ -644,6 +641,16 @@ final class FoodLogUITests: XCTestCase {
                 XCTAssertTrue(app.switches["settings-app-lock"].exists)
             }
         }
+        XCTAssertFalse(app.buttons["settings-export-csv"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["dime-source-link"].exists)
+        openSettingsPage("settings-your-data", title: "Your data")
+        for identifier in ["settings-export-csv", "settings-import-csv", "settings-erase-entries"] {
+            revealAboveNavigation(app.buttons[identifier])
+        }
+        app.navigationBars["Your data"].buttons.firstMatch.tap()
+        openSettingsPage("settings-about-savour", title: "About Savour")
+        revealAboveNavigation(app.descendants(matching: .any)["dime-source-link"])
+        app.navigationBars["About Savour"].buttons.firstMatch.tap()
         app.terminate()
         launch(resetStore: false)
         app.tabBars.firstMatch.buttons["Settings"].tap()
@@ -726,6 +733,7 @@ final class FoodLogUITests: XCTestCase {
     func testSettingsAboutHasInlineAttributionAndCenteredVersionBuildFooter() {
         launch(resetStore: true)
         app.tabBars.firstMatch.buttons["Settings"].tap()
+        openSettingsPage("settings-about-savour", title: "About Savour")
         let version = app.staticTexts["settings-version"]
         revealAboveNavigation(version)
         let credit = app.staticTexts["settings-credit"]
@@ -751,9 +759,16 @@ final class FoodLogUITests: XCTestCase {
             top.name = "Settings \(appearance == "1" ? "light" : "dark") upper sections"
             top.lifetime = .keepAlways
             add(top)
+            openSettingsPage("settings-your-data", title: "Your data")
             let export = app.buttons["settings-export-csv"]
             revealAboveNavigation(export)
             XCTAssertTrue(export.label.contains("1 entry"))
+            let data = XCTAttachment(screenshot: app.screenshot())
+            data.name = "Your data \(appearance == "1" ? "light" : "dark")"
+            data.lifetime = .keepAlways
+            add(data)
+            app.navigationBars["Your data"].buttons.firstMatch.tap()
+            openSettingsPage("settings-about-savour", title: "About Savour")
             revealAboveNavigation(app.descendants(matching: .any)["dime-source-link"])
             let bottom = XCTAttachment(screenshot: app.screenshot())
             bottom.name = "Settings \(appearance == "1" ? "light" : "dark") lower sections"
@@ -770,6 +785,10 @@ final class FoodLogUITests: XCTestCase {
             app.tabBars.firstMatch.buttons["Settings"].tap()
             XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
             try auditVisibleUI()
+            openSettingsPage("settings-your-data", title: "Your data")
+            try auditVisibleUI()
+            app.navigationBars["Your data"].buttons.firstMatch.tap()
+            openSettingsPage("settings-about-savour", title: "About Savour")
             revealAboveNavigation(app.descendants(matching: .any)["dime-source-link"])
             try auditVisibleUI()
             app.terminate()
@@ -1041,7 +1060,16 @@ final class FoodLogUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", text)).firstMatch
     }
 
+    private func openSettingsPage(_ identifier: String, title: String) {
+        if app.navigationBars[title].exists { return }
+        let link = app.buttons[identifier]
+        revealAboveNavigation(link)
+        link.tap()
+        XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 3))
+    }
+
     private func openCSVFixturePreview() {
+        openSettingsPage("settings-your-data", title: "Your data")
         let fixture = app.buttons["Preview CSV fixture"]
         for _ in 0..<4 {
             let barTop = app.buttons["bottom-add-entry"].frame.minY

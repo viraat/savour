@@ -9,7 +9,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
-No unreleased changes.
+- Moved Your data and About Savour into their own native Settings detail pages.
+  Data actions and project/library credits use matching Dynamic Type body text;
+  About retains linked Dime attribution and the centered creator/version footer.
+  No preferences or data formats changed.
+- Debug app and test targets compile successfully. Updated navigation, CSV
+  preview and accessibility UI tests; no simulator run was performed.
 
 ## 0.5.5 — 2026-10-04
 

@@ -881,10 +881,6 @@ private enum PlaceCoordinateBackfill {
 }
 
 struct FoodLogSettingsView: View {
-    @Environment(\.managedObjectContext) private var context
-    @FetchRequest(sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)])
-    private var entries: FetchedResults<FoodEntry>
-
     @AppStorage("foodLogAppearance") private var appearance = 0
     @AppStorage(FoodAccentOption.settingKey) private var accentValue = FoodAccentOption.teal.rawValue
     @AppStorage("showMealLabels") private var showMealLabels = true
@@ -892,19 +888,9 @@ struct FoodLogSettingsView: View {
     @AppStorage(AppRelockDelay.settingKey) private var relockDelaySeconds = 0
     @AppStorage(FastingGoalPreference.hoursKey) private var fastingGoalHours = FastingGoalPreference.defaultHours
     @AppStorage(FastingGoalPreference.enabledKey) private var fastingGoalEnabled = true
-    @State private var showingShareSheet = false
-    @State private var exportURL: URL?
-    @State private var showingFileImporter = false
-    @State private var importPreview: FoodLogCSVImportPreview?
-    @State private var importMessage: String?
-    @State private var confirmErase = false
     @State private var biometricAvailability = BiometricAuthentication.availability()
 
     var body: some View {
-        settingsContent
-    }
-
-    private var settingsContent: some View {
         Form {
             Section {
                 appearancePicker
@@ -979,6 +965,71 @@ struct FoodLogSettingsView: View {
             }
 
             Section {
+                NavigationLink("Your data") {
+                    FoodLogDataSettingsView()
+                }
+                .accessibilityIdentifier("settings-your-data")
+                NavigationLink("About Savour") {
+                    FoodLogAboutView()
+                }
+                .accessibilityIdentifier("settings-about-savour")
+            }
+        }
+        .formStyle(.grouped)
+        .textCase(nil)
+        .scrollContentBackground(.hidden)
+        .background(FoodTheme.background)
+        .navigationTitle("Settings")
+        .foodCompactPageTitle()
+        .toolbar(.visible, for: .navigationBar)
+        .onAppear {
+            biometricAvailability = BiometricAuthentication.availability()
+        }
+    }
+
+    private var appearancePicker: some View {
+        Picker("Appearance", selection: $appearance) {
+            Text("System").tag(0)
+            Text("Light").tag(1)
+            Text("Dark").tag(2)
+        }
+    }
+
+    private var accentPicker: some View {
+        Picker("Accent color", selection: $accentValue) {
+            ForEach(FoodAccentOption.allCases) { option in
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(option.color)
+                        .frame(width: 20, height: 20)
+                        .accessibilityHidden(true)
+                    Text(option.name)
+                }
+                .tag(option.rawValue)
+                .accessibilityLabel(option.name)
+            }
+        }
+        .pickerStyle(.navigationLink)
+        .accessibilityIdentifier("settings-accent-color")
+    }
+}
+
+/// Keeps data operations and their previews scoped to the data page.
+private struct FoodLogDataSettingsView: View {
+    @Environment(\.managedObjectContext) private var context
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)])
+    private var entries: FetchedResults<FoodEntry>
+
+    @State private var showingShareSheet = false
+    @State private var exportURL: URL?
+    @State private var showingFileImporter = false
+    @State private var importPreview: FoodLogCSVImportPreview?
+    @State private var importMessage: String?
+    @State private var confirmErase = false
+
+    var body: some View {
+        Form {
+            Section {
                 Button(action: exportCSV) {
                     HStack {
                         Text("Export CSV")
@@ -1006,36 +1057,15 @@ struct FoodLogSettingsView: View {
             } header: {
                 Text("Your data").foregroundStyle(FoodTheme.secondaryText)
             }
-
-            Section {
-                Text("Adapted from [Dime](https://github.com/rafsoh/dimeApp)'s open-source SwiftUI code and interaction ideas under GPLv3.")
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("dime-source-link")
-            } header: {
-                Text("About").foregroundStyle(FoodTheme.secondaryText)
-            } footer: {
-                VStack(spacing: 8) {
-                    Text("Built with ❤️ by Viraat")
-                        .accessibilityIdentifier("settings-credit")
-                    Text("Savour \(appVersion) (Build \(appBuild))")
-                        .accessibilityIdentifier("settings-version")
-                }
-                .foregroundStyle(FoodTheme.secondaryText)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 16)
-            }
         }
         .formStyle(.grouped)
         .textCase(nil)
         .scrollContentBackground(.hidden)
         .background(FoodTheme.background)
-        .navigationTitle("Settings")
-        .foodCompactPageTitle()
+        .navigationTitle("Your data")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
-        .onAppear {
-            biometricAvailability = BiometricAuthentication.availability()
-        }
+        .font(.body)
         .sheet(isPresented: $showingShareSheet) {
             if let exportURL {
                 ShareSheet(activityItems: [exportURL])
@@ -1086,40 +1116,6 @@ struct FoodLogSettingsView: View {
         }
     }
 
-    private var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
-    }
-
-    private var appBuild: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
-    }
-
-    private var appearancePicker: some View {
-        Picker("Appearance", selection: $appearance) {
-            Text("System").tag(0)
-            Text("Light").tag(1)
-            Text("Dark").tag(2)
-        }
-    }
-
-    private var accentPicker: some View {
-        Picker("Accent color", selection: $accentValue) {
-            ForEach(FoodAccentOption.allCases) { option in
-                HStack(spacing: 12) {
-                    Circle()
-                        .fill(option.color)
-                        .frame(width: 20, height: 20)
-                        .accessibilityHidden(true)
-                    Text(option.name)
-                }
-                .tag(option.rawValue)
-                .accessibilityLabel(option.name)
-            }
-        }
-        .pickerStyle(.navigationLink)
-        .accessibilityIdentifier("settings-accent-color")
-    }
-
     private func exportCSV() {
         exportURL = CSVExporter.makeFile(from: Array(entries))
         showingShareSheet = exportURL != nil
@@ -1153,6 +1149,48 @@ struct FoodLogSettingsView: View {
             context.rollback()
             importMessage = error.localizedDescription
         }
+    }
+}
+
+/// Add external libraries and adapted projects here as they are introduced.
+private struct FoodLogAboutView: View {
+    var body: some View {
+        Form {
+            Section {
+                Text("Adapted from [Dime](https://github.com/rafsoh/dimeApp)'s open-source SwiftUI code and interaction ideas under GPLv3.")
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("dime-source-link")
+            } header: {
+                Text("Credits and licenses").foregroundStyle(FoodTheme.secondaryText)
+            } footer: {
+                VStack(spacing: 8) {
+                    Text("Built with ❤️ by Viraat")
+                        .accessibilityIdentifier("settings-credit")
+                    Text("Savour \(appVersion) (Build \(appBuild))")
+                        .accessibilityIdentifier("settings-version")
+                }
+                .foregroundStyle(FoodTheme.secondaryText)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 16)
+            }
+        }
+        .formStyle(.grouped)
+        .textCase(nil)
+        .scrollContentBackground(.hidden)
+        .background(FoodTheme.background)
+        .navigationTitle("About Savour")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+        .font(.body)
+    }
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+    }
+
+    private var appBuild: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
     }
 }
 
