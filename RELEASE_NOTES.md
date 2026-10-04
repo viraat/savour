@@ -3,6 +3,22 @@
 Savour was previously named FoodLog. Historical releases below retain their
 original name; see [CHANGELOG.md](CHANGELOG.md) for the cumulative release history.
 
+## Savour 0.5.5
+
+Repository release · 4 October 2026 · app version 0.5.5, build 10
+
+Merged `codex/fasts-footer-polish` into main. The estimates explanation at the
+bottom of Fasts uses a smaller native caption font and adaptive gray text. The
+history section's bottom separator is hidden. Dynamic Type, light/dark mode,
+meal calculations and stored data are unchanged.
+
+Full backup/restore remains unmerged on `codex/full-backup-restore`.
+The unsigned iPhone Release build and Debug test-target compilation passed.
+No simulator run or visual verification was performed.
+
+This is a local tagged repository release, not a TestFlight build or App Store
+submission. It has not been pushed or published remotely.
+
 ## Savour 0.5.4
 
 Repository release · 3 October 2026 · app version 0.5.4, build 9
