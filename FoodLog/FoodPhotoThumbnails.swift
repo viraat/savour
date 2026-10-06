@@ -68,13 +68,22 @@ enum FoodEntryPhotoData {
             return stored.value(forKey: "photoData") as? Data
         }
     }
+
+    /// One ID-only query, including unsaved changes, so photo-less rows never
+    /// read the store or occupy preview-cache slots. Photo bytes are not loaded.
+    static func entryIDsWithPhotos(in context: NSManagedObjectContext) -> Set<NSManagedObjectID> {
+        let request = NSFetchRequest<NSManagedObjectID>(entityName: "FoodEntry")
+        request.resultType = .managedObjectIDResultType
+        request.predicate = NSPredicate(format: "photoData != nil")
+        return Set((try? context.fetch(request)) ?? [])
+    }
 }
 
 /// Only decoded previews are cached, never the original photo data. Actor-owned
 /// cache access coalesces simultaneous requests; ImageIO runs on a utility task.
 actor FoodPhotoThumbnailCache {
     static let shared = FoodPhotoThumbnailCache()
-    private final class CachedPhoto {
+    private final class CachedPhoto: @unchecked Sendable {
         let image: CGImage?
         init(_ image: CGImage?) { self.image = image }
     }
@@ -82,13 +91,19 @@ actor FoodPhotoThumbnailCache {
         let id: UUID
         let task: Task<CGImage?, Never>
     }
-    private let cache = NSCache<NSString, CachedPhoto>()
+    // NSCache is thread-safe; the actor still owns pending work and generations.
+    private nonisolated(unsafe) let cache = NSCache<NSString, CachedPhoto>()
     private var pending: [FoodPhotoThumbnailKey: Pending] = [:]
     private var generation = 0
 
     init(byteLimit: Int = 24 * 1_024 * 1_024, countLimit: Int = 200) {
         cache.totalCostLimit = byteLimit
         cache.countLimit = countLimit
+    }
+
+    /// Synchronous lookup for the first rendered frame; never reads or decodes.
+    nonisolated func cachedImage(for key: FoodPhotoThumbnailKey) -> CGImage? {
+        cache.object(forKey: key.cacheKey)?.image
     }
 
     func thumbnail(for key: FoodPhotoThumbnailKey,
@@ -185,15 +200,34 @@ final class FoodPhotoVersions: ObservableObject {
 import SwiftUI
 import UIKit
 
+private struct LoadedPreview {
+    let key: FoodPhotoThumbnailKey
+    let image: UIImage
+}
+
 struct FoodJournalPhoto: View {
     @ObservedObject var entry: FoodEntry
+    /// From the journal's ID-only photo query; false skips reads and the cache.
+    let hasPhoto: Bool
     @ObservedObject private var versions = FoodPhotoVersions.shared
     @Environment(\.displayScale) private var displayScale
-    @State private var image: UIImage?
+    @State private var loaded: LoadedPreview?
 
     private var key: FoodPhotoThumbnailKey {
         FoodPhotoThumbnailKey(version: versions.version(for: entry),
                               width: 42 * displayScale, height: 42 * displayScale)
+    }
+
+    /// A cached preview renders on the first frame. While a changed photo
+    /// decodes, the previous preview stays visible instead of the meal icon.
+    private var image: UIImage? {
+        guard hasPhoto else { return nil }
+        let key = key
+        if let loaded, loaded.key == key { return loaded.image }
+        if let cached = FoodPhotoThumbnailCache.shared.cachedImage(for: key) {
+            return UIImage(cgImage: cached, scale: displayScale, orientation: .up)
+        }
+        return loaded?.image
     }
 
     var body: some View {
@@ -212,48 +246,78 @@ struct FoodJournalPhoto: View {
         }
         .frame(width: 42, height: 42)
         .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-        .task(id: key) {
-            image = nil
+        .task(id: hasPhoto ? key : nil) {
+            guard hasPhoto else { loaded = nil; return }
             if let context = entry.managedObjectContext { versions.observe(context) }
             let requestKey = key
+            if let cached = FoodPhotoThumbnailCache.shared.cachedImage(for: requestKey) {
+                loaded = LoadedPreview(key: requestKey,
+                                       image: UIImage(cgImage: cached, scale: displayScale, orientation: .up))
+                return
+            }
             let result = await FoodPhotoThumbnailCache.shared.thumbnail(for: requestKey) {
                 await FoodEntryPhotoData.read(from: entry)
             }
             guard !Task.isCancelled, requestKey == key, !entry.isDeleted else { return }
-            image = result.map { UIImage(cgImage: $0, scale: displayScale, orientation: .up) }
+            loaded = result.map {
+                LoadedPreview(key: requestKey, image: UIImage(cgImage: $0, scale: displayScale, orientation: .up))
+            }
         }
-        .onDisappear { image = nil }
+        // Offscreen rows release their preview; the cache restores it on return.
+        .onDisappear { loaded = nil }
     }
 }
 
 struct FoodEditorPhoto: View {
     let data: Data
+    /// The entry's photo version when `data` is its saved photo. Only those
+    /// previews can be requested again, so only they use the shared cache.
+    let savedVersion: UUID?
     @Environment(\.displayScale) private var displayScale
-    @State private var version = UUID()
-    @State private var image: UIImage?
+    @State private var unsavedVersion = UUID()
+    @State private var loaded: LoadedPreview?
+
+    private func image(for key: FoodPhotoThumbnailKey) -> UIImage? {
+        if let loaded, loaded.key == key { return loaded.image }
+        if savedVersion != nil, let cached = FoodPhotoThumbnailCache.shared.cachedImage(for: key) {
+            return UIImage(cgImage: cached, scale: displayScale, orientation: .up)
+        }
+        return loaded?.image
+    }
 
     var body: some View {
         GeometryReader { geometry in
-            let key = FoodPhotoThumbnailKey(version: version,
+            let key = FoodPhotoThumbnailKey(version: savedVersion ?? unsavedVersion,
                                             width: geometry.size.width * displayScale,
                                             height: 190 * displayScale)
             Group {
-                if let image { Image(uiImage: image).resizable().scaledToFill() }
+                if let image = image(for: key) { Image(uiImage: image).resizable().scaledToFill() }
                 else { Color.clear }
             }
             .frame(width: geometry.size.width, height: 190)
             .clipped()
             .task(id: key) {
-                let result = await FoodPhotoThumbnailCache.shared.thumbnail(for: key) { data }
-                guard !Task.isCancelled, key.version == version else { return }
-                image = result.map { UIImage(cgImage: $0, scale: displayScale, orientation: .up) }
+                let result: CGImage?
+                if savedVersion != nil {
+                    result = await FoodPhotoThumbnailCache.shared.thumbnail(for: key) { data }
+                } else {
+                    let data = data
+                    result = await Task.detached(priority: .userInitiated) {
+                        autoreleasepool { FoodPhotoDownsampling.image(data: data, width: key.width, height: key.height) }
+                    }.value
+                }
+                guard !Task.isCancelled else { return }
+                loaded = result.map {
+                    LoadedPreview(key: key, image: UIImage(cgImage: $0, scale: displayScale, orientation: .up))
+                }
             }
         }
         .frame(height: 190)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .accessibilityLabel("Entry photo")
-        .onChange(of: data) { _ in image = nil; version = UUID() }
-        .onDisappear { image = nil }
+        // A replacement keeps the previous preview visible until it decodes.
+        .onChange(of: data) { _ in unsavedVersion = UUID() }
+        .onDisappear { loaded = nil }
     }
 }
 #endif

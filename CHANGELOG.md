@@ -9,6 +9,17 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Polished photo previews. Journal rows and the editor show an already cached
+  preview on their first frame, and a changed photo keeps its previous preview
+  visible until the replacement decodes, instead of flashing the meal icon.
+  The journal finds photo-bearing entries with one ID-only query per refresh, so
+  photo-less rows never read the store or occupy preview-cache slots. Editor
+  previews of an entry's saved photo reuse its photo version and are cached
+  across reopenings; newly picked or recovered photos decode without entering
+  the shared cache. The editor now also observes photo-version changes.
+- Added two Mac regressions for synchronous cache lookups and the photo-ID query,
+  including unsaved photo additions/removals and leaving photo bytes unloaded.
+
 - Replaced full-size journal/editor photo decoding during rendering with
   display-sized ImageIO previews decoded on a utility task. Journal cache misses
   read committed photos on a private Core Data queue without loading them into

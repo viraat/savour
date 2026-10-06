@@ -230,6 +230,39 @@ final class FoodPhotoThumbnailTests: XCTestCase {
     }
 
     @MainActor
+    func testSynchronousLookupReturnsOnlyCachedPreviewsWithoutReading() async throws {
+        let cache = FoodPhotoThumbnailCache()
+        let key = FoodPhotoThumbnailKey(version: UUID(), width: 126, height: 126)
+        XCTAssertNil(cache.cachedImage(for: key))
+        let loaded = await cache.thumbnail(for: key) { try? self.jpeg(width: 1_600, height: 1_200) }
+        let image = try XCTUnwrap(loaded)
+        XCTAssertTrue(cache.cachedImage(for: key) === image)
+        XCTAssertNil(cache.cachedImage(for: .init(version: key.version, width: 1_020, height: 570)))
+        await cache.removeAll()
+        XCTAssertNil(cache.cachedImage(for: key))
+    }
+
+    @MainActor
+    func testPhotoIDQueryFindsOnlyPhotosIncludingUnsavedChangesWithoutLoadingThem() throws {
+        let context = try context()
+        let withPhoto = NSEntityDescription.insertNewObject(forEntityName: "FoodEntry", into: context)
+        withPhoto.setValue(try jpeg(width: 64, height: 64), forKey: "photoData")
+        let withoutPhoto = NSEntityDescription.insertNewObject(forEntityName: "FoodEntry", into: context)
+        withoutPhoto.setValue("No photo", forKey: "note")
+        try context.save()
+        context.refresh(withPhoto, mergeChanges: false)
+        XCTAssertEqual(FoodEntryPhotoData.entryIDsWithPhotos(in: context), [withPhoto.objectID])
+        XCTAssertTrue(withPhoto.isFault, "The ID query must not load photo bytes")
+
+        withoutPhoto.setValue(Data([1]), forKey: "photoData")
+        withPhoto.setValue(nil, forKey: "photoData")
+        let unsaved = NSEntityDescription.insertNewObject(forEntityName: "FoodEntry", into: context)
+        unsaved.setValue(Data([2]), forKey: "photoData")
+        XCTAssertEqual(FoodEntryPhotoData.entryIDsWithPhotos(in: context), [withoutPhoto.objectID, unsaved.objectID])
+        context.rollback()
+    }
+
+    @MainActor
     func testReadingCommittedPhotoLeavesJournalObjectFaulted() async throws {
         let context = try context()
         let meal = NSEntityDescription.insertNewObject(forEntityName: "FoodEntry", into: context)

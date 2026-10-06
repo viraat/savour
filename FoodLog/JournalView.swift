@@ -35,6 +35,7 @@ private struct JournalHistory {
     let groups: [EntryDayGroup]
     let thisWeek: [FoodEntry]
     let mealCounts: [(String, Int)]
+    let photoEntryIDs: Set<NSManagedObjectID>
 }
 
 struct JournalView: View {
@@ -75,7 +76,8 @@ struct JournalView: View {
             let counts = Dictionary(grouping: week, by: \.wrappedMealType).mapValues(\.count)
                 .sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
             return JournalHistory(filtered: filtered, groups: groupEntriesByDay(filtered, calendar: calendar),
-                                  thisWeek: week, mealCounts: counts)
+                                  thisWeek: week, mealCounts: counts,
+                                  photoEntryIDs: FoodEntryPhotoData.entryIDsWithPhotos(in: context))
         }
     }
 
@@ -293,7 +295,7 @@ struct JournalView: View {
             VStack(spacing: 0) {
                 ForEach(Array(group.entries.enumerated()), id: \.element.objectID) { index, entry in
                     Button { selectedEntry = entry } label: {
-                        EntryRow(entry: entry)
+                        EntryRow(entry: entry, hasPhoto: history.photoEntryIDs.contains(entry.objectID))
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -325,11 +327,12 @@ struct JournalView: View {
 
 struct EntryRow: View {
     @ObservedObject var entry: FoodEntry
+    let hasPhoto: Bool
     @AppStorage("showMealLabels") private var showMealLabels = true
 
     var body: some View {
         HStack(spacing: 12) {
-            FoodJournalPhoto(entry: entry)
+            FoodJournalPhoto(entry: entry, hasPhoto: hasPhoto)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(entry.wrappedFood)
