@@ -350,6 +350,7 @@ struct FoodEntryEditor: View {
         .background(FoodTheme.background.ignoresSafeArea())
         .onAppear {
             historyCache.observe(context)
+            FoodPhotoVersions.shared.observe(context)
             if hasSavedDraft {
                 do { try FoodEntryDraftStore.shared.markActive(draftKey) }
                 catch { draftError = "Draft could not be updated: \(error.localizedDescription)" }
@@ -458,6 +459,13 @@ struct FoodEntryEditor: View {
             }
 
         }
+    }
+
+    /// Reopening an entry reuses its cached preview; picked or recovered
+    /// replacement photos are decoded without occupying the shared cache.
+    private func savedPhotoVersion(for photoData: Data) -> UUID? {
+        guard let entry, photoData == baselineDraft.photoData else { return nil }
+        return FoodPhotoVersions.shared.version(for: entry)
     }
 
     private func applyFoodSuggestion(_ suggestion: String) {
@@ -579,7 +587,9 @@ struct FoodEntryEditor: View {
 
     private var photoSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let photoData { FoodEditorPhoto(data: photoData) }
+            if let photoData {
+                FoodEditorPhoto(data: photoData, savedVersion: savedPhotoVersion(for: photoData))
+            }
 
             HStack(spacing: 10) {
                 if UIImagePickerController.isSourceTypeAvailable(.camera) {
