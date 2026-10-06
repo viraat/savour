@@ -16,21 +16,21 @@ let package = Package(
     platforms: [.macOS(.v13)],
     targets: [
         .target(name: "FoodLogReminder", path: "FoodLog",
-                exclude: appOnlyFiles + ["FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodEntryDraftStore.swift", "FoodStoreMigration.swift", "MealDefaultTimes.swift"],
+                exclude: appOnlyFiles + ["FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodEntryDraftStore.swift", "FoodStoreMigration.swift", "MealDefaultTimes.swift", "FoodPhotoThumbnails.swift"],
                 sources: ["FoodReminder.swift"]),
         .testTarget(name: "FoodLogReminderTests", dependencies: ["FoodLogReminder"],
-                    path: "FoodLogTests", exclude: ["FoodLogLogicTests.swift", "FoodPerformanceTests.swift", "FoodDraftAutosaveTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift", "FoodEntryTimeSelectionTests.swift"],
+                    path: "FoodLogTests", exclude: ["FoodLogLogicTests.swift", "FoodPerformanceTests.swift", "FoodDraftAutosaveTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift", "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift"],
                     sources: ["FoodReminderTests.swift"]),
         .target(name: "FoodLogPerformance", path: "FoodLog", exclude: appOnlyFiles + ["FoodReminder.swift", "FoodEntryDraftStore.swift"],
-                sources: ["FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodStoreMigration.swift", "MealDefaultTimes.swift"]),
+                sources: ["FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodStoreMigration.swift", "MealDefaultTimes.swift", "FoodPhotoThumbnails.swift"]),
         .testTarget(name: "FoodLogPerformanceTests", dependencies: ["FoodLogPerformance"], path: "FoodLogTests",
                     exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodDraftAutosaveTests.swift"],
-                    sources: ["FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift", "FoodEntryTimeSelectionTests.swift"]),
+                    sources: ["FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift", "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift"]),
         .target(name: "FoodLogDrafts", path: "FoodLog",
-                exclude: appOnlyFiles + ["FoodReminder.swift", "FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodStoreMigration.swift", "MealDefaultTimes.swift"],
+                exclude: appOnlyFiles + ["FoodReminder.swift", "FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodStoreMigration.swift", "MealDefaultTimes.swift", "FoodPhotoThumbnails.swift"],
                 sources: ["FoodEntryDraftStore.swift"]),
         .testTarget(name: "FoodLogDraftTests", dependencies: ["FoodLogDrafts"], path: "FoodLogTests",
-                    exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift", "FoodEntryTimeSelectionTests.swift"],
+                    exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift", "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift"],
                     sources: ["FoodDraftAutosaveTests.swift"])
     ]
 )

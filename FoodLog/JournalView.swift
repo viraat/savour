@@ -329,24 +329,7 @@ struct EntryRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            if let photoData = entry.photoData, let image = UIImage(data: photoData) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 42, height: 42)
-                    .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-                    .accessibilityLabel("Photo of \(entry.wrappedFood)")
-            } else {
-                Image(systemName: FoodTheme.symbol(for: entry.wrappedMealType))
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(FoodTheme.color(for: entry.wrappedMealType))
-                    .frame(width: 42, height: 42)
-                    .background(
-                        FoodTheme.color(for: entry.wrappedMealType).opacity(0.16),
-                        in: RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    )
-                    .accessibilityHidden(true)
-            }
+            FoodJournalPhoto(entry: entry)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(entry.wrappedFood)

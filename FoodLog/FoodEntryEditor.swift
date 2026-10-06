@@ -579,15 +579,7 @@ struct FoodEntryEditor: View {
 
     private var photoSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let photoData, let image = UIImage(data: photoData) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 190)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .accessibilityLabel("Entry photo")
-            }
+            if let photoData { FoodEditorPhoto(data: photoData) }
 
             HStack(spacing: 10) {
                 if UIImagePickerController.isSourceTypeAvailable(.camera) {

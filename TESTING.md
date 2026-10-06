@@ -304,6 +304,31 @@ No simulator was launched. App-model and UI regressions were compiled, not
 executed. Existing test-target linker warnings about XCTest's newer minimum
 iOS version remain. Backup/restore stays on its separate feature branch.
 
+## Display-sized photo previews — 2026-10-06
+
+`swift test --scratch-path /private/tmp/savour-photo-thumbnail-tests` passed all
+87 Mac tests, including 16 new photo tests. These execute the actual ImageIO
+decoder, actor-owned cache and Core Data photo-reading/version logic. Debug
+app/test compilation and unsigned iPhone Release build also passed. No simulator
+was launched and no phone profiling was performed; SwiftUI view behavior was
+compile-checked rather than exercised interactively.
+
+The decoder follows Apple's [Image and Graphics Best Practices](https://devstreaming-cdn.apple.com/videos/wwdc/2018/219mybpx95zm9x/219/219_image_and_graphics_best_practices.pdf)
+ImageIO downsampling approach. Tests use real generated JPEGs: a 1,600×1,200 photo
+becomes a 168×126 aspect-fill thumbnail for the 42 pt journal row at 3× scale,
+with a decoded footprint below 100 KB. That is a preview-size check, not an
+app-wide memory/performance measurement. Editor previews use their actual width
+and screen scale. Extreme outputs are capped at 2,048 pixels.
+
+Cache hits do not invoke the original-data loader. Committed photos are read
+using a private context that is reset after each read; the journal object remains
+faulted in the regression. Inserted/unsaved photo replacements and removals use
+the owning context without saving. Photo-only changes, merged updates,
+rollback/refresh/delete/reset invalidate versions; ordinary local note changes
+do not. Memory-warning cache purges cannot be undone by an older pending load.
+Original JPEGs and schema are unchanged, so the first uncached preview still
+reads its original bytes. Camera/Photos acquisition processing is unchanged.
+
 ## Manual device checks
 
 Some system integrations need a real device or direct Simulator interaction:
