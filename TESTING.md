@@ -289,6 +289,21 @@ compile-checked, not executed. Debug app/test compilation and unsigned iPhone
 Release build passed; no simulator was launched. No draft fields, Core Data
 schema, migration or stored timestamps were altered by this fix.
 
+## Combined performance branch verification — 2026-10-06
+
+After merging draft autosave debounce, CSV import performance, the store-local
+migration marker and intentional timestamp preservation into main:
+
+- `swift test --scratch-path /private/tmp/savour-merged-performance-tests`:
+  all 71 Mac tests passed (21 reminders, 41 performance/CSV/migration/timestamp,
+  and nine draft autosave tests).
+- Debug `build-for-testing` passed for the app and both iOS test targets.
+- Unsigned generic iPhone Release build passed.
+
+No simulator was launched. App-model and UI regressions were compiled, not
+executed. Existing test-target linker warnings about XCTest's newer minimum
+iOS version remain. Backup/restore stays on its separate feature branch.
+
 ## Manual device checks
 
 Some system integrations need a real device or direct Simulator interaction:

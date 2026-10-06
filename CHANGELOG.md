@@ -9,6 +9,10 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Merged the draft autosave, CSV import performance, store-local migration marker
+  and timestamp-preservation branches into main. Combined verification passed:
+  all 71 Mac regression tests, Debug app/test compilation and unsigned iPhone
+  Release build. No simulator run; app-model/UI tests were compiled only.
 - Debounced entry/edit draft autosaves until 0.5 seconds after the latest change,
   instead of reading and rewriting the photo-bearing archive on every keystroke.
   Inactive/background transitions, editor disappearance and Keep draft still
