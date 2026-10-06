@@ -49,6 +49,7 @@ struct FoodEntryEditor: View {
 
     @State private var food: String
     @State private var date: Date
+    @State private var timeSelection: FoodEntryTimeSelection
     @State private var mealType: String
     @State private var place: String
     @State private var placeCity: String
@@ -120,6 +121,8 @@ struct FoodEntryEditor: View {
             loadError = "Draft could not be loaded: \(error.localizedDescription)"
         }
         let initial = restored ?? baseline
+        _timeSelection = State(initialValue: FoodEntryTimeSelection(isNewEntry: entry == nil && key == .new,
+                                                                   hasRestoredDraft: restored != nil))
         _food = State(initialValue: initial.food)
         _date = State(initialValue: initial.date)
         _mealType = State(initialValue: initial.mealType)
@@ -389,7 +392,10 @@ struct FoodEntryEditor: View {
             }
         }
         .sheet(isPresented: $showingDateTimeSheet) {
-            FoodLogDateTimeSheet(title: "Date & time", date: date) { date = $0 }
+            FoodLogDateTimeSheet(title: "Date & time", date: date) {
+                timeSelection.didSelectDate()
+                date = $0
+            }
         }
         .fullScreenCover(isPresented: $showingCamera) {
             CameraPicker(isPresented: $showingCamera) { image in
@@ -535,7 +541,7 @@ struct FoodEntryEditor: View {
     private func switchMealType(to newMealType: String) {
         guard newMealType != mealType else { return }
         mealType = newMealType
-        date = MealDefaultTimes.applyingDefault(for: newMealType, to: date)
+        date = timeSelection.dateAfterMealChange(to: newMealType, date: date)
     }
 
     private var optionalDetails: some View {
