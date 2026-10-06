@@ -217,6 +217,19 @@ tests are compile-checked, not executed. No simulator was launched. Import
 preview and commit deliberately retain their existing threading/transaction
 behavior; large-file UI responsiveness still needs on-device verification.
 
+### Companion prefetch follow-up
+
+CSV performance follow-up (2026-10-06): the real file-import UI and its DEBUG
+fixture now use a context-based preview overload. Both that overload and commit
+fetch through `existingEntriesRequest()`, whose relationship prefetch includes
+`companions`; background export uses the same request. Each batch owns one
+JSONEncoder, and the row's people display text comes from the same names array
+as people_json. A new app-model test checks prefetch configuration, row parity
+after context reset, comma/quote/newline companion names, preview duplicates,
+successful commit and stale-preview duplicate rechecks. It is compile-checked,
+not executed. All 44 Mac tests and both build checks passed; no simulator run.
+Import still runs on the existing context thread; no meal-type rules changed.
+
 ## Manual device checks
 
 Some system integrations need a real device or direct Simulator interaction:

@@ -9,6 +9,13 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Prefetched `companions` with the shared existing-entry fetch used by CSV UI
+  preview and commit (and background export), avoiding one relationship fetch
+  per meal. Reused one JSONEncoder per existing-row batch, and derived display
+  people from the already-read names instead of sorting/parsing companions twice.
+  Added a compile-checked context-preview/prefetch/duplicate regression. All 44
+  Mac tests and Debug app/test compilation and unsigned iPhone Release build
+  passed; no simulator run. Import threading and meal-type validation are unchanged.
 - Reused operation-local CSV date/time formatters across import preview,
   validation and duplicate indexing. Each existing entry is serialized once per
   preview/commit instead of twice. Bulk export and CSV document decoding also

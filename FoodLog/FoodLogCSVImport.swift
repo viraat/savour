@@ -39,6 +39,21 @@ struct FoodLogCSVImportPreview: Identifiable {
 }
 
 enum FoodLogCSVImporter {
+    static func existingEntriesRequest() -> NSFetchRequest<FoodEntry> {
+        let request = FoodEntry.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)]
+        request.relationshipKeyPathsForPrefetching = ["companions"]
+        return request
+    }
+
+    /// The UI preview path fetches on the caller's context queue with companions
+    /// prefetched. Managed objects never cross queues; the array overload remains
+    /// available for callers that already have a suitable snapshot.
+    static func preview(_ text: String, fileName: String,
+                        in context: NSManagedObjectContext) throws -> FoodLogCSVImportPreview {
+        try preview(text, fileName: fileName, existingEntries: context.fetch(existingEntriesRequest()))
+    }
+
     static func preview(
         _ text: String,
         fileName: String,
@@ -52,8 +67,9 @@ enum FoodLogCSVImporter {
 
         let isLegacyFormat = columns == FoodLogCSVDocument.header
         let formatters = FoodLogCSVDateFormatters()
+        let encoder = JSONEncoder()
         var identities = FoodLogCSVIdentities(existingRows: existingEntries.lazy.map {
-            CSVExporter.row(for: $0, formatters: formatters)
+            CSVExporter.row(for: $0, formatters: formatters, encoder: encoder)
         })
         var rows: [FoodLogCSVImportRow] = []
         var issues: [FoodLogCSVImportIssue] = []
@@ -112,11 +128,11 @@ enum FoodLogCSVImporter {
 
     @discardableResult
     static func commit(_ preview: FoodLogCSVImportPreview, to context: NSManagedObjectContext) throws -> Int {
-        let request: NSFetchRequest<FoodEntry> = FoodEntry.fetchRequest()
-        let existingEntries = try context.fetch(request)
+        let existingEntries = try context.fetch(existingEntriesRequest())
         let formatters = FoodLogCSVDateFormatters()
+        let encoder = JSONEncoder()
         var identities = FoodLogCSVIdentities(existingRows: existingEntries.lazy.map {
-            CSVExporter.row(for: $0, formatters: formatters)
+            CSVExporter.row(for: $0, formatters: formatters, encoder: encoder)
         })
         var count = 0
 

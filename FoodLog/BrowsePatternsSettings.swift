@@ -1170,7 +1170,7 @@ private struct FoodLogDataSettingsView: View {
                     importPreview = try FoodLogCSVImporter.preview(
                         csv,
                         fileName: url.lastPathComponent,
-                        existingEntries: Array(entries)
+                        in: context
                     )
                 } catch {
                     importMessage = "Could not preview the CSV: \(error.localizedDescription)"
@@ -1237,7 +1237,7 @@ private struct FoodLogDataSettingsView: View {
         invalid[1] = "invalid-date"
         let csv = FoodLogCSVDocument.encodeExtended(dataRows: [duplicate, imported, invalid])
         importPreview = try? FoodLogCSVImporter.preview(
-            csv, fileName: "fixture.csv", existingEntries: Array(entries)
+            csv, fileName: "fixture.csv", in: context
         )
     }
 #endif
@@ -1424,8 +1424,7 @@ enum CSVExporter {
                coordinator.persistentStores.allSatisfy({ $0.type == NSSQLiteStoreType }) {
                 try context.setQueryGenerationFrom(.current)
             }
-            let request = FoodEntry.fetchRequest()
-            request.sortDescriptors = [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)]
+            let request = FoodLogCSVImporter.existingEntriesRequest()
             request.fetchBatchSize = 200
             let entries = try context.fetch(request)
             return try writeFile(rows: rows(for: entries), exportedAt: exportedAt,
@@ -1466,12 +1465,14 @@ enum CSVExporter {
 
     static func rows(for entries: [FoodEntry]) -> [[String]] {
         let formatters = FoodLogCSVDateFormatters()
-        return entries.map { row(for: $0, formatters: formatters) }
+        let encoder = JSONEncoder()
+        return entries.map { row(for: $0, formatters: formatters, encoder: encoder) }
     }
 
-    static func row(for entry: FoodEntry, formatters: FoodLogCSVDateFormatters) -> [String] {
+    static func row(for entry: FoodEntry, formatters: FoodLogCSVDateFormatters,
+                    encoder: JSONEncoder = JSONEncoder()) -> [String] {
         let names = entry.companionNames
-        let peopleJSON = (try? JSONEncoder().encode(names)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+        let peopleJSON = (try? encoder.encode(names)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
         return [
             entry.wrappedFood,
             formatters.dateString(entry.wrappedDate),
@@ -1481,7 +1482,7 @@ enum CSVExporter {
             entry.wrappedPlaceCity,
             entry.hasPlaceCoordinates ? String(entry.placeLatitude) : "",
             entry.hasPlaceCoordinates ? String(entry.placeLongitude) : "",
-            entry.companionDisplayText,
+            names.joined(separator: ", "),
             entry.wrappedNote,
             entry.id?.uuidString ?? "",
             peopleJSON,
