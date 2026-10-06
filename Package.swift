@@ -19,11 +19,12 @@ let package = Package(
                 exclude: appOnlyFiles + ["FoodLogLogic.swift", "FoodHistoryCache.swift"],
                 sources: ["FoodReminder.swift"]),
         .testTarget(name: "FoodLogReminderTests", dependencies: ["FoodLogReminder"],
-                    path: "FoodLogTests", exclude: ["FoodLogLogicTests.swift", "FoodPerformanceTests.swift"],
+                    path: "FoodLogTests", exclude: ["FoodLogLogicTests.swift", "FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift"],
                     sources: ["FoodReminderTests.swift"]),
         .target(name: "FoodLogPerformance", path: "FoodLog", exclude: appOnlyFiles + ["FoodReminder.swift"],
                 sources: ["FoodLogLogic.swift", "FoodHistoryCache.swift"]),
         .testTarget(name: "FoodLogPerformanceTests", dependencies: ["FoodLogPerformance"], path: "FoodLogTests",
-                    exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift"], sources: ["FoodPerformanceTests.swift"])
+                    exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift"],
+                    sources: ["FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift"])
     ]
 )

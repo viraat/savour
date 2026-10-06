@@ -9,7 +9,18 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
-No unreleased changes on main.
+- Reused operation-local CSV date/time formatters across import preview,
+  validation and duplicate indexing. Each existing entry is serialized once per
+  preview/commit instead of twice. Bulk export and CSV document decoding also
+  reuse formatters. Legacy/extended duplicate rules, precise timestamps, people,
+  validation errors and commit-time duplicate rechecks are unchanged. Import
+  still runs on its existing context/UI thread; this removes redundant work,
+  not every possible pause during very large imports.
+- Added nine Mac CSV regressions covering single-pass indexing, duplicate rules,
+  validation, time zones/DST and 3,000 quoted rows. All 44 Mac tests passed;
+  Debug app/test compilation and unsigned iPhone Release build passed. The new
+  Core Data stale-preview/bulk-row regression is compile-checked, not executed.
+  No simulator run was performed.
 
 ## 0.5.6 — 2026-10-06
 

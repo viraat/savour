@@ -196,6 +196,27 @@ simulator's actual largest content-size setting, because the XCTest audit
 reports custom SwiftUI tab labels as partially unsupported even when their
 size changes correctly.
 
+## CSV formatter reuse and single-pass indexing — 2026-10-06
+
+`swift test --scratch-path /private/tmp/savour-csv-performance-tests` runs nine
+CSV tests, 14 performance tests and 21 reminder tests (44 total, all passed).
+The CSV tests execute the actual Foundation helpers used by preview/commit:
+3,000 lazy existing rows are serialized exactly once; UUID/content/legacy and
+within-file duplicate rules, precise timestamp and structured-people identities,
+validation errors, strict legacy date parsing, DST and independently captured
+time zones remain covered. A 3,000-row quoted/newline CSV decodes unchanged.
+
+An informational Mac test of 1,000 row validations measured about 0.56 seconds
+with a newly constructed formatter bundle per row versus 0.11 seconds reusing
+one operation-local bundle. There is no timing assertion; this compares the
+new helper's per-row and reused modes, not whole-app or on-device performance.
+
+Debug app/test-target compilation and unsigned iPhone Release build passed.
+The Core Data batch-export/stale-preview commit regression and prior import
+tests are compile-checked, not executed. No simulator was launched. Import
+preview and commit deliberately retain their existing threading/transaction
+behavior; large-file UI responsiveness still needs on-device verification.
+
 ## Manual device checks
 
 Some system integrations need a real device or direct Simulator interaction:

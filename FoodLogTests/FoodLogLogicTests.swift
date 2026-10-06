@@ -603,6 +603,34 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertEqual(try destination.count(for: FoodEntry.fetchRequest()), 1)
     }
 
+    func testBatchCSVRowsMatchIndividualRowsAndCommitRechecksDuplicates() throws {
+        let controller = PersistenceController(inMemory: true)
+        let context = controller.container.viewContext
+        let original = FoodEntry(context: context)
+        original.id = UUID()
+        original.food = "Rice, tofu"
+        original.date = date(2026, 9, 11, 8, 30)
+        original.mealType = "Breakfast"
+        original.place = "Cafe"
+        original.note = "A note\nwith \"quotes\""
+        original.replaceCompanions(with: ["Ana, Bob", "Evi"], in: context)
+        try context.save()
+        XCTAssertEqual(CSVExporter.rows(for: [original]), [CSVExporter.row(for: original)])
+
+        var incoming = CSVExporter.row(for: original)
+        incoming[0] = "New meal"
+        incoming[10] = UUID().uuidString
+        let text = FoodLogCSVDocument.encodeExtended(dataRows: [incoming])
+        let preview = try FoodLogCSVImporter.preview(text, fileName: "new.csv", existingEntries: [original])
+        XCTAssertEqual(preview.importableCount, 1)
+        XCTAssertEqual(try FoodLogCSVImporter.commit(preview, to: context), 1)
+        // Reusing a stale preview must still detect the row added after previewing.
+        XCTAssertEqual(try FoodLogCSVImporter.commit(preview, to: context), 0)
+        XCTAssertEqual(try context.count(for: FoodEntry.fetchRequest()), 2)
+        XCTAssertEqual(try FoodLogCSVImporter.preview(text, fileName: "new.csv",
+                                                     existingEntries: context.fetch(FoodEntry.fetchRequest())).duplicateCount, 1)
+    }
+
     func testLegacyCSVImportsAndPreviewSkipsInvalidAndDuplicateRows() throws {
         let valid = ["Toast, jam", "2026-09-11", "08:00", "Breakfast", "Home", "", "", "", "Ana, Bob", "A note\nwith a quote \"here\""]
         var invalidDate = valid

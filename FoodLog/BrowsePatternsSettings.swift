@@ -1406,7 +1406,7 @@ private struct MealDefaultTimesSettingsView: View {
 
 enum CSVExporter {
     static func makeFile(from entries: [FoodEntry]) -> URL? {
-        try? writeFile(rows: entries.map(row(for:)))
+        try? writeFile(rows: rows(for: entries))
     }
 
     /// Read only committed entries on a private Core Data queue. Neither
@@ -1428,7 +1428,7 @@ enum CSVExporter {
             request.sortDescriptors = [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)]
             request.fetchBatchSize = 200
             let entries = try context.fetch(request)
-            return try writeFile(rows: entries.map(row(for:)), exportedAt: exportedAt,
+            return try writeFile(rows: rows(for: entries), exportedAt: exportedAt,
                                  temporaryDirectory: temporaryDirectory)
         }
         do {
@@ -1461,22 +1461,21 @@ enum CSVExporter {
     }
 
     static func row(for entry: FoodEntry) -> [String] {
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-        dateFormatter.calendar = Calendar(identifier: .gregorian)
-        dateFormatter.timeZone = .current
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let timeFormatter = DateFormatter()
-        timeFormatter.locale = Locale(identifier: "en_US_POSIX")
-        timeFormatter.calendar = Calendar(identifier: .gregorian)
-        timeFormatter.timeZone = .current
-        timeFormatter.dateFormat = "HH:mm"
+        row(for: entry, formatters: FoodLogCSVDateFormatters())
+    }
+
+    static func rows(for entries: [FoodEntry]) -> [[String]] {
+        let formatters = FoodLogCSVDateFormatters()
+        return entries.map { row(for: $0, formatters: formatters) }
+    }
+
+    static func row(for entry: FoodEntry, formatters: FoodLogCSVDateFormatters) -> [String] {
         let names = entry.companionNames
         let peopleJSON = (try? JSONEncoder().encode(names)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
         return [
             entry.wrappedFood,
-            dateFormatter.string(from: entry.wrappedDate),
-            timeFormatter.string(from: entry.wrappedDate),
+            formatters.dateString(entry.wrappedDate),
+            formatters.timeString(entry.wrappedDate),
             entry.wrappedMealType,
             entry.wrappedPlace,
             entry.wrappedPlaceCity,
