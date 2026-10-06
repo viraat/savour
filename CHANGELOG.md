@@ -9,7 +9,16 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
-No unreleased changes on main.
+- Changing meal type no longer changes an existing entry's timestamp or a date
+  confirmed in the Date & time sheet. Defaults apply only to untouched fresh new
+  entries. Restored new/edit drafts and recovered edits retain their saved dates
+  conservatively, without changing the draft format. Automatic default changes
+  still follow later meal choices until the user explicitly confirms a date.
+- Added eight Mac timestamp-policy regressions covering 21:40 snack-to-dinner
+  relabelling, precise timestamps, manual choices, restored drafts, custom
+  defaults and meals without defaults. All 43 Mac tests passed; Debug app/test
+  compilation and unsigned iPhone Release build passed. Added/updated UI
+  regressions are compile-checked, not executed. No simulator run was performed.
 
 ## 0.5.6 — 2026-10-06
 

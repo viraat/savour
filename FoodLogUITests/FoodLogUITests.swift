@@ -62,6 +62,40 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertFalse(app.buttons["Add 5 minutes"].exists)
     }
 
+    func testRelabellingAnExistingEntryPreservesItsTimestamp() {
+        launch(resetStore: true)
+        addEntry(named: "Timestamp regression meal")
+        journalEntry(containing: "Timestamp regression meal").tap()
+        let time = app.buttons["Date and time"]
+        XCTAssertTrue(time.waitForExistence(timeout: 3))
+        let original = time.value as? String
+        XCTAssertNotNil(original)
+        app.buttons["Meal type"].tap()
+        app.buttons["Snack"].tap()
+        app.buttons["Meal type"].tap()
+        app.buttons["Dinner"].tap()
+        XCTAssertEqual(time.value as? String, original)
+        app.buttons["Save"].tap()
+        waitForEditorDismissal()
+        journalEntry(containing: "Timestamp regression meal").tap()
+        XCTAssertEqual(app.buttons["Date and time"].value as? String, original)
+    }
+
+    func testPickedNewEntryTimeSurvivesMealTypeChanges() {
+        launch(resetStore: true)
+        app.buttons["Add entry"].tap()
+        app.buttons["Date and time"].tap()
+        app.buttons["Add 5 minutes"].tap()
+        app.buttons["date-time-done"].tap()
+        let picked = app.buttons["Date and time"].value as? String
+        XCTAssertNotNil(picked)
+        app.buttons["Meal type"].tap()
+        app.buttons["Snack"].tap()
+        app.buttons["Meal type"].tap()
+        app.buttons["Dinner"].tap()
+        XCTAssertEqual(app.buttons["Date and time"].value as? String, picked)
+    }
+
     func testDateTimeSheetInDarkMode() {
         launch(resetStore: true, extraArguments: ["-foodLogAppearance", "2"])
         app.buttons["Add entry"].tap()
@@ -93,6 +127,11 @@ final class FoodLogUITests: XCTestCase {
         launch(resetStore: false)
         XCTAssertTrue(app.navigationBars["New entry"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.textFields["food-description"].value as? String, "Interrupted dinner")
+        XCTAssertEqual(app.buttons["Date and time"].value as? String, chosenTime)
+        app.buttons["Meal type"].tap()
+        app.buttons["Snack"].tap()
+        app.buttons["Meal type"].tap()
+        app.buttons["Dinner"].tap()
         XCTAssertEqual(app.buttons["Date and time"].value as? String, chosenTime)
         app.buttons["Cancel"].tap()
         app.buttons["Keep draft"].tap()

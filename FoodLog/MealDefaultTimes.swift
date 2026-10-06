@@ -1,5 +1,24 @@
 import Foundation
 
+/// Meal defaults are a convenience for untouched new entries, never a way to
+/// revise a logged or recovered timestamp. No draft-format changes are needed:
+/// a restored draft's date is conservatively treated as intentional.
+struct FoodEntryTimeSelection {
+    private var usesMealDefaults: Bool
+
+    init(isNewEntry: Bool, hasRestoredDraft: Bool) {
+        usesMealDefaults = isNewEntry && !hasRestoredDraft
+    }
+
+    mutating func didSelectDate() { usesMealDefaults = false }
+
+    func dateAfterMealChange(to mealType: String, date: Date,
+                             defaults: UserDefaults = .standard, calendar: Calendar = .current) -> Date {
+        guard usesMealDefaults else { return date }
+        return MealDefaultTimes.applyingDefault(for: mealType, to: date, defaults: defaults, calendar: calendar)
+    }
+}
+
 enum MealDefaultTimes {
     static let mealTypes = ["Breakfast", "Lunch", "Dinner"]
 

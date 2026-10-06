@@ -196,6 +196,23 @@ simulator's actual largest content-size setting, because the XCTest audit
 reports custom SwiftUI tab labels as partially unsupported even when their
 size changes correctly.
 
+## Meal type changes preserve intentional timestamps — 2026-10-06
+
+`swift test --scratch-path /private/tmp/savour-entry-time-tests` executes eight
+new timestamp-policy regressions plus 14 performance and 21 reminder tests
+(43 total, all passed). The editor uses the actual `FoodEntryTimeSelection`
+policy tested here: relabelling an existing 21:40 entry preserves even its
+seconds; confirming a manual date disables later defaults; restored new/edit
+drafts preserve their saved times. Untouched new entries still use standard
+and custom meal defaults on the same day, and Snack/Drink/Other do not change
+time. Explicitly confirming an unchanged time also preserves that choice.
+
+UI regressions cover existing-entry relabelling/save/reopen, changing meal type
+after using the Date & time sheet, and restored-draft meal changes. They are
+compile-checked, not executed. Debug app/test compilation and unsigned iPhone
+Release build passed; no simulator was launched. No draft fields, Core Data
+schema, migration or stored timestamps were altered by this fix.
+
 ## Manual device checks
 
 Some system integrations need a real device or direct Simulator interaction:
