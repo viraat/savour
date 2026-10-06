@@ -40,6 +40,18 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
   Debug app/test compilation and unsigned iPhone Release build passed. The new
   Core Data stale-preview/bulk-row regression is compile-checked, not executed.
   No simulator run was performed.
+- Gated the launch-time legacy entry repair with a versioned, per-store Core
+  Data metadata marker. Completed stores skip the repair before fetching any
+  entries/companions. Migration data saves before the marker, and an explicit
+  metadata-only store save persists it even for empty/already-repaired stores.
+  Failed repairs or marker writes can retry. Automatic schema migration and
+  explicit repair calls remain unchanged; future repairs can bump the version.
+- Added ten Mac marker regressions using in-memory and real temporary SQLite
+  stores, including reopen, empty/populated stores, failure/retry, independent
+  stores and replacement at the same URL. All 45 Mac tests passed; Debug app/test
+  compilation and unsigned iPhone Release build passed. Historical V1–V4 upgrade
+  tests now check the marker and reopen path; these app-model tests were compiled,
+  not executed. No simulator run was performed.
 
 ## 0.5.6 — 2026-10-06
 

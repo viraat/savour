@@ -16,21 +16,21 @@ let package = Package(
     platforms: [.macOS(.v13)],
     targets: [
         .target(name: "FoodLogReminder", path: "FoodLog",
-                exclude: appOnlyFiles + ["FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodEntryDraftStore.swift"],
+                exclude: appOnlyFiles + ["FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodEntryDraftStore.swift", "FoodStoreMigration.swift"],
                 sources: ["FoodReminder.swift"]),
         .testTarget(name: "FoodLogReminderTests", dependencies: ["FoodLogReminder"],
-                    path: "FoodLogTests", exclude: ["FoodLogLogicTests.swift", "FoodPerformanceTests.swift", "FoodDraftAutosaveTests.swift", "FoodCSVPerformanceTests.swift"],
+                    path: "FoodLogTests", exclude: ["FoodLogLogicTests.swift", "FoodPerformanceTests.swift", "FoodDraftAutosaveTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift"],
                     sources: ["FoodReminderTests.swift"]),
         .target(name: "FoodLogPerformance", path: "FoodLog", exclude: appOnlyFiles + ["FoodReminder.swift", "FoodEntryDraftStore.swift"],
-                sources: ["FoodLogLogic.swift", "FoodHistoryCache.swift"]),
+                sources: ["FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodStoreMigration.swift"]),
         .testTarget(name: "FoodLogPerformanceTests", dependencies: ["FoodLogPerformance"], path: "FoodLogTests",
                     exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodDraftAutosaveTests.swift"],
-                    sources: ["FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift"]),
+                    sources: ["FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift"]),
         .target(name: "FoodLogDrafts", path: "FoodLog",
-                exclude: appOnlyFiles + ["FoodReminder.swift", "FoodLogLogic.swift", "FoodHistoryCache.swift"],
+                exclude: appOnlyFiles + ["FoodReminder.swift", "FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodStoreMigration.swift"],
                 sources: ["FoodEntryDraftStore.swift"]),
         .testTarget(name: "FoodLogDraftTests", dependencies: ["FoodLogDrafts"], path: "FoodLogTests",
-                    exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift"],
+                    exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift"],
                     sources: ["FoodDraftAutosaveTests.swift"])
     ]
 )

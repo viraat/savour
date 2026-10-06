@@ -248,6 +248,30 @@ successful commit and stale-preview duplicate rechecks. It is compile-checked,
 not executed. All 44 Mac tests and both build checks passed; no simulator run.
 Import still runs on the existing context thread; no meal-type rules changed.
 
+## Store-local legacy migration completion — 2026-10-06
+
+`swift test --scratch-path /private/tmp/savour-migration-marker-tests` executes
+ten new marker tests plus 14 performance and 21 reminder tests (45 total, all
+passed). Temporary SQLite stores verify that the marker survives close/reopen
+after both actual repair changes and no-op/empty migrations. Tests also cover
+data/photo/UUID preservation, skip without fetching/saving pending objects,
+migration/data-save failures, injected metadata-save failure with cache reset
+and retry, version advances, unrelated metadata, multiple stores, replacement
+at the same URL and rejecting a foreign coordinator's store. Marker tests use a
+minimal programmatic model and a repair closure, not the app's historical models.
+
+The existing FoodLog V1–V4 upgrade tests now verify the real startup marker and
+reopen/skip behavior while retaining their entry/relationship/photo/CSV checks.
+Those app-model regressions are compile-checked, not executed. Debug app/test
+compilation and unsigned iPhone Release build passed; no simulator was launched.
+
+The marker is written after data repair succeeds, using an explicit empty
+`NSSaveChangesRequest` to flush metadata without dummy journal objects. Apple's
+[store metadata guidance](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/CoreData/PersistentStoreFeatures.html)
+explains that an instance metadata update needs a store save to reach disk.
+Automatic schema migration and manual unconditional repair remain separate;
+increment the repair version when adding future data-integrity transformations.
+
 ## Manual device checks
 
 Some system integrations need a real device or direct Simulator interaction:

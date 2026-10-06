@@ -873,6 +873,9 @@ final class FoodLogLogicTests: XCTestCase {
 
             let migratedController = PersistenceController(storeURL: storeURL)
             let context = migratedController.container.viewContext
+            let migratedStore = try XCTUnwrap(context.persistentStoreCoordinator?.persistentStores.first)
+            XCTAssertEqual(context.persistentStoreCoordinator?.metadata(for: migratedStore)[FoodStoreMigration.metadataKey] as? Int,
+                           FoodStoreMigration.currentVersion, version)
             let entries = try context.fetch(FoodEntry.fetchRequest())
             XCTAssertEqual(entries.count, 2, version)
             XCTAssertEqual(Set(entries.compactMap(\.id)).count, 2, version)
@@ -908,6 +911,19 @@ final class FoodLogLogicTests: XCTestCase {
             XCTAssertEqual(try context.count(for: FoodEntry.fetchRequest()), 2, version)
             XCTAssertEqual(try context.count(for: FastSession.fetchRequest()), 0, version)
             XCTAssertEqual(try PersistenceController.migrateLegacyEntries(in: context), .init(), version)
+            let savedFirstID = first.id
+            context.reset()
+            try migratedController.container.persistentStoreCoordinator.remove(migratedStore)
+            let reopenedController = PersistenceController(storeURL: storeURL)
+            let reopenedContext = reopenedController.container.viewContext
+            let reopenedStore = try XCTUnwrap(reopenedContext.persistentStoreCoordinator?.persistentStores.first)
+            XCTAssertFalse(try FoodStoreMigration.runIfNeeded(in: reopenedContext, store: reopenedStore) {
+                XCTFail("Historical store must skip repair after a successful upgrade: \(version)")
+            })
+            let reopenedEntries = try reopenedContext.fetch(FoodEntry.fetchRequest())
+            XCTAssertEqual(reopenedEntries.count, 2, version)
+            XCTAssertTrue(reopenedEntries.compactMap(\.id).contains(try XCTUnwrap(savedFirstID)), version)
+            try reopenedController.container.persistentStoreCoordinator.remove(reopenedStore)
         }
     }
 
