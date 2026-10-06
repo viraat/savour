@@ -196,6 +196,24 @@ simulator's actual largest content-size setting, because the XCTest audit
 reports custom SwiftUI tab labels as partially unsupported even when their
 size changes correctly.
 
+## Draft autosave debounce — 2026-10-06
+
+`swift test --scratch-path /private/tmp/savour-draft-debounce-tests` runs nine
+new draft tests plus 21 reminder and 14 performance tests (44 total). They cover
+coalescing 100 rapid changes, resetting the idle timer, immediate background/Keep
+draft saves, full-field/photo restoration through a fresh store, preserving other
+edit drafts, cancelling writes before Discard/Save/Delete cleanup, and reporting
+write failures with a successful retry. Lifecycle tests mirror the editor's
+cancel-then-synchronous-save sequence; they do not exercise actual iOS lifecycle
+callbacks or a Core Data journal save. Test delays are shortened; production uses
+500 milliseconds. The archive format and synchronous store are unchanged.
+
+Debug app/test-target compilation and unsigned iPhone Release build passed.
+No simulator was launched. Actual backgrounding, biometric interruption,
+interactive dismissal and abrupt process termination remain device checks.
+With debounce, an abrupt crash/kill without a lifecycle callback can lose typing
+from the last half-second; inactive/background/close paths save immediately.
+
 ## Manual device checks
 
 Some system integrations need a real device or direct Simulator interaction:

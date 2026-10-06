@@ -75,6 +75,7 @@ struct FoodEntryEditor: View {
     @State private var finished = false
     @State private var closedByUser = false
     @State private var didSaveEntry = false
+    @StateObject private var draftAutosaver = FoodEntryDraftAutosaver()
     @StateObject private var locationSearch = LocationSearchModel()
     @StateObject private var contactsSearch = ContactsSearchModel()
     @StateObject private var historyCache = FoodHistoryCache<FoodEditorHistoryKey, FoodEditorHistory>()
@@ -356,15 +357,22 @@ struct FoodEntryEditor: View {
             }
         }
         .onChange(of: draftSnapshot) { snapshot in
-            guard !finished, !closedByUser else { return }
-            _ = persistDraft(snapshot, active: true)
+            guard !finished, !closedByUser, !didSaveEntry else { return }
+            if scenePhase == .active {
+                draftAutosaver.schedule {
+                    guard !finished, !closedByUser, !didSaveEntry else { return }
+                    _ = persistDraft(snapshot, active: true)
+                }
+            } else {
+                _ = persistDraft(snapshot, active: true)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
             historyCache.invalidate()
         }
         .onChange(of: scenePhase) { phase in
             if phase == .active { historyCache.invalidate() }
-            if phase != .active, !finished, !closedByUser {
+            if phase != .active, !finished, !closedByUser, !didSaveEntry {
                 _ = persistDraft(draftSnapshot, active: true)
             }
         }
@@ -374,8 +382,9 @@ struct FoodEntryEditor: View {
             focusedField = nil
         }
         .onDisappear {
+            draftAutosaver.cancel()
             locationSearch.stop()
-            if !finished, !closedByUser {
+            if !finished, !closedByUser, !didSaveEntry {
                 _ = persistDraft(draftSnapshot, active: true)
             }
         }
@@ -985,6 +994,7 @@ struct FoodEntryEditor: View {
 
     @discardableResult
     private func persistDraft(_ snapshot: FoodEntryDraft, active: Bool) -> Bool {
+        draftAutosaver.cancel()
         guard hasSavedDraft || snapshot != baselineDraft else { return true }
         do {
             try FoodEntryDraftStore.shared.save(snapshot, for: draftKey, active: active)
@@ -1005,6 +1015,7 @@ struct FoodEntryEditor: View {
     }
 
     private func discardDraft() {
+        draftAutosaver.cancel()
         do {
             try FoodEntryDraftStore.shared.discard(draftKey)
             finished = true
@@ -1047,6 +1058,7 @@ struct FoodEntryEditor: View {
         }
 
         didSaveEntry = true
+        draftAutosaver.cancel()
         do {
             try FoodEntryDraftStore.shared.discard(draftKey)
             finished = true
@@ -1070,6 +1082,7 @@ struct FoodEntryEditor: View {
         }
 
         didSaveEntry = true
+        draftAutosaver.cancel()
         do {
             try FoodEntryDraftStore.shared.discard(draftKey)
             finished = true
