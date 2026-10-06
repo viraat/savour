@@ -9,6 +9,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes on main.
+
+## 0.5.7 — 2026-10-06
+
+App version 0.5.7 · build 12 · repository tag `v0.5.7`
+
 - Polished photo previews. Journal rows and the editor show an already cached
   preview on their first frame, and a changed photo keeps its previous preview
   visible until the replacement decodes, instead of flashing the meal icon.

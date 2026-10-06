@@ -3,6 +3,39 @@
 Savour was previously named FoodLog. Historical releases below retain their
 original name; see [CHANGELOG.md](CHANGELOG.md) for the cumulative release history.
 
+## Savour 0.5.7
+
+Repository release · 6 October 2026 · app version 0.5.7, build 12
+
+Performance and correctness fixes on top of 0.5.6:
+
+- Draft autosaves wait 0.5 seconds after typing stops instead of rewriting the
+  photo-bearing draft file on every keystroke; lifecycle and close paths still
+  save immediately.
+- CSV import reuses date formatters and JSON encoders, serializes existing
+  entries once and prefetches companions instead of faulting them per entry.
+- The legacy-entry repair runs once per store, recorded in store metadata,
+  instead of fetching every entry on every launch.
+- Changing an existing or explicitly timed entry's meal type keeps its
+  timestamp; meal default times apply only to untouched new entries.
+- Journal and editor photos are downsampled to their display size and cached.
+  Cached previews show on the first frame, photo-less rows skip photo reads and
+  the cache entirely, and reopened editors reuse the saved photo's preview.
+
+All Mac SwiftPM suites passed. On an iPhone 17 Pro simulator (iOS 26.3.1), the
+full unit and UI suites ran on 0.5.6 main and on this release's photo changes:
+both failed the same 17 tests, so these changes introduced no new failures.
+Those 17 pre-existing failures need separate investigation; both suites shared
+one simulator concurrently, which may account for some UI flakiness. One is a
+known test-only crash: `testAsyncCSVExportUsesSavedEntriesWithoutSavingUnfinishedEdits`
+uses a `/dev/null` store that cannot support the export's query generation;
+the same test passes against an on-disk store.
+
+Full backup/restore remains separate on `codex/full-backup-restore`, now updated
+with main but not merged. The Settings/Fasts polish on
+`codex/settings-fasts-polish` is not included. This is a local tagged repository
+release, not a TestFlight build or App Store submission. It has not been pushed.
+
 ## Savour 0.5.6
 
 Repository release · 6 October 2026 · app version 0.5.6, build 11
