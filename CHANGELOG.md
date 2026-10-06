@@ -9,6 +9,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes on main.
+
+## 0.5.6 — 2026-10-06
+
+App version 0.5.6 · build 11 · repository tag `v0.5.6`
+
 - Built a reusable autocomplete index so typing no longer reparses the entire
   meal history. Prefix/substring/fuzzy matching, selected-meal ranking, frequency,
   recency, current-segment replacement and duplicate exclusions are unchanged.

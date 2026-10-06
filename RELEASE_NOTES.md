@@ -3,6 +3,27 @@
 Savour was previously named FoodLog. Historical releases below retain their
 original name; see [CHANGELOG.md](CHANGELOG.md) for the cumulative release history.
 
+## Savour 0.5.6
+
+Repository release · 6 October 2026 · app version 0.5.6, build 11
+
+Merged `codex/performance-caching` into main. Autocomplete reuses a local index;
+journal grouping, fasting estimates, patterns and people/place suggestions reuse
+bounded, view-owned snapshots. They refresh when underlying entries or relevant
+filters/calendar state change. Layouts, draft recovery and stored data are unchanged.
+
+This release also includes the previously merged Your data/About Settings detail
+pages and CSV export reliability fix: a progress indicator, ready-file sharing,
+explicit errors and timestamped filenames.
+
+All 35 Mac reminder/performance tests passed. Debug app/test-target compilation
+and the unsigned iPhone Release build passed. No simulator run or on-device
+profiling was performed; CSV/UI regressions are compile-checked, not executed.
+
+Full backup/restore remains separate on `codex/full-backup-restore` and is not
+included. This is a local tagged repository release, not a TestFlight build or
+App Store submission. It has not been pushed or published remotely.
+
 ## Savour 0.5.5
 
 Repository release · 4 October 2026 · app version 0.5.5, build 10
