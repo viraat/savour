@@ -9,7 +9,18 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
-No unreleased changes on main.
+- Debounced entry/edit draft autosaves until 0.5 seconds after the latest change,
+  instead of reading and rewriting the photo-bearing archive on every keystroke.
+  Inactive/background transitions, editor disappearance and Keep draft still
+  save synchronously. Save, Delete and Discard cancel pending writes to prevent
+  a cleared draft from being recreated. Changes received while inactive save
+  immediately. Draft format, file protection, photos and biometric shielding
+  are unchanged; each actual write still uses the existing synchronous store.
+  Abrupt termination without a lifecycle callback can lose the final 0.5 seconds
+  of typing, while normal background/close paths flush the latest snapshot.
+- Added nine draft debounce/cancellation tests using real temporary draft files
+  and 300 KB photo payloads. All 44 Mac tests passed; Debug app/test compilation
+  and unsigned iPhone Release build passed. No simulator run was performed.
 
 ## 0.5.6 — 2026-10-06
 
