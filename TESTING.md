@@ -214,6 +214,40 @@ interactive dismissal and abrupt process termination remain device checks.
 With debounce, an abrupt crash/kill without a lifecycle callback can lose typing
 from the last half-second; inactive/background/close paths save immediately.
 
+## CSV formatter reuse and single-pass indexing — 2026-10-06
+
+`swift test --scratch-path /private/tmp/savour-csv-performance-tests` runs nine
+CSV tests, 14 performance tests and 21 reminder tests (44 total, all passed).
+The CSV tests execute the actual Foundation helpers used by preview/commit:
+3,000 lazy existing rows are serialized exactly once; UUID/content/legacy and
+within-file duplicate rules, precise timestamp and structured-people identities,
+validation errors, strict legacy date parsing, DST and independently captured
+time zones remain covered. A 3,000-row quoted/newline CSV decodes unchanged.
+
+An informational Mac test of 1,000 row validations measured about 0.56 seconds
+with a newly constructed formatter bundle per row versus 0.11 seconds reusing
+one operation-local bundle. There is no timing assertion; this compares the
+new helper's per-row and reused modes, not whole-app or on-device performance.
+
+Debug app/test-target compilation and unsigned iPhone Release build passed.
+The Core Data batch-export/stale-preview commit regression and prior import
+tests are compile-checked, not executed. No simulator was launched. Import
+preview and commit deliberately retain their existing threading/transaction
+behavior; large-file UI responsiveness still needs on-device verification.
+
+### Companion prefetch follow-up
+
+CSV performance follow-up (2026-10-06): the real file-import UI and its DEBUG
+fixture now use a context-based preview overload. Both that overload and commit
+fetch through `existingEntriesRequest()`, whose relationship prefetch includes
+`companions`; background export uses the same request. Each batch owns one
+JSONEncoder, and the row's people display text comes from the same names array
+as people_json. A new app-model test checks prefetch configuration, row parity
+after context reset, comma/quote/newline companion names, preview duplicates,
+successful commit and stale-preview duplicate rechecks. It is compile-checked,
+not executed. All 44 Mac tests and both build checks passed; no simulator run.
+Import still runs on the existing context thread; no meal-type rules changed.
+
 ## Manual device checks
 
 Some system integrations need a real device or direct Simulator interaction:

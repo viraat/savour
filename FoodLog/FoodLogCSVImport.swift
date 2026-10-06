@@ -39,6 +39,21 @@ struct FoodLogCSVImportPreview: Identifiable {
 }
 
 enum FoodLogCSVImporter {
+    static func existingEntriesRequest() -> NSFetchRequest<FoodEntry> {
+        let request = FoodEntry.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \FoodEntry.date, ascending: false)]
+        request.relationshipKeyPathsForPrefetching = ["companions"]
+        return request
+    }
+
+    /// The UI preview path fetches on the caller's context queue with companions
+    /// prefetched. Managed objects never cross queues; the array overload remains
+    /// available for callers that already have a suitable snapshot.
+    static func preview(_ text: String, fileName: String,
+                        in context: NSManagedObjectContext) throws -> FoodLogCSVImportPreview {
+        try preview(text, fileName: fileName, existingEntries: context.fetch(existingEntriesRequest()))
+    }
+
     static func preview(
         _ text: String,
         fileName: String,
@@ -51,28 +66,23 @@ enum FoodLogCSVImporter {
         }
 
         let isLegacyFormat = columns == FoodLogCSVDocument.header
-        var seenIDs = Set(existingEntries.compactMap(\.id))
-        var seenLegacyRows = Set(existingEntries.map { Array(CSVExporter.row(for: $0).prefix(10)) })
-        var seenExtendedRows = Set(existingEntries.map { extendedIdentity(CSVExporter.row(for: $0)) })
+        let formatters = FoodLogCSVDateFormatters()
+        let encoder = JSONEncoder()
+        var identities = FoodLogCSVIdentities(existingRows: existingEntries.lazy.map {
+            CSVExporter.row(for: $0, formatters: formatters, encoder: encoder)
+        })
         var rows: [FoodLogCSVImportRow] = []
         var issues: [FoodLogCSVImportIssue] = []
-
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-        dateFormatter.calendar = Calendar(identifier: .gregorian)
-        dateFormatter.timeZone = .current
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
-        dateFormatter.isLenient = false
 
         for (index, fields) in rawRows.dropFirst().enumerated() {
             let rowNumber = index + 2
             do {
-                try FoodLogCSVDocument.validate(fields, rowNumber: rowNumber, columnCount: columns.count)
+                try FoodLogCSVDocument.validate(fields, rowNumber: rowNumber, columnCount: columns.count,
+                                                formatters: formatters)
                 let date: Date
                 if isLegacyFormat {
                     let dateText = "\(fields[1]) \(fields[2])"
-                    guard let parsed = dateFormatter.date(from: dateText),
-                          dateFormatter.string(from: parsed) == dateText else {
+                    guard let parsed = formatters.legacyDate(dateText) else {
                         throw CSVCodecError.invalidDate(row: rowNumber)
                     }
                     date = parsed
@@ -91,11 +101,7 @@ enum FoodLogCSVImporter {
                     companionNames = try JSONDecoder().decode([String].self, from: Data(fields[11].utf8))
                 }
 
-                let legacyIdentity = Array(fields.prefix(10))
-                let duplicate = (entryID.map { seenIDs.contains($0) } ?? false)
-                    || (isLegacyFormat
-                        ? seenLegacyRows.contains(legacyIdentity)
-                        : seenExtendedRows.contains(extendedIdentity(fields)))
+                let duplicate = identities.contains(fields, entryID: entryID, isLegacyFormat: isLegacyFormat)
                 rows.append(FoodLogCSVImportRow(
                     rowNumber: rowNumber,
                     fields: fields,
@@ -105,11 +111,7 @@ enum FoodLogCSVImporter {
                     isDuplicate: duplicate
                 ))
                 if !duplicate {
-                    if let entryID { seenIDs.insert(entryID) }
-                    seenLegacyRows.insert(legacyIdentity)
-                    if !isLegacyFormat {
-                        seenExtendedRows.insert(extendedIdentity(fields))
-                    }
+                    identities.insert(fields, entryID: entryID, isLegacyFormat: isLegacyFormat)
                 }
             } catch {
                 issues.append(FoodLogCSVImportIssue(rowNumber: rowNumber, message: error.localizedDescription))
@@ -126,19 +128,17 @@ enum FoodLogCSVImporter {
 
     @discardableResult
     static func commit(_ preview: FoodLogCSVImportPreview, to context: NSManagedObjectContext) throws -> Int {
-        let request: NSFetchRequest<FoodEntry> = FoodEntry.fetchRequest()
-        let existingEntries = try context.fetch(request)
-        var seenIDs = Set(existingEntries.compactMap(\.id))
-        var seenLegacyRows = Set(existingEntries.map { Array(CSVExporter.row(for: $0).prefix(10)) })
-        var seenExtendedRows = Set(existingEntries.map { extendedIdentity(CSVExporter.row(for: $0)) })
+        let existingEntries = try context.fetch(existingEntriesRequest())
+        let formatters = FoodLogCSVDateFormatters()
+        let encoder = JSONEncoder()
+        var identities = FoodLogCSVIdentities(existingRows: existingEntries.lazy.map {
+            CSVExporter.row(for: $0, formatters: formatters, encoder: encoder)
+        })
         var count = 0
 
         for row in preview.rows where !row.isDuplicate {
-            let legacyIdentity = Array(row.fields.prefix(10))
-            let duplicate = (row.entryID.map { seenIDs.contains($0) } ?? false)
-                || (preview.isLegacyFormat
-                    ? seenLegacyRows.contains(legacyIdentity)
-                    : seenExtendedRows.contains(extendedIdentity(row.fields)))
+            let duplicate = identities.contains(row.fields, entryID: row.entryID,
+                                                isLegacyFormat: preview.isLegacyFormat)
             guard !duplicate else { continue }
 
             let entryID = row.entryID ?? UUID()
@@ -160,11 +160,7 @@ enum FoodLogCSVImporter {
             entry.replaceCompanions(with: row.companionNames, in: context)
             entry.note = row.note
 
-            seenIDs.insert(entryID)
-            seenLegacyRows.insert(legacyIdentity)
-            if !preview.isLegacyFormat {
-                seenExtendedRows.insert(extendedIdentity(row.fields))
-            }
+            identities.insert(row.fields, entryID: entryID, isLegacyFormat: preview.isLegacyFormat)
             count += 1
         }
 
@@ -177,9 +173,5 @@ enum FoodLogCSVImporter {
             }
         }
         return count
-    }
-
-    private static func extendedIdentity(_ fields: [String]) -> [String] {
-        Array(fields.prefix(10)) + [fields[11], fields[12]]
     }
 }

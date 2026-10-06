@@ -21,6 +21,25 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 - Added nine draft debounce/cancellation tests using real temporary draft files
   and 300 KB photo payloads. All 44 Mac tests passed; Debug app/test compilation
   and unsigned iPhone Release build passed. No simulator run was performed.
+- Prefetched `companions` with the shared existing-entry fetch used by CSV UI
+  preview and commit (and background export), avoiding one relationship fetch
+  per meal. Reused one JSONEncoder per existing-row batch, and derived display
+  people from the already-read names instead of sorting/parsing companions twice.
+  Added a compile-checked context-preview/prefetch/duplicate regression. All 44
+  Mac tests and Debug app/test compilation and unsigned iPhone Release build
+  passed; no simulator run. Import threading and meal-type validation are unchanged.
+- Reused operation-local CSV date/time formatters across import preview,
+  validation and duplicate indexing. Each existing entry is serialized once per
+  preview/commit instead of twice. Bulk export and CSV document decoding also
+  reuse formatters. Legacy/extended duplicate rules, precise timestamps, people,
+  validation errors and commit-time duplicate rechecks are unchanged. Import
+  still runs on its existing context/UI thread; this removes redundant work,
+  not every possible pause during very large imports.
+- Added nine Mac CSV regressions covering single-pass indexing, duplicate rules,
+  validation, time zones/DST and 3,000 quoted rows. All 44 Mac tests passed;
+  Debug app/test compilation and unsigned iPhone Release build passed. The new
+  Core Data stale-preview/bulk-row regression is compile-checked, not executed.
+  No simulator run was performed.
 
 ## 0.5.6 — 2026-10-06
 

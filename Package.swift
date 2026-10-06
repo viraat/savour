@@ -19,17 +19,18 @@ let package = Package(
                 exclude: appOnlyFiles + ["FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodEntryDraftStore.swift"],
                 sources: ["FoodReminder.swift"]),
         .testTarget(name: "FoodLogReminderTests", dependencies: ["FoodLogReminder"],
-                    path: "FoodLogTests", exclude: ["FoodLogLogicTests.swift", "FoodPerformanceTests.swift", "FoodDraftAutosaveTests.swift"],
+                    path: "FoodLogTests", exclude: ["FoodLogLogicTests.swift", "FoodPerformanceTests.swift", "FoodDraftAutosaveTests.swift", "FoodCSVPerformanceTests.swift"],
                     sources: ["FoodReminderTests.swift"]),
         .target(name: "FoodLogPerformance", path: "FoodLog", exclude: appOnlyFiles + ["FoodReminder.swift", "FoodEntryDraftStore.swift"],
                 sources: ["FoodLogLogic.swift", "FoodHistoryCache.swift"]),
         .testTarget(name: "FoodLogPerformanceTests", dependencies: ["FoodLogPerformance"], path: "FoodLogTests",
-                    exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodDraftAutosaveTests.swift"], sources: ["FoodPerformanceTests.swift"]),
+                    exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodDraftAutosaveTests.swift"],
+                    sources: ["FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift"]),
         .target(name: "FoodLogDrafts", path: "FoodLog",
                 exclude: appOnlyFiles + ["FoodReminder.swift", "FoodLogLogic.swift", "FoodHistoryCache.swift"],
                 sources: ["FoodEntryDraftStore.swift"]),
         .testTarget(name: "FoodLogDraftTests", dependencies: ["FoodLogDrafts"], path: "FoodLogTests",
-                    exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodPerformanceTests.swift"],
+                    exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift"],
                     sources: ["FoodDraftAutosaveTests.swift"])
     ]
 )
