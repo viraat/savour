@@ -1111,13 +1111,13 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertEqual(FastingCalendarMonth.intensity(for: .infinity), 0)
     }
 
-    func testFastingHistoryAddsThirtyAtATimeWithoutExceedingTotal() {
-        XCTAssertEqual(FastingHistory.pageSize, 30)
-        XCTAssertEqual(FastingHistory.nextLimit(current: 30, total: 76), 60)
-        XCTAssertEqual(FastingHistory.nextLimit(current: 60, total: 76), 76)
+    func testFastingHistoryShowsAWeekAndAddsSevenAtATimeWithoutExceedingTotal() {
+        XCTAssertEqual(FastingHistory.pageSize, 7)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 7, total: 76), 14)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 70, total: 76), 76)
         XCTAssertEqual(FastingHistory.nextLimit(current: 76, total: 76), 76)
-        XCTAssertEqual(FastingHistory.nextLimit(current: 30, total: 15), 15)
-        XCTAssertEqual(FastingHistory.nextLimit(current: 30, total: 0), 0)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 7, total: 5), 5)
+        XCTAssertEqual(FastingHistory.nextLimit(current: 7, total: 0), 0)
     }
 
     func testFastingHistoryAverageUsesAllCompletedEstimatesRegardlessOfPagination() {

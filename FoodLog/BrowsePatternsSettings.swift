@@ -938,7 +938,6 @@ private enum PlaceCoordinateBackfill {
 struct FoodLogSettingsView: View {
     @AppStorage("foodLogAppearance") private var appearance = 0
     @AppStorage(FoodAccentOption.settingKey) private var accentValue = FoodAccentOption.teal.rawValue
-    @AppStorage("showMealLabels") private var showMealLabels = true
     @AppStorage(BiometricAuthentication.settingKey) private var biometricLockEnabled = false
     @AppStorage(AppRelockDelay.settingKey) private var relockDelaySeconds = 0
     @AppStorage(FastingGoalPreference.hoursKey) private var fastingGoalHours = FastingGoalPreference.defaultHours
@@ -957,8 +956,6 @@ struct FoodLogSettingsView: View {
             }
 
             Section {
-                Toggle("Show meal labels in journal", isOn: $showMealLabels)
-                    .accessibilityIdentifier("settings-meal-labels")
                 NavigationLink("Default meal times") {
                     MealDefaultTimesSettingsView()
                 }
@@ -1014,9 +1011,6 @@ struct FoodLogSettingsView: View {
                 .accessibilityIdentifier("relock-delay")
             } header: {
                 Text("Privacy").foregroundStyle(FoodTheme.secondaryText)
-            } footer: {
-                Text("Savour stays hidden in the background. A new launch always requires authentication when app lock is enabled.")
-                    .foregroundStyle(FoodTheme.secondaryText)
             }
 
             Section {
@@ -1028,6 +1022,17 @@ struct FoodLogSettingsView: View {
                     FoodLogAboutView()
                 }
                 .accessibilityIdentifier("settings-about-savour")
+            } footer: {
+                VStack(spacing: 8) {
+                    Text("Built with ❤️ by Viraat")
+                        .accessibilityIdentifier("settings-credit")
+                    Text("Savour \(appVersion) (Build \(appBuild))")
+                        .accessibilityIdentifier("settings-version")
+                }
+                .foregroundStyle(FoodTheme.secondaryText)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 16)
             }
         }
         .formStyle(.grouped)
@@ -1040,6 +1045,14 @@ struct FoodLogSettingsView: View {
         .onAppear {
             biometricAvailability = BiometricAuthentication.availability()
         }
+    }
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+    }
+
+    private var appBuild: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
     }
 
     private var appearancePicker: some View {
@@ -1266,17 +1279,6 @@ private struct FoodLogAboutView: View {
                     .accessibilityIdentifier("dime-source-link")
             } header: {
                 Text("Credits and licenses").foregroundStyle(FoodTheme.secondaryText)
-            } footer: {
-                VStack(spacing: 8) {
-                    Text("Built with ❤️ by Viraat")
-                        .accessibilityIdentifier("settings-credit")
-                    Text("Savour \(appVersion) (Build \(appBuild))")
-                        .accessibilityIdentifier("settings-version")
-                }
-                .foregroundStyle(FoodTheme.secondaryText)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 16)
             }
         }
         .formStyle(.grouped)
@@ -1287,14 +1289,6 @@ private struct FoodLogAboutView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
         .font(.body)
-    }
-
-    private var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
-    }
-
-    private var appBuild: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
     }
 }
 
@@ -1336,14 +1330,19 @@ struct FoodReminderSettingsView: View {
                 }
             }
 
-            Section {
-                Button("Open notification settings") {
-                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
-                }
-                .accessibilityIdentifier("notifications-open-settings")
-            } footer: {
-                if reminder.permission == .denied {
-                    Text("Notifications are disabled for Savour in iOS Settings.")
+            // iOS lists Savour under Notifications only after permission has been
+            // requested; before that the notification-settings URL falls back to
+            // the system-wide list. Savour's own Settings page is always specific.
+            if reminder.permission != .notDetermined {
+                Section {
+                    Button("Open Savour in Settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                    }
+                    .accessibilityIdentifier("notifications-open-settings")
+                } footer: {
+                    Text(reminder.permission == .denied
+                         ? "Notifications are disabled for Savour. Turn them on under Notifications in Savour’s settings."
+                         : "Change banners, sounds and badges under Notifications in Savour’s settings.")
                         .foregroundStyle(FoodTheme.secondaryText)
                 }
             }

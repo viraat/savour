@@ -485,7 +485,7 @@ enum FastTimeText {
 }
 
 enum FastingHistory {
-    static let pageSize = 30
+    static let pageSize = 7
 
     // Pagination changes only the visible rows, never the reporting cohort.
     static func summary(of estimates: [OvernightFastEstimate]) -> OvernightFastSummary? {
@@ -696,7 +696,7 @@ struct FastSessionsView: View {
                         historyLimit = FastingHistory.nextLimit(current: historyLimit, total: estimates.count)
                     }
                     .frame(maxWidth: .infinity, minHeight: 44)
-                    .accessibilityHint("Shows up to 30 more fasts")
+                    .accessibilityHint("Shows up to \(FastingHistory.pageSize) more fasts")
                     .accessibilityIdentifier("fasting-history-more")
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)

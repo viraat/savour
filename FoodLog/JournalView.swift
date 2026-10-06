@@ -325,7 +325,6 @@ struct JournalView: View {
 
 struct EntryRow: View {
     @ObservedObject var entry: FoodEntry
-    @AppStorage("showMealLabels") private var showMealLabels = true
 
     var body: some View {
         HStack(spacing: 12) {
@@ -341,10 +340,8 @@ struct EntryRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 7) {
                         Text(FoodLogFormatters.time.string(from: entry.wrappedDate))
-                        if showMealLabels {
-                            Text("•")
-                            Text(entry.wrappedMealType)
-                        }
+                        Text("•")
+                        Text(entry.wrappedMealType)
                     }
                     if !entry.wrappedPlace.isEmpty {
                         Label(entry.wrappedPlace, systemImage: "mappin")
