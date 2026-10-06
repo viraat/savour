@@ -47,6 +47,11 @@ struct OvernightFastSummary {
     let longestDuration: TimeInterval
 }
 
+private struct FastingHistorySnapshot {
+    let estimates: [OvernightFastEstimate]
+    let summary: OvernightFastSummary?
+}
+
 struct FastingCalendarMonth {
     let start: Date
     let cells: [Date?]
@@ -612,9 +617,16 @@ struct FastSessionsView: View {
     @State private var selectedEstimate: OvernightFastEstimate?
     @State private var historyLimit = FastingHistory.pageSize
 
-    private var estimates: [OvernightFastEstimate] {
-        OvernightFasting.estimates(from: Array(entries), calendar: calendar)
+    @StateObject private var historyCache = FoodHistoryCache<Calendar, FastingHistorySnapshot>()
+
+    private var history: FastingHistorySnapshot {
+        historyCache.value(for: calendar) {
+            let estimates = OvernightFasting.estimates(from: Array(entries), calendar: calendar)
+            return FastingHistorySnapshot(estimates: estimates, summary: FastingHistory.summary(of: estimates))
+        }
     }
+
+    private var estimates: [OvernightFastEstimate] { history.estimates }
 
     private var visibleEstimates: [OvernightFastEstimate] {
         Array(estimates.prefix(historyLimit))
@@ -647,7 +659,7 @@ struct FastSessionsView: View {
                 .foregroundStyle(FoodTheme.secondaryText)
             }
             Section {
-                if let summary = FastingHistory.summary(of: estimates) {
+                if let summary = history.summary {
                     FastHistoryRow(date: "Avg", duration: summary.averageDuration,
                                    detail: "All \(summary.count) completed \(summary.count == 1 ? "fast" : "fasts")", isSummary: true)
                         .padding(.vertical, 3)
@@ -726,11 +738,20 @@ struct FastSessionsView: View {
         .navigationTitle("Fasts")
         .foodCompactPageTitle()
         .toolbar(.visible, for: .navigationBar)
+        .onAppear { historyCache.observe(context) }
+        .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
+            calendar = .current
+            historyCache.invalidate()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+            calendar = .current
+            historyCache.invalidate()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
         }
         .onChange(of: scenePhase) { phase in
-            if phase == .active { calendar = .current }
+            if phase == .active { calendar = .current; historyCache.invalidate() }
         }
         .sheet(item: $editingSession) { FastSessionEditor(session: $0) }
         .sheet(item: $selectedEstimate) { estimate in

@@ -53,7 +53,8 @@ remain pending opt-in simulator/device verification.
 
 ### Reminder logic without a simulator
 
-The root Swift package builds only `FoodReminder.swift` and its tests. It has no
+The root Swift package builds the reminder service and autocomplete/cache logic.
+It has no
 external dependencies and does not build/launch the iOS UI. All permission and
 notification clients/preferences in these tests are in-memory fakes; they
 neither display a real permission prompt nor schedule a real notification.
@@ -77,6 +78,31 @@ not simulator-tested. Real permission prompts, notification delivery after
 force-quitting, Focus/Scheduled Summary behavior, notification taps through App
 Lock, and delivery after time-zone/DST changes still need an opt-in simulator or
 device check. No extra simulator run was performed for this feature.
+
+### Performance caching without a simulator — 2026-10-04
+
+```sh
+swift test --scratch-path /private/tmp/savour-performance-logic-tests
+```
+
+All 14 performance tests and 21 reminder tests passed. The performance target
+compiles the actual `FoodLogLogic.swift` and `FoodHistoryCache.swift`, using private
+in-memory Core Data stores, not the user's journal. It verifies ranking and
+segment replacement against a frozen copy of the original suggestion engine,
+normalization/deduplication, meal selection, limits, recency, cache reuse, input
+key changes, meal/companion edits and deletion, background-import merges,
+undo/redo, rollback/reset, context switching, and day/timezone/range changes.
+
+The diagnostic Mac microbenchmark uses 3,000 synthetic meals sharing five foods
+and eight queries. The measured query batch took about 1.03 seconds rebuilding
+the original candidates versus 0.35 milliseconds with an already-built index;
+initial index construction is excluded from the latter. There is no flaky timing
+assertion or claimed app-wide speedup. Real-device Instruments profiling remains
+pending; no simulator was launched. The Debug app/test targets and unsigned
+iPhone Release configuration compile successfully.
+
+This first pass changes autocomplete and derived-data caching only. Draft I/O
+and photo decoding are deliberately unchanged to preserve recovery behavior.
 
 Native navigation/search/statistics regressions cover system page titles,
 same-row inline-large root headings aligned with Journal search/filter controls,

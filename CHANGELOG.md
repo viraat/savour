@@ -9,6 +9,27 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes on main.
+
+## 0.5.6 — 2026-10-06
+
+App version 0.5.6 · build 11 · repository tag `v0.5.6`
+
+- Built a reusable autocomplete index so typing no longer reparses the entire
+  meal history. Prefix/substring/fuzzy matching, selected-meal ranking, frequency,
+  recency, current-segment replacement and duplicate exclusions are unchanged.
+- Cached journal filtering/grouping, people/place suggestions, fasting estimates
+  and pattern summaries between UI updates. Snapshots refresh after meal or
+  companion changes, imported/background merges, undo/rollback/reset, filter or
+  calendar changes, significant time changes and returning to the foreground.
+  Caches are view-owned, bounded and memory-only; layouts, draft autosaving,
+  photos, stored data and lock behavior are unchanged.
+- Added 14 Mac-only performance/correctness tests, including comparisons with the
+  frozen original autocomplete engine. All 35 Mac tests passed. Debug app/test
+  compilation and unsigned iPhone Release build passed; no simulator run or
+  on-device profiling was performed. The synthetic 3,000-meal/8-query Mac
+  benchmark reduced query work from about 1 second to under 1 millisecond after
+  index construction; this is not an app-wide or phone-performance measurement.
 - Fixed initial CSV/share-sheet presentation by presenting a ready file as the
   sheet item instead of capturing a separately updated URL. CSV export runs on
   a private Core Data queue with a Preparing CSV progress indicator and explicit
