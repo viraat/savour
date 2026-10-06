@@ -9,6 +9,19 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Replaced full-size journal/editor photo decoding during rendering with
+  display-sized ImageIO previews decoded on a utility task. Journal cache misses
+  read committed photos on a private Core Data queue without loading them into
+  the journal's long-lived managed objects. Cache hits read no original data;
+  editor previews survive typing. The memory-only cache has 24 MB/200-item limits,
+  coalesces requests and handles photo changes, removal, rollback, refresh/reset,
+  merged updates and memory warnings. Original photos, drafts and the data model
+  are unchanged; the first uncached preview still needs to read the original.
+- Added 16 Mac photo regressions for aspect-fill sizing, EXIF orientation,
+  invalid/small/extreme images, cache reads/coalescing/purges, Core Data version
+  invalidation and private-queue reads with unsaved-photo preservation. All 87
+  Mac tests, Debug app/test compilation and unsigned iPhone Release build passed.
+  No simulator run or on-device profiling was performed.
 - Merged the draft autosave, CSV import performance, store-local migration marker
   and timestamp-preservation branches into main. Combined verification passed:
   all 71 Mac regression tests, Debug app/test compilation and unsigned iPhone
