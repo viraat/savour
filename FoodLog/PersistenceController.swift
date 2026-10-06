@@ -39,7 +39,11 @@ final class PersistenceController {
             guard let context = container?.viewContext else { return }
             context.performAndWait {
                 do {
-                    try Self.migrateLegacyEntries(in: context)
+                    for store in context.persistentStoreCoordinator?.persistentStores ?? [] {
+                        try FoodStoreMigration.runIfNeeded(in: context, store: store) {
+                            try Self.migrateLegacyEntries(in: context, store: store)
+                        }
+                    }
                 } catch {
                     NSLog("FoodLog could not finish migrating legacy entries: %@", error.localizedDescription)
                 }
@@ -56,8 +60,11 @@ final class PersistenceController {
     }
 
     @discardableResult
-    static func migrateLegacyEntries(in context: NSManagedObjectContext) throws -> MigrationReport {
+    // Explicit repairs remain unconditional; only the launch path is gated.
+    static func migrateLegacyEntries(in context: NSManagedObjectContext,
+                                     store: NSPersistentStore? = nil) throws -> MigrationReport {
         let request: NSFetchRequest<FoodEntry> = FoodEntry.fetchRequest()
+        if let store { request.affectedStores = [store] }
         let entries = try context.fetch(request)
         var seenIDs = Set<UUID>()
         var report = MigrationReport()
@@ -118,23 +125,6 @@ final class PersistenceController {
     }
 }
 
-enum CompanionNames {
-    static func parse(_ legacyValue: String) -> [String] {
-        let separated = legacyValue
-            .replacingOccurrences(of: " and ", with: ",", options: .caseInsensitive)
-            .replacingOccurrences(of: " & ", with: ",")
-        return normalized(separated.components(separatedBy: CharacterSet(charactersIn: ",;\n")))
-    }
-
-    static func normalized(_ values: [String]) -> [String] {
-        var seen = Set<String>()
-        return values.compactMap { value in
-            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted else { return nil }
-            return trimmed
-        }
-    }
-}
 
 extension FoodEntry {
     var wrappedID: UUID { id ?? UUID() }

@@ -79,8 +79,9 @@ pending an explicitly requested device/simulator check.
 
 ### Reminder logic without a simulator
 
-The reminder target builds only `FoodReminder.swift` and its tests. It does not
-build/launch the iOS UI. All permission and
+The root Swift package builds the reminder service, autocomplete/cache, draft and
+backup logic. The reminder target builds only `FoodReminder.swift` and its tests;
+it has no external dependencies and does not build/launch the iOS UI. All permission and
 notification clients/preferences in these tests are in-memory fakes; they
 neither display a real permission prompt nor schedule a real notification.
 
@@ -103,6 +104,31 @@ not simulator-tested. Real permission prompts, notification delivery after
 force-quitting, Focus/Scheduled Summary behavior, notification taps through App
 Lock, and delivery after time-zone/DST changes still need an opt-in simulator or
 device check. No extra simulator run was performed for this feature.
+
+### Performance caching without a simulator — 2026-10-04
+
+```sh
+swift test --scratch-path /private/tmp/savour-performance-logic-tests
+```
+
+All 14 performance tests and 21 reminder tests passed. The performance target
+compiles the actual `FoodLogLogic.swift` and `FoodHistoryCache.swift`, using private
+in-memory Core Data stores, not the user's journal. It verifies ranking and
+segment replacement against a frozen copy of the original suggestion engine,
+normalization/deduplication, meal selection, limits, recency, cache reuse, input
+key changes, meal/companion edits and deletion, background-import merges,
+undo/redo, rollback/reset, context switching, and day/timezone/range changes.
+
+The diagnostic Mac microbenchmark uses 3,000 synthetic meals sharing five foods
+and eight queries. The measured query batch took about 1.03 seconds rebuilding
+the original candidates versus 0.35 milliseconds with an already-built index;
+initial index construction is excluded from the latter. There is no flaky timing
+assertion or claimed app-wide speedup. Real-device Instruments profiling remains
+pending; no simulator was launched. The Debug app/test targets and unsigned
+iPhone Release configuration compile successfully.
+
+This first pass changes autocomplete and derived-data caching only. Draft I/O
+and photo decoding are deliberately unchanged to preserve recovery behavior.
 
 Native navigation/search/statistics regressions cover system page titles,
 same-row inline-large root headings aligned with Journal search/filter controls,
@@ -195,6 +221,139 @@ and content scrolling behind the bottom bar. Dynamic Type is checked with the
 simulator's actual largest content-size setting, because the XCTest audit
 reports custom SwiftUI tab labels as partially unsupported even when their
 size changes correctly.
+
+## Draft autosave debounce — 2026-10-06
+
+`swift test --scratch-path /private/tmp/savour-draft-debounce-tests` runs nine
+new draft tests plus 21 reminder and 14 performance tests (44 total). They cover
+coalescing 100 rapid changes, resetting the idle timer, immediate background/Keep
+draft saves, full-field/photo restoration through a fresh store, preserving other
+edit drafts, cancelling writes before Discard/Save/Delete cleanup, and reporting
+write failures with a successful retry. Lifecycle tests mirror the editor's
+cancel-then-synchronous-save sequence; they do not exercise actual iOS lifecycle
+callbacks or a Core Data journal save. Test delays are shortened; production uses
+500 milliseconds. The archive format and synchronous store are unchanged.
+
+Debug app/test-target compilation and unsigned iPhone Release build passed.
+No simulator was launched. Actual backgrounding, biometric interruption,
+interactive dismissal and abrupt process termination remain device checks.
+With debounce, an abrupt crash/kill without a lifecycle callback can lose typing
+from the last half-second; inactive/background/close paths save immediately.
+
+## CSV formatter reuse and single-pass indexing — 2026-10-06
+
+`swift test --scratch-path /private/tmp/savour-csv-performance-tests` runs nine
+CSV tests, 14 performance tests and 21 reminder tests (44 total, all passed).
+The CSV tests execute the actual Foundation helpers used by preview/commit:
+3,000 lazy existing rows are serialized exactly once; UUID/content/legacy and
+within-file duplicate rules, precise timestamp and structured-people identities,
+validation errors, strict legacy date parsing, DST and independently captured
+time zones remain covered. A 3,000-row quoted/newline CSV decodes unchanged.
+
+An informational Mac test of 1,000 row validations measured about 0.56 seconds
+with a newly constructed formatter bundle per row versus 0.11 seconds reusing
+one operation-local bundle. There is no timing assertion; this compares the
+new helper's per-row and reused modes, not whole-app or on-device performance.
+
+Debug app/test-target compilation and unsigned iPhone Release build passed.
+The Core Data batch-export/stale-preview commit regression and prior import
+tests are compile-checked, not executed. No simulator was launched. Import
+preview and commit deliberately retain their existing threading/transaction
+behavior; large-file UI responsiveness still needs on-device verification.
+
+### Companion prefetch follow-up
+
+CSV performance follow-up (2026-10-06): the real file-import UI and its DEBUG
+fixture now use a context-based preview overload. Both that overload and commit
+fetch through `existingEntriesRequest()`, whose relationship prefetch includes
+`companions`; background export uses the same request. Each batch owns one
+JSONEncoder, and the row's people display text comes from the same names array
+as people_json. A new app-model test checks prefetch configuration, row parity
+after context reset, comma/quote/newline companion names, preview duplicates,
+successful commit and stale-preview duplicate rechecks. It is compile-checked,
+not executed. All 44 Mac tests and both build checks passed; no simulator run.
+Import still runs on the existing context thread; no meal-type rules changed.
+
+## Store-local legacy migration completion — 2026-10-06
+
+`swift test --scratch-path /private/tmp/savour-migration-marker-tests` executes
+ten new marker tests plus 14 performance and 21 reminder tests (45 total, all
+passed). Temporary SQLite stores verify that the marker survives close/reopen
+after both actual repair changes and no-op/empty migrations. Tests also cover
+data/photo/UUID preservation, skip without fetching/saving pending objects,
+migration/data-save failures, injected metadata-save failure with cache reset
+and retry, version advances, unrelated metadata, multiple stores, replacement
+at the same URL and rejecting a foreign coordinator's store. Marker tests use a
+minimal programmatic model and a repair closure, not the app's historical models.
+
+The existing FoodLog V1–V4 upgrade tests now verify the real startup marker and
+reopen/skip behavior while retaining their entry/relationship/photo/CSV checks.
+Those app-model regressions are compile-checked, not executed. Debug app/test
+compilation and unsigned iPhone Release build passed; no simulator was launched.
+
+The marker is written after data repair succeeds, using an explicit empty
+`NSSaveChangesRequest` to flush metadata without dummy journal objects. Apple's
+[store metadata guidance](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/CoreData/PersistentStoreFeatures.html)
+explains that an instance metadata update needs a store save to reach disk.
+Automatic schema migration and manual unconditional repair remain separate;
+increment the repair version when adding future data-integrity transformations.
+
+## Meal type changes preserve intentional timestamps — 2026-10-06
+
+`swift test --scratch-path /private/tmp/savour-entry-time-tests` executes eight
+new timestamp-policy regressions plus 14 performance and 21 reminder tests
+(43 total, all passed). The editor uses the actual `FoodEntryTimeSelection`
+policy tested here: relabelling an existing 21:40 entry preserves even its
+seconds; confirming a manual date disables later defaults; restored new/edit
+drafts preserve their saved times. Untouched new entries still use standard
+and custom meal defaults on the same day, and Snack/Drink/Other do not change
+time. Explicitly confirming an unchanged time also preserves that choice.
+
+UI regressions cover existing-entry relabelling/save/reopen, changing meal type
+after using the Date & time sheet, and restored-draft meal changes. They are
+compile-checked, not executed. Debug app/test compilation and unsigned iPhone
+Release build passed; no simulator was launched. No draft fields, Core Data
+schema, migration or stored timestamps were altered by this fix.
+
+## Combined performance branch verification — 2026-10-06
+
+After merging draft autosave debounce, CSV import performance, the store-local
+migration marker and intentional timestamp preservation into main:
+
+- `swift test --scratch-path /private/tmp/savour-merged-performance-tests`:
+  all 71 Mac tests passed (21 reminders, 41 performance/CSV/migration/timestamp,
+  and nine draft autosave tests).
+- Debug `build-for-testing` passed for the app and both iOS test targets.
+- Unsigned generic iPhone Release build passed.
+
+No simulator was launched. App-model and UI regressions were compiled, not
+executed. Existing test-target linker warnings about XCTest's newer minimum
+iOS version remain. Backup/restore stays on its separate feature branch.
+
+## Display-sized photo previews — 2026-10-06
+
+`swift test --scratch-path /private/tmp/savour-photo-thumbnail-tests` passed all
+87 Mac tests, including 16 new photo tests. These execute the actual ImageIO
+decoder, actor-owned cache and Core Data photo-reading/version logic. Debug
+app/test compilation and unsigned iPhone Release build also passed. No simulator
+was launched and no phone profiling was performed; SwiftUI view behavior was
+compile-checked rather than exercised interactively.
+
+The decoder follows Apple's [Image and Graphics Best Practices](https://devstreaming-cdn.apple.com/videos/wwdc/2018/219mybpx95zm9x/219/219_image_and_graphics_best_practices.pdf)
+ImageIO downsampling approach. Tests use real generated JPEGs: a 1,600×1,200 photo
+becomes a 168×126 aspect-fill thumbnail for the 42 pt journal row at 3× scale,
+with a decoded footprint below 100 KB. That is a preview-size check, not an
+app-wide memory/performance measurement. Editor previews use their actual width
+and screen scale. Extreme outputs are capped at 2,048 pixels.
+
+Cache hits do not invoke the original-data loader. Committed photos are read
+using a private context that is reset after each read; the journal object remains
+faulted in the regression. Inserted/unsaved photo replacements and removals use
+the owning context without saving. Photo-only changes, merged updates,
+rollback/refresh/delete/reset invalidate versions; ordinary local note changes
+do not. Memory-warning cache purges cannot be undone by an older pending load.
+Original JPEGs and schema are unchanged, so the first uncached preview still
+reads its original bytes. Camera/Photos acquisition processing is unchanged.
 
 ## Manual device checks
 

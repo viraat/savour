@@ -21,6 +21,18 @@ private struct FrequentCompanionGroup: Identifiable {
     var id: String { people.map { $0.lowercased() }.sorted().joined(separator: "|") }
 }
 
+private struct FoodEditorHistoryKey: Equatable {
+    let excludedEntry: NSManagedObjectID?
+    let locale: String
+}
+
+private struct FoodEditorHistory {
+    let suggestions: FoodSuggestionEngine.Index
+    let people: [String]
+    let groups: [FrequentCompanionGroup]
+    let places: [ReusablePlace]
+}
+
 struct FoodEntryEditor: View {
     static let mealTypes = ["Breakfast", "Lunch", "Dinner", "Snack", "Drink", "Other"]
 
@@ -37,6 +49,7 @@ struct FoodEntryEditor: View {
 
     @State private var food: String
     @State private var date: Date
+    @State private var timeSelection: FoodEntryTimeSelection
     @State private var mealType: String
     @State private var place: String
     @State private var placeCity: String
@@ -63,8 +76,10 @@ struct FoodEntryEditor: View {
     @State private var finished = false
     @State private var closedByUser = false
     @State private var didSaveEntry = false
+    @StateObject private var draftAutosaver = FoodEntryDraftAutosaver()
     @StateObject private var locationSearch = LocationSearchModel()
     @StateObject private var contactsSearch = ContactsSearchModel()
+    @StateObject private var historyCache = FoodHistoryCache<FoodEditorHistoryKey, FoodEditorHistory>()
     @FocusState private var focusedField: Field?
 
     private enum Field {
@@ -106,6 +121,8 @@ struct FoodEntryEditor: View {
             loadError = "Draft could not be loaded: \(error.localizedDescription)"
         }
         let initial = restored ?? baseline
+        _timeSelection = State(initialValue: FoodEntryTimeSelection(isNewEntry: entry == nil && key == .new,
+                                                                   hasRestoredDraft: restored != nil))
         _food = State(initialValue: initial.food)
         _date = State(initialValue: initial.date)
         _mealType = State(initialValue: initial.mealType)
@@ -157,22 +174,43 @@ struct FoodEntryEditor: View {
         !food.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var history: FoodEditorHistory {
+        historyCache.value(for: FoodEditorHistoryKey(excludedEntry: entry?.objectID, locale: Locale.current.identifier)) {
+            FoodEditorHistory(
+                suggestions: FoodSuggestionEngine.Index(sources: previousEntries.compactMap { previousEntry in
+                    guard previousEntry.objectID != entry?.objectID else { return nil }
+                    return FoodSuggestionSource(mealType: previousEntry.wrappedMealType,
+                                                food: previousEntry.wrappedFood, date: previousEntry.wrappedDate)
+                }),
+                people: rankedPeople, groups: rankedCompanionGroups, places: rankedPlaces
+            )
+        }
+    }
+
     private var suggestions: [String] {
-        FoodSuggestionEngine.suggestions(
-            from: previousEntries.compactMap { previousEntry in
-                guard previousEntry.objectID != entry?.objectID else { return nil }
-                return FoodSuggestionSource(
-                    mealType: previousEntry.wrappedMealType,
-                    food: previousEntry.wrappedFood,
-                    date: previousEntry.wrappedDate
-                )
-            },
-            mealType: mealType,
-            currentFood: food
-        )
+        history.suggestions.suggestions(mealType: mealType, currentFood: food)
     }
 
     private var frequentPeople: [String] {
+        let selected = Set(selectedCompanions.map { $0.lowercased() })
+        return Array(history.people.filter { !selected.contains($0.lowercased()) }.prefix(6))
+    }
+
+    private var frequentCompanionGroups: [FrequentCompanionGroup] {
+        let selected = Set(selectedCompanions.map { $0.lowercased() })
+        return Array(history.groups.filter { group in
+            group.people.contains { !selected.contains($0.lowercased()) }
+        }.prefix(4))
+    }
+
+    private var frequentPlaces: [ReusablePlace] { Array(history.places.prefix(6)) }
+
+    private var contactSuggestions: [String] {
+        let selected = Set(selectedCompanions.map { $0.lowercased() })
+        return contactsSearch.suggestions.filter { !selected.contains($0.lowercased()) }
+    }
+
+    private var rankedPeople: [String] {
         var counts: [String: (name: String, count: Int)] = [:]
         for previousEntry in previousEntries {
             for name in previousEntry.companionNames {
@@ -182,23 +220,15 @@ struct FoodEntryEditor: View {
             }
         }
 
-        let selected = Set(selectedCompanions.map { $0.lowercased() })
         return counts.values
-            .filter { !selected.contains($0.name.lowercased()) }
             .sorted {
                 if $0.count != $1.count { return $0.count > $1.count }
                 return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
             }
-            .prefix(6)
             .map(\.name)
     }
 
-    private var contactSuggestions: [String] {
-        let selected = Set(selectedCompanions.map { $0.lowercased() })
-        return contactsSearch.suggestions.filter { !selected.contains($0.lowercased()) }
-    }
-
-    private var frequentCompanionGroups: [FrequentCompanionGroup] {
+    private var rankedCompanionGroups: [FrequentCompanionGroup] {
         var groups: [String: FrequentCompanionGroup] = [:]
 
         for previousEntry in previousEntries {
@@ -213,20 +243,15 @@ struct FoodEntryEditor: View {
             }
         }
 
-        let selected = Set(selectedCompanions.map { $0.lowercased() })
-        return groups.values
-            .filter { group in
-                group.count >= 2 && group.people.contains { !selected.contains($0.lowercased()) }
-            }
+        return groups.values.filter { $0.count >= 2 }
             .sorted {
                 if $0.count != $1.count { return $0.count > $1.count }
                 return $0.id < $1.id
             }
-            .prefix(4)
             .map { $0 }
     }
 
-    private var frequentPlaces: [ReusablePlace] {
+    private var rankedPlaces: [ReusablePlace] {
         var places: [String: ReusablePlace] = [:]
 
         for previousEntry in previousEntries {
@@ -264,7 +289,6 @@ struct FoodEntryEditor: View {
                 if $0.count != $1.count { return $0.count > $1.count }
                 return $0.place.localizedCaseInsensitiveCompare($1.place) == .orderedAscending
             }
-            .prefix(6)
             .map { $0 }
     }
 
@@ -325,6 +349,7 @@ struct FoodEntryEditor: View {
         }
         .background(FoodTheme.background.ignoresSafeArea())
         .onAppear {
+            historyCache.observe(context)
             if hasSavedDraft {
                 do { try FoodEntryDraftStore.shared.markActive(draftKey) }
                 catch { draftError = "Draft could not be updated: \(error.localizedDescription)" }
@@ -335,11 +360,22 @@ struct FoodEntryEditor: View {
             }
         }
         .onChange(of: draftSnapshot) { snapshot in
-            guard !finished, !closedByUser else { return }
-            _ = persistDraft(snapshot, active: true)
+            guard !finished, !closedByUser, !didSaveEntry else { return }
+            if scenePhase == .active {
+                draftAutosaver.schedule {
+                    guard !finished, !closedByUser, !didSaveEntry else { return }
+                    _ = persistDraft(snapshot, active: true)
+                }
+            } else {
+                _ = persistDraft(snapshot, active: true)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
+            historyCache.invalidate()
         }
         .onChange(of: scenePhase) { phase in
-            if phase != .active, !finished, !closedByUser {
+            if phase == .active { historyCache.invalidate() }
+            if phase != .active, !finished, !closedByUser, !didSaveEntry {
                 _ = persistDraft(draftSnapshot, active: true)
             }
         }
@@ -349,13 +385,17 @@ struct FoodEntryEditor: View {
             focusedField = nil
         }
         .onDisappear {
+            draftAutosaver.cancel()
             locationSearch.stop()
-            if !finished, !closedByUser {
+            if !finished, !closedByUser, !didSaveEntry {
                 _ = persistDraft(draftSnapshot, active: true)
             }
         }
         .sheet(isPresented: $showingDateTimeSheet) {
-            FoodLogDateTimeSheet(title: "Date & time", date: date) { date = $0 }
+            FoodLogDateTimeSheet(title: "Date & time", date: date) {
+                timeSelection.didSelectDate()
+                date = $0
+            }
         }
         .fullScreenCover(isPresented: $showingCamera) {
             CameraPicker(isPresented: $showingCamera) { image in
@@ -383,7 +423,8 @@ struct FoodEntryEditor: View {
     }
 
     private var whatSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        let suggestions = focusedField == .food ? self.suggestions : []
+        return VStack(alignment: .leading, spacing: 14) {
             Text("What did you eat?")
                 .font(.system(.title3, design: .rounded).weight(.semibold))
                 .foregroundColor(FoodTheme.secondaryText)
@@ -500,7 +541,7 @@ struct FoodEntryEditor: View {
     private func switchMealType(to newMealType: String) {
         guard newMealType != mealType else { return }
         mealType = newMealType
-        date = MealDefaultTimes.applyingDefault(for: newMealType, to: date)
+        date = timeSelection.dateAfterMealChange(to: newMealType, date: date)
     }
 
     private var optionalDetails: some View {
@@ -538,15 +579,7 @@ struct FoodEntryEditor: View {
 
     private var photoSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let photoData, let image = UIImage(data: photoData) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 190)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .accessibilityLabel("Entry photo")
-            }
+            if let photoData { FoodEditorPhoto(data: photoData) }
 
             HStack(spacing: 10) {
                 if UIImagePickerController.isSourceTypeAvailable(.camera) {
@@ -959,6 +992,7 @@ struct FoodEntryEditor: View {
 
     @discardableResult
     private func persistDraft(_ snapshot: FoodEntryDraft, active: Bool) -> Bool {
+        draftAutosaver.cancel()
         guard hasSavedDraft || snapshot != baselineDraft else { return true }
         do {
             try FoodEntryDraftStore.shared.save(snapshot, for: draftKey, active: active)
@@ -979,6 +1013,7 @@ struct FoodEntryEditor: View {
     }
 
     private func discardDraft() {
+        draftAutosaver.cancel()
         do {
             try FoodEntryDraftStore.shared.discard(draftKey)
             finished = true
@@ -1021,6 +1056,7 @@ struct FoodEntryEditor: View {
         }
 
         didSaveEntry = true
+        draftAutosaver.cancel()
         do {
             try FoodEntryDraftStore.shared.discard(draftKey)
             finished = true
@@ -1044,6 +1080,7 @@ struct FoodEntryEditor: View {
         }
 
         didSaveEntry = true
+        draftAutosaver.cancel()
         do {
             try FoodEntryDraftStore.shared.discard(draftKey)
             finished = true

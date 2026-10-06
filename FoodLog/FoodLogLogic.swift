@@ -1,5 +1,23 @@
 import Foundation
 
+enum CompanionNames {
+    static func parse(_ legacyValue: String) -> [String] {
+        let separated = legacyValue
+            .replacingOccurrences(of: " and ", with: ",", options: .caseInsensitive)
+            .replacingOccurrences(of: " & ", with: ",")
+        return normalized(separated.components(separatedBy: CharacterSet(charactersIn: ",;\n")))
+    }
+
+    static func normalized(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values.compactMap { value in
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted else { return nil }
+            return trimmed
+        }
+    }
+}
+
 enum FoodItemParser {
     static func items(in description: String) -> [String] {
         description
@@ -26,63 +44,64 @@ struct FoodSuggestionSource {
 enum FoodSuggestionEngine {
     private struct Candidate {
         let name: String
+        let words: [String]
         var count: Int
-        var mealCount: Int
+        var mealCounts: [String: Int]
         var lastUsed: Date
     }
 
-    static func suggestions(
-        from sources: [FoodSuggestionSource],
-        mealType: String,
-        currentFood: String,
-        limit: Int = 8
-    ) -> [String] {
-        let query = key(for: currentSegment(in: currentFood))
-        let selected = Set(FoodItemParser.items(in: currentFood).map(key(for:)))
-        let selectedMeal = key(for: mealType)
-        var candidates: [String: Candidate] = [:]
+    /// Parsing, normalization and history aggregation happen once, not once
+    /// per keystroke. Query matching retains the original ranking rules.
+    struct Index {
+        private var candidates: [String: Candidate] = [:]
 
-        for source in sources {
-            var countedForEntry = Set<String>()
-            for item in FoodItemParser.items(in: source.food) {
-                let name = normalizedWhitespace(item)
-                let itemKey = key(for: name)
-                guard countedForEntry.insert(itemKey).inserted else { continue }
-                var candidate = candidates[itemKey] ?? Candidate(
-                    name: name,
-                    count: 0,
-                    mealCount: 0,
-                    lastUsed: .distantPast
-                )
-                candidate.count += 1
-                if key(for: source.mealType) == selectedMeal {
-                    candidate.mealCount += 1
+        init(sources: [FoodSuggestionSource]) {
+            for source in sources {
+                let meal = key(for: source.mealType)
+                var countedForEntry = Set<String>()
+                for item in FoodItemParser.items(in: source.food) {
+                    let name = normalizedWhitespace(item)
+                    let itemKey = key(for: name)
+                    guard countedForEntry.insert(itemKey).inserted else { continue }
+                    var candidate = candidates[itemKey] ?? Candidate(
+                        name: name, words: itemKey.split(separator: " ").map(String.init),
+                        count: 0, mealCounts: [:], lastUsed: .distantPast
+                    )
+                    candidate.count += 1
+                    candidate.mealCounts[meal, default: 0] += 1
+                    candidate.lastUsed = max(candidate.lastUsed, source.date)
+                    candidates[itemKey] = candidate
                 }
-                candidate.lastUsed = max(candidate.lastUsed, source.date)
-                candidates[itemKey] = candidate
             }
         }
 
-        return candidates.compactMap { itemKey, candidate -> (Candidate, Int)? in
-            guard !selected.contains(itemKey), let match = matchRank(itemKey, query: query) else {
-                return nil
+        var uniqueFoodCount: Int { candidates.count }
+
+        func suggestions(mealType: String, currentFood: String, limit: Int = 8) -> [String] {
+            let query = key(for: currentSegment(in: currentFood))
+            let selected = Set(FoodItemParser.items(in: currentFood).map(key(for:)))
+            let selectedMeal = key(for: mealType)
+            return candidates.compactMap { itemKey, candidate -> (Candidate, Int, Int)? in
+                guard !selected.contains(itemKey),
+                      let match = matchRank(itemKey, words: candidate.words, query: query) else { return nil }
+                return (candidate, match, candidate.mealCounts[selectedMeal, default: 0])
             }
-            return (candidate, match)
-        }
             .sorted {
                 if $0.1 != $1.1 { return $0.1 > $1.1 }
-                if ($0.0.mealCount > 0) != ($1.0.mealCount > 0) {
-                    return $0.0.mealCount > 0
-                }
-                if $0.0.mealCount != $1.0.mealCount {
-                    return $0.0.mealCount > $1.0.mealCount
-                }
+                if ($0.2 > 0) != ($1.2 > 0) { return $0.2 > 0 }
+                if $0.2 != $1.2 { return $0.2 > $1.2 }
                 if $0.0.count != $1.0.count { return $0.0.count > $1.0.count }
                 if $0.0.lastUsed != $1.0.lastUsed { return $0.0.lastUsed > $1.0.lastUsed }
                 return $0.0.name.localizedCaseInsensitiveCompare($1.0.name) == .orderedAscending
             }
             .prefix(max(limit, 0))
             .map { $0.0.name }
+        }
+    }
+
+    static func suggestions(from sources: [FoodSuggestionSource], mealType: String,
+                            currentFood: String, limit: Int = 8) -> [String] {
+        Index(sources: sources).suggestions(mealType: mealType, currentFood: currentFood, limit: limit)
     }
 
     static func replacingCurrentSegment(in description: String, with suggestion: String) -> String {
@@ -105,10 +124,9 @@ enum FoodSuggestionEngine {
             .lowercased()
     }
 
-    private static func matchRank(_ candidate: String, query: String) -> Int? {
+    private static func matchRank(_ candidate: String, words: [String], query: String) -> Int? {
         guard !query.isEmpty else { return 0 }
         if candidate.hasPrefix(query) { return 4 }
-        let words = candidate.split(separator: " ").map(String.init)
         if words.contains(where: { $0.hasPrefix(query) }) { return 3 }
         if candidate.contains(query) { return 2 }
 
@@ -324,6 +342,71 @@ enum CSVCodec {
     }
 }
 
+/// Owned by one CSV operation, never shared globally between Core Data queues.
+/// All row formatting/validation in that operation uses the same time zone.
+final class FoodLogCSVDateFormatters {
+    private let dateFormatter: DateFormatter
+    private let timeFormatter: DateFormatter
+    private let legacyFormatter: DateFormatter
+
+    init(timeZone: TimeZone = .current) {
+        dateFormatter = Self.makeFormatter("yyyy-MM-dd", timeZone: timeZone)
+        timeFormatter = Self.makeFormatter("HH:mm", timeZone: timeZone)
+        legacyFormatter = Self.makeFormatter("yyyy-MM-dd HH:mm", timeZone: timeZone)
+    }
+
+    func dateString(_ date: Date) -> String { dateFormatter.string(from: date) }
+    func timeString(_ date: Date) -> String { timeFormatter.string(from: date) }
+    func isValidDate(_ text: String) -> Bool { dateFormatter.date(from: text) != nil }
+    func isValidTime(_ text: String) -> Bool { timeFormatter.date(from: text) != nil }
+
+    func legacyDate(_ text: String) -> Date? {
+        guard let date = legacyFormatter.date(from: text),
+              legacyFormatter.string(from: date) == text else { return nil }
+        return date
+    }
+
+    private static func makeFormatter(_ format: String, timeZone: TimeZone) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = timeZone
+        formatter.dateFormat = format
+        formatter.isLenient = false
+        return formatter
+    }
+}
+
+/// Consumes an existing-row sequence once, including lazy serialization, while
+/// keeping the old UUID, legacy-text and extended-text duplicate rules intact.
+struct FoodLogCSVIdentities {
+    private var ids = Set<UUID>()
+    private var legacyRows = Set<[String]>()
+    private var extendedRows = Set<[String]>()
+
+    init<S: Sequence>(existingRows: S) where S.Element == [String] {
+        for row in existingRows {
+            insert(row, entryID: UUID(uuidString: row[10]), isLegacyFormat: false)
+        }
+    }
+
+    func contains(_ fields: [String], entryID: UUID?, isLegacyFormat: Bool) -> Bool {
+        (entryID.map { ids.contains($0) } ?? false)
+            || (isLegacyFormat ? legacyRows.contains(Array(fields.prefix(10)))
+                : extendedRows.contains(Self.extendedIdentity(fields)))
+    }
+
+    mutating func insert(_ fields: [String], entryID: UUID?, isLegacyFormat: Bool) {
+        if let entryID { ids.insert(entryID) }
+        legacyRows.insert(Array(fields.prefix(10)))
+        if !isLegacyFormat { extendedRows.insert(Self.extendedIdentity(fields)) }
+    }
+
+    private static func extendedIdentity(_ fields: [String]) -> [String] {
+        Array(fields.prefix(10)) + [fields[11], fields[12]]
+    }
+}
+
 enum FoodLogCSVDocument {
     static let header = [
         "food", "date", "time", "meal", "place", "city",
@@ -344,14 +427,16 @@ enum FoodLogCSVDocument {
         guard let first = rows.first else { throw CSVCodecError.missingHeader }
         guard first == header || first == extendedHeader else { throw CSVCodecError.invalidHeader }
 
+        let formatters = FoodLogCSVDateFormatters()
         for (index, row) in rows.dropFirst().enumerated() {
-            try validate(row, rowNumber: index + 2, columnCount: first.count)
+            try validate(row, rowNumber: index + 2, columnCount: first.count, formatters: formatters)
         }
 
         return Array(rows.dropFirst())
     }
 
-    static func validate(_ row: [String], rowNumber: Int, columnCount: Int) throws {
+    static func validate(_ row: [String], rowNumber: Int, columnCount: Int,
+                         formatters: FoodLogCSVDateFormatters = FoodLogCSVDateFormatters()) throws {
         guard row.count == columnCount else {
             throw CSVCodecError.wrongColumnCount(
                 row: rowNumber,
@@ -360,24 +445,13 @@ enum FoodLogCSVDocument {
             )
         }
 
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-        dateFormatter.calendar = Calendar(identifier: .gregorian)
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        dateFormatter.isLenient = false
-        let timeFormatter = DateFormatter()
-        timeFormatter.locale = Locale(identifier: "en_US_POSIX")
-        timeFormatter.calendar = Calendar(identifier: .gregorian)
-        timeFormatter.dateFormat = "HH:mm"
-        timeFormatter.isLenient = false
-
         guard !row[0].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw CSVCodecError.emptyFood(row: rowNumber)
         }
-        guard dateFormatter.date(from: row[1]) != nil else {
+        guard formatters.isValidDate(row[1]) else {
             throw CSVCodecError.invalidDate(row: rowNumber)
         }
-        guard timeFormatter.date(from: row[2]) != nil else {
+        guard formatters.isValidTime(row[2]) else {
             throw CSVCodecError.invalidTime(row: rowNumber)
         }
 

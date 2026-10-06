@@ -1,4 +1,36 @@
+import Combine
 import Foundation
+
+/// Coalesces typing updates only. Lifecycle/terminal actions cancel pending work
+/// before using the existing synchronous store, so a late save cannot resurrect a draft.
+@MainActor
+final class FoodEntryDraftAutosaver: ObservableObject {
+    private let delayNanoseconds: UInt64
+    private var task: Task<Void, Never>?
+
+    init(delayNanoseconds: UInt64 = 500_000_000) {
+        self.delayNanoseconds = delayNanoseconds
+    }
+
+    func schedule(_ save: @escaping @MainActor () -> Void) {
+        cancel()
+        let delay = delayNanoseconds
+        task = Task { @MainActor [weak self] in
+            do { try await Task.sleep(nanoseconds: delay) }
+            catch { return }
+            guard !Task.isCancelled, let self else { return }
+            self.task = nil
+            save()
+        }
+    }
+
+    func cancel() {
+        task?.cancel()
+        task = nil
+    }
+
+    deinit { task?.cancel() }
+}
 
 enum FoodEntryDraftKey: Hashable {
     case new

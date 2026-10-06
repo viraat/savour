@@ -9,6 +9,96 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Replaced full-size journal/editor photo decoding during rendering with
+  display-sized ImageIO previews decoded on a utility task. Journal cache misses
+  read committed photos on a private Core Data queue without loading them into
+  the journal's long-lived managed objects. Cache hits read no original data;
+  editor previews survive typing. The memory-only cache has 24 MB/200-item limits,
+  coalesces requests and handles photo changes, removal, rollback, refresh/reset,
+  merged updates and memory warnings. Original photos, drafts and the data model
+  are unchanged; the first uncached preview still needs to read the original.
+- Added 16 Mac photo regressions for aspect-fill sizing, EXIF orientation,
+  invalid/small/extreme images, cache reads/coalescing/purges, Core Data version
+  invalidation and private-queue reads with unsaved-photo preservation. All 87
+  Mac tests, Debug app/test compilation and unsigned iPhone Release build passed.
+  No simulator run or on-device profiling was performed.
+- Merged the draft autosave, CSV import performance, store-local migration marker
+  and timestamp-preservation branches into main. Combined verification passed:
+  all 71 Mac regression tests, Debug app/test compilation and unsigned iPhone
+  Release build. No simulator run; app-model/UI tests were compiled only.
+- Debounced entry/edit draft autosaves until 0.5 seconds after the latest change,
+  instead of reading and rewriting the photo-bearing archive on every keystroke.
+  Inactive/background transitions, editor disappearance and Keep draft still
+  save synchronously. Save, Delete and Discard cancel pending writes to prevent
+  a cleared draft from being recreated. Changes received while inactive save
+  immediately. Draft format, file protection, photos and biometric shielding
+  are unchanged; each actual write still uses the existing synchronous store.
+  Abrupt termination without a lifecycle callback can lose the final 0.5 seconds
+  of typing, while normal background/close paths flush the latest snapshot.
+- Added nine draft debounce/cancellation tests using real temporary draft files
+  and 300 KB photo payloads. All 44 Mac tests passed; Debug app/test compilation
+  and unsigned iPhone Release build passed. No simulator run was performed.
+- Prefetched `companions` with the shared existing-entry fetch used by CSV UI
+  preview and commit (and background export), avoiding one relationship fetch
+  per meal. Reused one JSONEncoder per existing-row batch, and derived display
+  people from the already-read names instead of sorting/parsing companions twice.
+  Added a compile-checked context-preview/prefetch/duplicate regression. All 44
+  Mac tests and Debug app/test compilation and unsigned iPhone Release build
+  passed; no simulator run. Import threading and meal-type validation are unchanged.
+- Reused operation-local CSV date/time formatters across import preview,
+  validation and duplicate indexing. Each existing entry is serialized once per
+  preview/commit instead of twice. Bulk export and CSV document decoding also
+  reuse formatters. Legacy/extended duplicate rules, precise timestamps, people,
+  validation errors and commit-time duplicate rechecks are unchanged. Import
+  still runs on its existing context/UI thread; this removes redundant work,
+  not every possible pause during very large imports.
+- Added nine Mac CSV regressions covering single-pass indexing, duplicate rules,
+  validation, time zones/DST and 3,000 quoted rows. All 44 Mac tests passed;
+  Debug app/test compilation and unsigned iPhone Release build passed. The new
+  Core Data stale-preview/bulk-row regression is compile-checked, not executed.
+  No simulator run was performed.
+- Gated the launch-time legacy entry repair with a versioned, per-store Core
+  Data metadata marker. Completed stores skip the repair before fetching any
+  entries/companions. Migration data saves before the marker, and an explicit
+  metadata-only store save persists it even for empty/already-repaired stores.
+  Failed repairs or marker writes can retry. Automatic schema migration and
+  explicit repair calls remain unchanged; future repairs can bump the version.
+- Added ten Mac marker regressions using in-memory and real temporary SQLite
+  stores, including reopen, empty/populated stores, failure/retry, independent
+  stores and replacement at the same URL. All 45 Mac tests passed; Debug app/test
+  compilation and unsigned iPhone Release build passed. Historical V1–V4 upgrade
+  tests now check the marker and reopen path; these app-model tests were compiled,
+  not executed. No simulator run was performed.
+- Changing meal type no longer changes an existing entry's timestamp or a date
+  confirmed in the Date & time sheet. Defaults apply only to untouched fresh new
+  entries. Restored new/edit drafts and recovered edits retain their saved dates
+  conservatively, without changing the draft format. Automatic default changes
+  still follow later meal choices until the user explicitly confirms a date.
+- Added eight Mac timestamp-policy regressions covering 21:40 snack-to-dinner
+  relabelling, precise timestamps, manual choices, restored drafts, custom
+  defaults and meals without defaults. All 43 Mac tests passed; Debug app/test
+  compilation and unsigned iPhone Release build passed. Added/updated UI
+  regressions are compile-checked, not executed. No simulator run was performed.
+
+## 0.5.6 — 2026-10-06
+
+App version 0.5.6 · build 11 · repository tag `v0.5.6`
+
+- Built a reusable autocomplete index so typing no longer reparses the entire
+  meal history. Prefix/substring/fuzzy matching, selected-meal ranking, frequency,
+  recency, current-segment replacement and duplicate exclusions are unchanged.
+- Cached journal filtering/grouping, people/place suggestions, fasting estimates
+  and pattern summaries between UI updates. Snapshots refresh after meal or
+  companion changes, imported/background merges, undo/rollback/reset, filter or
+  calendar changes, significant time changes and returning to the foreground.
+  Caches are view-owned, bounded and memory-only; layouts, draft autosaving,
+  photos, stored data and lock behavior are unchanged.
+- Added 14 Mac-only performance/correctness tests, including comparisons with the
+  frozen original autocomplete engine. All 35 Mac tests passed. Debug app/test
+  compilation and unsigned iPhone Release build passed; no simulator run or
+  on-device profiling was performed. The synthetic 3,000-meal/8-query Mac
+  benchmark reduced query work from about 1 second to under 1 millisecond after
+  index construction; this is not an app-wide or phone-performance measurement.
 - Fixed initial CSV/share-sheet presentation by presenting a ready file as the
   sheet item instead of capturing a separately updated URL. CSV export runs on
   a private Core Data queue with a Preparing CSV progress indicator and explicit

@@ -154,6 +154,9 @@ struct FoodLogApp: App {
             }
             .environment(\.managedObjectContext, persistence.container.viewContext)
             .task { await reminder.refresh() }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
+                Task { await FoodPhotoThumbnailCache.shared.removeAll() }
+            }
             .onChange(of: scenePhase) { phase in
                 if phase == .active { Task { await reminder.refresh() } }
             }

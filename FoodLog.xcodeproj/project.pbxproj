@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        F60000000000000000000001 /* FoodPhotoThumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000002 /* FoodPhotoThumbnails.swift */; };
+        F60000000000000000000003 /* FoodPhotoThumbnailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000004 /* FoodPhotoThumbnailTests.swift */; };
+        F20000000000000000000001 /* FoodDraftAutosaveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000002 /* FoodDraftAutosaveTests.swift */; };
+        F30000000000000000000001 /* FoodCSVPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000002 /* FoodCSVPerformanceTests.swift */; };
+        F40000000000000000000001 /* FoodStoreMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000002 /* FoodStoreMigration.swift */; };
+        F40000000000000000000003 /* FoodStoreMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000004 /* FoodStoreMigrationTests.swift */; };
+        F50000000000000000000001 /* FoodEntryTimeSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000002 /* FoodEntryTimeSelectionTests.swift */; };
+        F10000000000000000000001 /* FoodHistoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* FoodHistoryCache.swift */; };
 		A00000000000000000000001 /* FoodLogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* FoodLogApp.swift */; };
 		A00000000000000000000002 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002 /* PersistenceController.swift */; };
 		A00000000000000000000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000003 /* ContentView.swift */; };
@@ -52,6 +60,14 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+        F60000000000000000000002 /* FoodPhotoThumbnails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPhotoThumbnails.swift; sourceTree = "<group>"; };
+        F60000000000000000000004 /* FoodPhotoThumbnailTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPhotoThumbnailTests.swift; sourceTree = "<group>"; };
+        F20000000000000000000002 /* FoodDraftAutosaveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDraftAutosaveTests.swift; sourceTree = "<group>"; };
+        F30000000000000000000002 /* FoodCSVPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCSVPerformanceTests.swift; sourceTree = "<group>"; };
+        F40000000000000000000002 /* FoodStoreMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodStoreMigration.swift; sourceTree = "<group>"; };
+        F40000000000000000000004 /* FoodStoreMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodStoreMigrationTests.swift; sourceTree = "<group>"; };
+        F50000000000000000000002 /* FoodEntryTimeSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodEntryTimeSelectionTests.swift; sourceTree = "<group>"; };
+        F10000000000000000000002 /* FoodHistoryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodHistoryCache.swift; sourceTree = "<group>"; };
 		B00000000000000000000001 /* FoodLogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogApp.swift; sourceTree = "<group>"; };
 		B00000000000000000000002 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		B00000000000000000000003 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -131,11 +147,14 @@
 				B00000000000000000000005 /* FoodEntryEditor.swift */,
 				B00000000000000000000006 /* BrowsePatternsSettings.swift */,
 				B00000000000000000000002 /* PersistenceController.swift */,
+                F40000000000000000000002 /* FoodStoreMigration.swift */,
 				B00000000000000000000012 /* LocationSearchModel.swift */,
 				B00000000000000000000013 /* ContactsSearchModel.swift */,
 				B00000000000000000000018 /* AppLockView.swift */,
 				B00000000000000000000019 /* MealDefaultTimes.swift */,
 				B00000000000000000000020 /* FoodLogLogic.swift */,
+                F10000000000000000000002 /* FoodHistoryCache.swift */,
+                F60000000000000000000002 /* FoodPhotoThumbnails.swift */,
 				B00000000000000000000025 /* FoodLogCSVImport.swift */,
 				B00000000000000000000026 /* Fasting.swift */,
 				B00000000000000000000028 /* DateTimePickerSheet.swift */,
@@ -156,6 +175,11 @@
 			children = (
 				B00000000000000000000021 /* FoodLogLogicTests.swift */,
 				B00000000000000000000031 /* FoodReminderTests.swift */,
+                F20000000000000000000002 /* FoodDraftAutosaveTests.swift */,
+                F30000000000000000000002 /* FoodCSVPerformanceTests.swift */,
+                F40000000000000000000004 /* FoodStoreMigrationTests.swift */,
+                F50000000000000000000002 /* FoodEntryTimeSelectionTests.swift */,
+                F60000000000000000000004 /* FoodPhotoThumbnailTests.swift */,
 			);
 			path = FoodLogTests;
 			sourceTree = "<group>";
@@ -332,6 +356,7 @@
 			files = (
 				A00000000000000000000001 /* FoodLogApp.swift in Sources */,
 				A00000000000000000000002 /* PersistenceController.swift in Sources */,
+                F40000000000000000000001 /* FoodStoreMigration.swift in Sources */,
 				A00000000000000000000003 /* ContentView.swift in Sources */,
 				A00000000000000000000004 /* JournalView.swift in Sources */,
 				A00000000000000000000005 /* FoodEntryEditor.swift in Sources */,
@@ -342,6 +367,8 @@
 				A0000000000000000000000C /* AppLockView.swift in Sources */,
 				A0000000000000000000000D /* MealDefaultTimes.swift in Sources */,
 				A0000000000000000000000E /* FoodLogLogic.swift in Sources */,
+                F10000000000000000000001 /* FoodHistoryCache.swift in Sources */,
+                F60000000000000000000001 /* FoodPhotoThumbnails.swift in Sources */,
 				A00000000000000000000011 /* FoodLogCSVImport.swift in Sources */,
 				A00000000000000000000012 /* Fasting.swift in Sources */,
 				A00000000000000000000013 /* DateTimePickerSheet.swift in Sources */,
@@ -358,6 +385,11 @@
 			files = (
 				A0000000000000000000000F /* FoodLogLogicTests.swift in Sources */,
 				A00000000000000000000016 /* FoodReminderTests.swift in Sources */,
+                F20000000000000000000001 /* FoodDraftAutosaveTests.swift in Sources */,
+                F30000000000000000000001 /* FoodCSVPerformanceTests.swift in Sources */,
+                F40000000000000000000003 /* FoodStoreMigrationTests.swift in Sources */,
+                F50000000000000000000001 /* FoodEntryTimeSelectionTests.swift in Sources */,
+                F60000000000000000000003 /* FoodPhotoThumbnailTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -440,14 +472,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = Z5K7SYFXP9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FoodLog/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				MARKETING_VERSION = 0.5.5;
+				MARKETING_VERSION = 0.5.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -463,14 +495,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = Z5K7SYFXP9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FoodLog/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				MARKETING_VERSION = 0.5.5;
+				MARKETING_VERSION = 0.5.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
