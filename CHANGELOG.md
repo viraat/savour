@@ -9,6 +9,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Erase all entries now collects meal UUIDs once and detaches matching fasting
+  links in one pass over a single session fetch, instead of refetching all fasts
+  per entry. Recorded fasting times, targets and unrelated links remain intact;
+  detachment and deletion still save or roll back together. Added three app-model
+  regressions, including 3,000 meals and rollback. These tests compile; all 71
+  existing Mac tests and Debug/Release builds passed. No simulator run.
 - Merged the draft autosave, CSV import performance, store-local migration marker
   and timestamp-preservation branches into main. Combined verification passed:
   all 71 Mac regression tests, Debug app/test compilation and unsigned iPhone

@@ -1271,6 +1271,84 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertEqual(fast.startDate, date(2026, 9, 16, 21))
     }
 
+    func testBulkMealErasureDetachesLinksAndPreservesRecordedFasts() throws {
+        let context = PersistenceController(inMemory: true).container.viewContext
+        let meals = (0..<3_000).map { index in
+            let meal = FoodEntry(context: context)
+            meal.id = UUID()
+            meal.food = "Meal \(index)"
+            meal.date = date(2026, 9, 16, 20).addingTimeInterval(Double(index))
+            return meal
+        }
+        let start = date(2026, 9, 16, 20)
+        let end = date(2026, 9, 17, 10)
+        let completed = try FastingStore.create(start: start, end: end, target: 14 * 3_600,
+                                                startEntryID: meals.first?.id,
+                                                endEntryID: meals.last?.id, in: context)
+        let active = try FastingStore.create(start: end.addingTimeInterval(3_600),
+                                             startEntryID: meals[1].id, in: context)
+        let completedID = completed.id
+        let createdAt = completed.createdAt
+        try context.save()
+
+        try FastingStore.detachEntries(meals, in: context)
+        for meal in meals { context.delete(meal) }
+        try context.save()
+        context.refreshAllObjects()
+
+        XCTAssertEqual(try context.count(for: FoodEntry.fetchRequest()), 0)
+        XCTAssertEqual(try FastingStore.sessions(in: context).count, 2)
+        XCTAssertNil(completed.startEntryID)
+        XCTAssertNil(completed.endEntryID)
+        XCTAssertNil(active.startEntryID)
+        XCTAssertNil(active.endDate)
+        XCTAssertEqual(completed.id, completedID)
+        XCTAssertEqual(completed.createdAt, createdAt)
+        XCTAssertEqual(completed.startDate, start)
+        XCTAssertEqual(completed.endDate, end)
+        XCTAssertEqual(completed.targetSeconds, 14 * 3_600)
+        XCTAssertEqual(active.startDate, end.addingTimeInterval(3_600))
+    }
+
+    func testBulkDetachmentClearsOnlyMatchingLinksAndHandlesMissingIDs() throws {
+        let context = PersistenceController(inMemory: true).container.viewContext
+        let meal = FoodEntry(context: context)
+        meal.id = UUID()
+        let withoutID = FoodEntry(context: context)
+        let unrelatedID = UUID()
+        let fast = try FastingStore.create(start: date(2026, 9, 16, 20),
+                                           end: date(2026, 9, 17, 10),
+                                           startEntryID: meal.id, endEntryID: unrelatedID, in: context)
+        try context.save()
+
+        try FastingStore.detachEntries([], in: context)
+        try FastingStore.detachEntries([withoutID], in: context)
+        XCTAssertFalse(context.hasChanges)
+        XCTAssertEqual(fast.startEntryID, meal.id)
+        try FastingStore.detachEntries([meal, meal, withoutID], in: context)
+        XCTAssertNil(fast.startEntryID)
+        XCTAssertEqual(fast.endEntryID, unrelatedID)
+        XCTAssertFalse(meal.isDeleted)
+    }
+
+    func testBulkMealDetachmentAndDeletionRollBackTogether() throws {
+        let context = PersistenceController(inMemory: true).container.viewContext
+        let meal = FoodEntry(context: context)
+        meal.id = UUID()
+        meal.food = "Dinner"
+        let id = meal.id
+        let fast = try FastingStore.create(start: date(2026, 9, 16, 20), startEntryID: id, in: context)
+        try context.save()
+        try FastingStore.detachEntries([meal], in: context)
+        context.delete(meal)
+        context.rollback()
+
+        XCTAssertEqual(try context.count(for: FoodEntry.fetchRequest()), 1)
+        XCTAssertFalse(meal.isDeleted)
+        XCTAssertEqual(fast.startEntryID, id)
+        XCTAssertFalse(context.hasChanges)
+    }
+
     func testFastPersistenceAndTimezoneIndependentElapsedTime() throws {
         let storeURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("FoodLogFast-\(UUID().uuidString).sqlite")

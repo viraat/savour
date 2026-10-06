@@ -451,6 +451,17 @@ enum FastingStore {
             if session.endEntryID == id { session.endEntryID = nil }
         }
     }
+
+    // Bulk deletion must not refetch every session for every meal. Preserve the
+    // recorded fast and its times, clearing only links to the selected entries.
+    static func detachEntries(_ entries: [FoodEntry], in context: NSManagedObjectContext) throws {
+        let ids = Set(entries.compactMap(\.id))
+        guard !ids.isEmpty else { return }
+        for session in try sessions(in: context) {
+            if let id = session.startEntryID, ids.contains(id) { session.startEntryID = nil }
+            if let id = session.endEntryID, ids.contains(id) { session.endEntryID = nil }
+        }
+    }
 }
 
 extension FastSession {
