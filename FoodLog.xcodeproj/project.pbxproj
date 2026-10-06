@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        F40000000000000000000001 /* FoodStoreMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000002 /* FoodStoreMigration.swift */; };
+        F40000000000000000000003 /* FoodStoreMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000004 /* FoodStoreMigrationTests.swift */; };
         F10000000000000000000001 /* FoodHistoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* FoodHistoryCache.swift */; };
 		A00000000000000000000001 /* FoodLogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* FoodLogApp.swift */; };
 		A00000000000000000000002 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002 /* PersistenceController.swift */; };
@@ -49,6 +51,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+        F40000000000000000000002 /* FoodStoreMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodStoreMigration.swift; sourceTree = "<group>"; };
+        F40000000000000000000004 /* FoodStoreMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodStoreMigrationTests.swift; sourceTree = "<group>"; };
         F10000000000000000000002 /* FoodHistoryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodHistoryCache.swift; sourceTree = "<group>"; };
 		B00000000000000000000001 /* FoodLogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogApp.swift; sourceTree = "<group>"; };
 		B00000000000000000000002 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
@@ -125,6 +129,7 @@
 				B00000000000000000000005 /* FoodEntryEditor.swift */,
 				B00000000000000000000006 /* BrowsePatternsSettings.swift */,
 				B00000000000000000000002 /* PersistenceController.swift */,
+                F40000000000000000000002 /* FoodStoreMigration.swift */,
 				B00000000000000000000012 /* LocationSearchModel.swift */,
 				B00000000000000000000013 /* ContactsSearchModel.swift */,
 				B00000000000000000000018 /* AppLockView.swift */,
@@ -148,6 +153,7 @@
 			children = (
 				B00000000000000000000021 /* FoodLogLogicTests.swift */,
 				B00000000000000000000031 /* FoodReminderTests.swift */,
+                F40000000000000000000004 /* FoodStoreMigrationTests.swift */,
 			);
 			path = FoodLogTests;
 			sourceTree = "<group>";
@@ -301,6 +307,7 @@
 			files = (
 				A00000000000000000000001 /* FoodLogApp.swift in Sources */,
 				A00000000000000000000002 /* PersistenceController.swift in Sources */,
+                F40000000000000000000001 /* FoodStoreMigration.swift in Sources */,
 				A00000000000000000000003 /* ContentView.swift in Sources */,
 				A00000000000000000000004 /* JournalView.swift in Sources */,
 				A00000000000000000000005 /* FoodEntryEditor.swift in Sources */,
@@ -326,6 +333,7 @@
 			files = (
 				A0000000000000000000000F /* FoodLogLogicTests.swift in Sources */,
 				A00000000000000000000016 /* FoodReminderTests.swift in Sources */,
+                F40000000000000000000003 /* FoodStoreMigrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

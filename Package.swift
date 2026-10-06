@@ -16,14 +16,15 @@ let package = Package(
     platforms: [.macOS(.v13)],
     targets: [
         .target(name: "FoodLogReminder", path: "FoodLog",
-                exclude: appOnlyFiles + ["FoodLogLogic.swift", "FoodHistoryCache.swift"],
+                exclude: appOnlyFiles + ["FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodStoreMigration.swift"],
                 sources: ["FoodReminder.swift"]),
         .testTarget(name: "FoodLogReminderTests", dependencies: ["FoodLogReminder"],
-                    path: "FoodLogTests", exclude: ["FoodLogLogicTests.swift", "FoodPerformanceTests.swift"],
+                    path: "FoodLogTests", exclude: ["FoodLogLogicTests.swift", "FoodPerformanceTests.swift", "FoodStoreMigrationTests.swift"],
                     sources: ["FoodReminderTests.swift"]),
         .target(name: "FoodLogPerformance", path: "FoodLog", exclude: appOnlyFiles + ["FoodReminder.swift"],
-                sources: ["FoodLogLogic.swift", "FoodHistoryCache.swift"]),
+                sources: ["FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodStoreMigration.swift"]),
         .testTarget(name: "FoodLogPerformanceTests", dependencies: ["FoodLogPerformance"], path: "FoodLogTests",
-                    exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift"], sources: ["FoodPerformanceTests.swift"])
+                    exclude: ["FoodLogLogicTests.swift", "FoodReminderTests.swift"],
+                    sources: ["FoodPerformanceTests.swift", "FoodStoreMigrationTests.swift"])
     ]
 )
