@@ -45,6 +45,10 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 - Moved the "Built with ❤️ by Viraat" credit and version/build to the bottom of
   Settings. About Savour keeps the Dime credits and license attribution.
 - Removed the Privacy footer about background hiding and launch authentication.
+- Added bottom padding below the Settings credit/version footer so its last line
+  stays clear of the floating tab bar and Add button.
+- Notification UI tests tap the switch itself; on iOS 26+ a Form toggle spans
+  its row and tapping the row's center lands on the label without toggling.
 
 ## 0.5.7 — 2026-10-06
 

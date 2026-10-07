@@ -713,7 +713,7 @@ final class FoodLogUITests: XCTestCase {
         app.buttons["notifications-add-reminder"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["notifications-time-3"].firstMatch.waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["notifications-add-reminder"].exists)
-        enabled.tap()
+        tapSwitch(enabled)
         let on = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1"), object: enabled)
         XCTAssertEqual(XCTWaiter.wait(for: [on], timeout: 3), .completed)
         XCTAssertTrue(app.buttons["notifications-open-settings"].exists)
@@ -726,7 +726,7 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["notifications-time-3"].firstMatch.waitForExistence(timeout: 3))
         XCTAssertEqual(firstTime.value as? String, initialValue)
         XCTAssertFalse(app.buttons["notifications-add-reminder"].exists)
-        enabled.tap()
+        tapSwitch(enabled)
         let off = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "0"), object: enabled)
         XCTAssertEqual(XCTWaiter.wait(for: [off], timeout: 3), .completed)
     }
@@ -755,7 +755,7 @@ final class FoodLogUITests: XCTestCase {
         app.buttons["settings-notifications"].tap()
         let enabled = app.switches["notifications-enabled"]
         XCTAssertTrue(enabled.waitForExistence(timeout: 3))
-        enabled.tap()
+        tapSwitch(enabled)
         XCTAssertTrue(app.buttons["notifications-open-settings"].waitForExistence(timeout: 3))
         XCTAssertEqual(enabled.value as? String, "0")
     }
@@ -771,7 +771,7 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(enabled.waitForExistence(timeout: 3))
         XCTAssertEqual(enabled.value as? String, "0")
         XCTAssertFalse(app.buttons["notifications-open-settings"].exists)
-        enabled.tap()
+        tapSwitch(enabled)
         let link = app.buttons["notifications-open-settings"]
         XCTAssertTrue(link.waitForExistence(timeout: 3))
         XCTAssertEqual(link.label, "Open Savour in Settings")
@@ -1167,6 +1167,12 @@ final class FoodLogUITests: XCTestCase {
         }
         XCTAssertTrue(element.isHittable)
         XCTAssertLessThan(element.frame.maxY, app.buttons["bottom-add-entry"].frame.minY - 8)
+    }
+
+    /// On iOS 26+ a Form toggle's element spans the whole row, and tapping its
+    /// center lands on the label without flipping it. Tap the switch itself.
+    private func tapSwitch(_ toggle: XCUIElement) {
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
     }
 
     private func waitForEditorDismissal() {
