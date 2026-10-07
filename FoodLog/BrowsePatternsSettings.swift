@@ -1095,6 +1095,8 @@ struct FoodLogSettingsView: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .padding(.top, 16)
+                // Keeps the last line clear of the floating tab bar/Add button.
+                .padding(.bottom, 16)
             }
         }
         .formStyle(.grouped)
