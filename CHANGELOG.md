@@ -9,7 +9,10 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
-No unreleased changes on main.
+- Fixed a blank strip at the bottom of the screen on iOS 27. The native tab
+  controller was inset to the safe area, so scrolling content stopped above the
+  home indicator. It now fills the screen; UIKit still insets each page. This
+  affected every release since 0.5.2's iOS 27 tab bar.
 
 ## 0.5.7 — 2026-10-06
 
