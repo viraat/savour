@@ -13,6 +13,28 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
   controller was inset to the safe area, so scrolling content stopped above the
   home indicator. It now fills the screen; UIKit still insets each page. This
   affected every release since 0.5.2's iOS 27 tab bar.
+- Added Settings → Your data → Export full backup and Restore full backup.
+  `SavourBackup-v1` ZIP archives contain a typed JSON object graph, stable UUIDs,
+  precise dates, meal types, all place/coordinate/people/note fields, companion
+  relationships and original photo bytes. Fasting records are excluded;
+  automatic fast estimates are recalculated from restored meals. Existing older
+  manually saved fasting records are left untouched.
+  CSV import/export remains unchanged. Drafts and preferences are not included.
+- Restore validates schema, archive paths, CRCs, attachment sizes/checksums and
+  relationship inverses before showing a read-only preview. Confirmation adds
+  missing records atomically; identical records are skipped and conflicting
+  meals/people graphs are left unchanged. Rechecks the journal at confirmation,
+  supports every previous model version, and rolls back on validation/save errors.
+- Backups use private, file-protected temporary files and native share/file
+  pickers. Export never saves unfinished edits. ZIPs are not encrypted.
+  ZIPFoundation 0.9.20 (MIT) is pinned for bounded, validated archive reading.
+- Verification: 26 Mac backup/restore tests and 21 reminder regression tests
+  passed; unsigned iPhone Release build and Debug test-target compilation passed.
+  No simulator run, real Files-provider interaction or phone restore was performed.
+- After a successful restore, the legacy-entry repair runs on the restored
+  journal, because the store's migration marker skips that repair at launch.
+- The SwiftPM manifest keeps exactly one target per source and test file; only
+  the backup target compiles the Core Data model, as a resource.
 
 ## 0.5.7 — 2026-10-06
 
@@ -135,7 +157,6 @@ App version 0.5.6 · build 11 · repository tag `v0.5.6`
   No preferences or data formats changed.
 - Debug app and test targets compile successfully. Updated navigation, CSV
   preview and accessibility UI tests; no simulator run was performed.
-
 ## 0.5.5 — 2026-10-04
 
 App version 0.5.5 · build 10 · repository tag `v0.5.5`

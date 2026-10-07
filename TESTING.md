@@ -51,11 +51,37 @@ About footer and notification-settings-link UI regressions are compile-checked,
 not executed. Real notification delivery and the Settings contrast re-audit
 remain pending opt-in simulator/device verification.
 
+### Backup and restore without a simulator
+
+The root Swift package builds the actual export/restore code, compiles all five
+Core Data model versions and tests private, disposable Mac SQLite stores. It does
+not read or restore the user's app journal. ZIPFoundation 0.9.20 is pinned in
+both SwiftPM and the Xcode project. No new simulator run has been performed.
+On 2026-10-03, all 26 backup/restore tests and 21 reminder tests passed, as did
+the unsigned iPhone Release build and Debug app/test-target compilation.
+
+```sh
+swift test --scratch-path /private/tmp/savour-reminder-logic-build
+```
+
+Backup tests cover full-field/relationship/photo round-trips, exact dates and
+coordinates, nil/empty binary values, orphan records, duplicate/missing UUIDs,
+stable object references, photo deduplication, unsaved UI edits, all previous
+model versions, repeated restores, conflicting graphs, journal changes after
+preview, store reopening, cancellation, rollback, malformed schemas/values,
+unknown versions/entities, dangling relationships, unsafe/duplicate paths,
+symlinks, missing photos, checksum failures and temporary-file cleanup.
+
+Settings backup controls are compile-checked UI regressions, not executed. Real
+Files/iCloud providers, share-sheet completion/cancellation, large journals,
+biometric locking while sheets are open and actual phone restoration remain
+pending an explicitly requested device/simulator check.
+
 ### Reminder logic without a simulator
 
-The root Swift package builds the reminder service and autocomplete/cache logic.
-It has no
-external dependencies and does not build/launch the iOS UI. All permission and
+The root Swift package builds the reminder service, autocomplete/cache, draft and
+backup logic. The reminder target builds only `FoodReminder.swift` and its tests;
+it has no external dependencies and does not build/launch the iOS UI. All permission and
 notification clients/preferences in these tests are in-memory fakes; they
 neither display a real permission prompt nor schedule a real notification.
 

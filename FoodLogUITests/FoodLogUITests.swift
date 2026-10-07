@@ -683,7 +683,8 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertFalse(app.buttons["settings-export-csv"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["dime-source-link"].exists)
         openSettingsPage("settings-your-data", title: "Your data")
-        for identifier in ["settings-export-csv", "settings-import-csv", "settings-erase-entries"] {
+        for identifier in ["settings-export-csv", "settings-import-csv",
+                           "settings-export-backup", "settings-restore-backup", "settings-erase-entries"] {
             revealAboveNavigation(app.buttons[identifier])
         }
         app.navigationBars["Your data"].buttons.firstMatch.tap()

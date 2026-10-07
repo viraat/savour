@@ -935,6 +935,68 @@ private enum PlaceCoordinateBackfill {
     }
 }
 
+private struct SavourBackupRestorePreviewView: View {
+    @Environment(\.dismiss) private var dismiss
+    let preview: SavourRestorePreview
+    let coordinator: NSPersistentStoreCoordinator
+    let onRestored: (SavourRestoreCounts) -> Void
+    @State private var restoring = false
+    @State private var message: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    LabeledContent("File", value: preview.fileName)
+                    LabeledContent("Created") { Text(preview.exportedAt, format: .dateTime.year().month().day().hour().minute()) }
+                }
+                Section("To restore") {
+                    count("Food entries", entity: "FoodEntry")
+                    count("People records", entity: "FoodEntryCompanion")
+                    LabeledContent("Photos", value: "\(preview.counts.newPhotos)")
+                }
+                Section {
+                    LabeledContent("Identical records", value: "\(preview.counts.totalIdentical)")
+                    LabeledContent("Conflicting records", value: "\(preview.counts.totalConflicts)")
+                } footer: {
+                    Text("Restore adds missing records. Identical records are skipped. Existing entries and their linked people are left unchanged if any part differs. Automatic fasts are recalculated from meal times.")
+                }
+                Section {
+                    Button {
+                        restoring = true
+                        Task { @MainActor in
+                            defer { restoring = false }
+                            do { onRestored(try await SavourBackupRestorer.restore(preview, coordinator: coordinator)) }
+                            catch { message = error.localizedDescription }
+                        }
+                    } label: {
+                        HStack {
+                            Text(restoring ? "Restoring…" : "Restore backup")
+                            Spacer()
+                            if restoring { ProgressView() }
+                        }
+                    }
+                    .disabled(restoring || preview.counts.totalAdded == 0)
+                    .accessibilityIdentifier("backup-confirm-restore")
+                }
+            }
+            .navigationTitle("Restore backup")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(restoring) }
+            }
+            .interactiveDismissDisabled(restoring)
+            .alert("Restore backup", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
+                Button("OK") { message = nil }
+            } message: { Text(message ?? "") }
+        }
+    }
+
+    private func count(_ label: String, entity: String) -> some View {
+        LabeledContent(label, value: "\(preview.counts.added[entity, default: 0])")
+    }
+}
+
 struct FoodLogSettingsView: View {
     @AppStorage("foodLogAppearance") private var appearance = 0
     @AppStorage(FoodAccentOption.settingKey) private var accentValue = FoodAccentOption.teal.rawValue
@@ -1081,6 +1143,13 @@ private struct FoodLogDataSettingsView: View {
     @State private var csvTask: Task<Void, Never>?
     @State private var isExportingCSV = false
     @State private var csvExportMessage: String?
+    @State private var backupFile: SavourBackupFile?
+    @State private var backupTask: Task<Void, Never>?
+    @State private var isExportingBackup = false
+    @State private var backupMessage: String?
+    @State private var isPickingBackup = false
+    @State private var isPreparingRestore = false
+    @State private var restorePreview: SavourRestorePreview?
     @State private var showingFileImporter = false
     @State private var importPreview: FoodLogCSVImportPreview?
     @State private var importMessage: String?
@@ -1103,12 +1172,37 @@ private struct FoodLogDataSettingsView: View {
                     .foregroundStyle(.primary)
                 }
                 .accessibilityIdentifier("settings-export-csv")
-                .disabled(isExportingCSV)
+                .disabled(backupBusy)
 
-                Button("Import CSV") { showingFileImporter = true }
+                Button(action: exportFullBackup) {
+                    HStack {
+                        Text(isExportingBackup ? "Preparing backup…" : "Export full backup")
+                        Spacer()
+                        if isExportingBackup { ProgressView() }
+                    }
                     .foregroundStyle(.primary)
-                    .disabled(isExportingCSV)
+                }
+                .disabled(backupBusy)
+                .accessibilityIdentifier("settings-export-backup")
+
+                Button("Import CSV") { isPickingBackup = false; showingFileImporter = true }
+                    .foregroundStyle(.primary)
+                    .disabled(backupBusy)
                     .accessibilityIdentifier("settings-import-csv")
+
+                Button {
+                    isPickingBackup = true
+                    showingFileImporter = true
+                } label: {
+                    HStack {
+                        Text(isPreparingRestore ? "Reading backup…" : "Restore full backup")
+                        Spacer()
+                        if isPreparingRestore { ProgressView() }
+                    }
+                    .foregroundStyle(.primary)
+                }
+                .disabled(backupBusy)
+                .accessibilityIdentifier("settings-restore-backup")
 
 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("--ui-test-csv-fixture") {
@@ -1117,10 +1211,13 @@ private struct FoodLogDataSettingsView: View {
 #endif
 
                 Button("Erase all entries", role: .destructive) { confirmErase = true }
-                    .disabled(entries.isEmpty || isExportingCSV)
+                    .disabled(entries.isEmpty || backupBusy)
                     .accessibilityIdentifier("settings-erase-entries")
             } header: {
                 Text("Your data").foregroundStyle(FoodTheme.secondaryText)
+            } footer: {
+                Text("Full backups include photos, places and people. Fasts are recalculated from meal times. Backups aren't encrypted; store them somewhere private.")
+                    .foregroundStyle(FoodTheme.secondaryText)
             }
         }
         .formStyle(.grouped)
@@ -1140,14 +1237,18 @@ private struct FoodLogDataSettingsView: View {
             }
         }
         .onDisappear {
+            backupTask?.cancel()
             csvTask?.cancel()
         }
         .onChange(of: scenePhase) { phase in
             if phase != .active {
+                backupTask?.cancel()
                 csvTask?.cancel()
             }
         }
         .sheet(item: $shareFile, onDismiss: {
+            backupFile?.cleanup()
+            backupFile = nil
             if let csvFileURL { try? FileManager.default.removeItem(at: csvFileURL) }
             csvFileURL = nil
         }) { file in
@@ -1157,12 +1258,17 @@ private struct FoodLogDataSettingsView: View {
             get: { csvExportMessage != nil },
             set: { if !$0 { csvExportMessage = nil } }
         )) { Button("OK") { csvExportMessage = nil } } message: { Text(csvExportMessage ?? "") }
+        .alert("Full backup", isPresented: Binding(
+            get: { backupMessage != nil },
+            set: { if !$0 { backupMessage = nil } }
+        )) { Button("OK") { backupMessage = nil } } message: { Text(backupMessage ?? "") }
         .fileImporter(
             isPresented: $showingFileImporter,
-            allowedContentTypes: [.commaSeparatedText, .plainText]
+            allowedContentTypes: isPickingBackup ? [.zip] : [.commaSeparatedText, .plainText]
         ) { result in
             switch result {
             case let .success(url):
+                if isPickingBackup { previewFullBackup(url); return }
                 let hasAccess = url.startAccessingSecurityScopedResource()
                 defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
                 do {
@@ -1176,7 +1282,22 @@ private struct FoodLogDataSettingsView: View {
                     importMessage = "Could not preview the CSV: \(error.localizedDescription)"
                 }
             case let .failure(error):
-                importMessage = "Could not open the CSV: \(error.localizedDescription)"
+                if isPickingBackup { backupMessage = error.localizedDescription }
+                else { importMessage = "Could not open the CSV: \(error.localizedDescription)" }
+            }
+        }
+        .sheet(item: $restorePreview) { preview in
+            if let coordinator = context.persistentStoreCoordinator {
+                SavourBackupRestorePreviewView(preview: preview, coordinator: coordinator) { counts in
+                    restorePreview = nil
+                    // The launch-time repair is skipped once the store is marked
+                    // repaired, so repair restored legacy-shaped records here.
+                    do { try PersistenceController.migrateLegacyEntries(in: context) }
+                    catch { NSLog("Savour could not repair restored entries: %@", error.localizedDescription) }
+                    let meals = counts.added["FoodEntry", default: 0]
+                    let people = counts.added["FoodEntryCompanion", default: 0]
+                    backupMessage = "Restored \(meals) food entries, \(people) people records and \(counts.newPhotos) photos. \(counts.totalIdentical) identical records skipped; \(counts.totalConflicts) conflicting records left unchanged."
+                }
             }
         }
         .sheet(item: $importPreview) { preview in
@@ -1203,7 +1324,7 @@ private struct FoodLogDataSettingsView: View {
     }
 
     private func exportCSV() {
-        guard !isExportingCSV else { return }
+        guard !backupBusy else { return }
         guard let coordinator = context.persistentStoreCoordinator else {
             csvExportMessage = "The journal store is unavailable."
             return
@@ -1221,6 +1342,52 @@ private struct FoodLogDataSettingsView: View {
                 shareFile = FoodLogShareFile(url: url)
             } catch {
                 if !Task.isCancelled, scenePhase == .active { csvExportMessage = error.localizedDescription }
+            }
+        }
+    }
+
+    private func exportFullBackup() {
+        guard !backupBusy else { return }
+        guard let coordinator = context.persistentStoreCoordinator else {
+            backupMessage = SavourBackupError.missingCoordinator.localizedDescription
+            return
+        }
+        isExportingBackup = true
+        backupTask = Task { @MainActor in
+            defer { isExportingBackup = false; backupTask = nil }
+            do {
+                let file = try await SavourBackupExporter.export(from: coordinator)
+                guard !Task.isCancelled, scenePhase == .active else { file.cleanup(); return }
+                backupFile = file
+                shareFile = FoodLogShareFile(url: file.url)
+            } catch {
+                if !Task.isCancelled, scenePhase == .active { backupMessage = error.localizedDescription }
+            }
+        }
+    }
+
+    private var backupBusy: Bool { isExportingCSV || isExportingBackup || isPreparingRestore }
+
+    private func previewFullBackup(_ url: URL) {
+        guard !backupBusy else { return }
+        guard let coordinator = context.persistentStoreCoordinator else {
+            backupMessage = SavourBackupError.missingCoordinator.localizedDescription
+            return
+        }
+        let hasAccess = url.startAccessingSecurityScopedResource()
+        isPreparingRestore = true
+        backupTask = Task { @MainActor in
+            defer {
+                if hasAccess { url.stopAccessingSecurityScopedResource() }
+                isPreparingRestore = false
+                backupTask = nil
+            }
+            do {
+                let preview = try await SavourBackupRestorer.preview(url: url, coordinator: coordinator)
+                guard !Task.isCancelled, scenePhase == .active else { preview.cleanup(); return }
+                restorePreview = preview
+            } catch {
+                if !Task.isCancelled, scenePhase == .active { backupMessage = error.localizedDescription }
             }
         }
     }
@@ -1264,6 +1431,8 @@ private struct FoodLogAboutView: View {
                 Text("Adapted from [Dime](https://github.com/rafsoh/dimeApp)'s open-source SwiftUI code and interaction ideas under GPLv3.")
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("dime-source-link")
+                Text("Backup archive reading uses [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) 0.9.20 under the MIT license.")
+                    .fixedSize(horizontal: false, vertical: true)
             } header: {
                 Text("Credits and licenses").foregroundStyle(FoodTheme.secondaryText)
             } footer: {

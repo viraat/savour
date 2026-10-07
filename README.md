@@ -48,6 +48,8 @@ the core experience is a neutral record.
 - Eating-place map with optional coordinate backfill for older entries
 - Common places and companions
 - CSV export and import with a preview of entries, duplicate detection, and row errors
+- Full ZIP backups and non-destructive restore with UUIDs, relationships, photos,
+  places/coordinates, people and notes; see [backup format](BACKUP_FORMAT.md)
 - Light, dark, and system appearance with five saved accent colors
 - Native grouped Settings sections with compact selection rows and standard toggles
 - Optional meal-logging reminders: up to three custom local times each day
@@ -71,7 +73,8 @@ For installation on a physical iPhone, select the FoodLog target, open
 Signing & Capabilities, choose your Apple developer team, and change the bundle
 identifier if Xcode asks for a unique one. The deployment target is iOS 16.
 
-The FoodLog target has no third-party package dependencies and does not use
+The FoodLog target uses pinned ZIPFoundation 0.9.20 (MIT) to validate backup
+archives; its license notice is included in the app bundle. It does not use
 Dime's iCloud container, widgets, budgets, or intent extensions. This lightweight
 port does not include Dime's original source; attribution and licensing details
 are retained in `NOTICE` and `LICENSE`.
