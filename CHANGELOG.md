@@ -35,6 +35,16 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
   journal, because the store's migration marker skips that repair at launch.
 - The SwiftPM manifest keeps exactly one target per source and test file; only
   the backup target compiles the Core Data model, as a resource.
+- Removed the "Show meal labels in journal" setting; journal rows always show
+  the meal type after the time, which was already the default.
+- "Open notification settings" became "Open Savour in Settings" and opens
+  Savour's own page in iOS Settings. It appears only after notification
+  permission has been requested, because before that iOS has no Savour
+  notification page and fell back to the system-wide list.
+- The Fasts history shows the latest 7 estimates; View more adds 7 at a time.
+- Moved the "Built with ❤️ by Viraat" credit and version/build to the bottom of
+  Settings. About Savour keeps the Dime credits and license attribution.
+- Removed the Privacy footer about background hiding and launch authentication.
 
 ## 0.5.7 — 2026-10-06
 

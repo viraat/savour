@@ -667,7 +667,7 @@ final class FoodLogUITests: XCTestCase {
         }
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
         XCTAssertEqual(accent.value as? String, "Blue")
-        XCTAssertTrue(app.switches["settings-meal-labels"].exists)
+        XCTAssertFalse(app.switches["settings-meal-labels"].exists)
         app.buttons["settings-meal-times"].tap()
         XCTAssertTrue(app.navigationBars["Default meal times"].waitForExistence(timeout: 3))
         app.navigationBars["Default meal times"].buttons.firstMatch.tap()
@@ -760,33 +760,45 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertEqual(enabled.value as? String, "0")
     }
 
-    func testNotificationSettingsLinkIsAvailableBeforeEnabling() {
+    func testSavourSettingsLinkAppearsOnlyAfterPermissionWasRequested() {
+        // Before the first request iOS has no Savour notification page, so the
+        // link would land on the system-wide list. The toggle asks instead.
         launch(resetStore: true)
         app.tabBars.firstMatch.buttons["Settings"].tap()
         revealAboveNavigation(app.buttons["settings-notifications"])
         app.buttons["settings-notifications"].tap()
-        XCTAssertEqual(app.switches["notifications-enabled"].value as? String, "0")
-        XCTAssertTrue(app.buttons["notifications-open-settings"].waitForExistence(timeout: 3))
+        let enabled = app.switches["notifications-enabled"]
+        XCTAssertTrue(enabled.waitForExistence(timeout: 3))
+        XCTAssertEqual(enabled.value as? String, "0")
+        XCTAssertFalse(app.buttons["notifications-open-settings"].exists)
+        enabled.tap()
+        let link = app.buttons["notifications-open-settings"]
+        XCTAssertTrue(link.waitForExistence(timeout: 3))
+        XCTAssertEqual(link.label, "Open Savour in Settings")
         XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "then enable notifications")).firstMatch.exists)
     }
 
-    func testSettingsAboutHasInlineAttributionAndCenteredVersionBuildFooter() {
+    func testSettingsEndsWithCenteredCreditAndVersionWhileAboutKeepsAttribution() {
         launch(resetStore: true)
         app.tabBars.firstMatch.buttons["Settings"].tap()
-        openSettingsPage("settings-about-savour", title: "About Savour")
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "stays hidden in the background")).firstMatch.exists)
         let version = app.staticTexts["settings-version"]
         revealAboveNavigation(version)
         let credit = app.staticTexts["settings-credit"]
-        let attribution = app.descendants(matching: .any)["dime-source-link"].firstMatch
-        XCTAssertTrue(attribution.exists)
-        XCTAssertTrue(attribution.label.contains("Adapted from Dime"))
-        XCTAssertFalse(app.buttons["View Dime on GitHub"].exists)
         XCTAssertEqual(credit.label, "Built with ❤️ by Viraat")
         XCTAssertTrue(version.label.hasPrefix("Savour "))
         XCTAssertTrue(version.label.contains("(Build "))
         XCTAssertLessThan(credit.frame.maxY, version.frame.minY)
         XCTAssertEqual(credit.frame.midX, version.frame.midX, accuracy: 2)
         XCTAssertEqual(version.frame.midX, app.frame.midX, accuracy: 4)
+        openSettingsPage("settings-about-savour", title: "About Savour")
+        let attribution = app.descendants(matching: .any)["dime-source-link"].firstMatch
+        XCTAssertTrue(attribution.waitForExistence(timeout: 3))
+        XCTAssertTrue(attribution.label.contains("Adapted from Dime"))
+        XCTAssertFalse(app.buttons["View Dime on GitHub"].exists)
+        XCTAssertFalse(app.staticTexts["settings-credit"].exists)
+        XCTAssertFalse(app.staticTexts["settings-version"].exists)
     }
 
     func testCSVShareSheetHasContentOnFirstTapAndAfterRelaunch() {
