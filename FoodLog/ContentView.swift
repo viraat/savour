@@ -67,9 +67,12 @@ struct FoodLogRootView: View {
     private var navigation: some View {
 #if compiler(>=6.4)
         if #available(iOS 27.0, *) {
+            // UIKit supplies each hosted page's safe areas. Without this, SwiftUI
+            // insets the whole tab controller and leaves a bare strip below it.
             FoodNativeTabNavigation(selection: $selectedTab, addEntry: addEntry) { tab in
                 NavigationStack { content(for: tab) }
             }
+            .ignoresSafeArea()
         } else {
             legacyNavigation
         }
