@@ -18,6 +18,16 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
   deleted remotely while being edited. Existing store paths, backups and CSV
   formats remain unchanged. Apple provisioning/real-device verification remain
   pending; see [iCloud setup](ICLOUD_SYNC.md).
+- Savour now requires iOS 17. Every target pins IPHONEOS_DEPLOYMENT_TARGET 17.0
+  instead of Xcode's recommended value. `onChange` uses the two-parameter form,
+  the Patterns map uses the iOS 17 `Map`/`Annotation` API, and the iOS 16
+  title, search and Add-button fallbacks were removed. Both schemes build with
+  no warnings.
+- Removed the unused Xcode template from Savour.xcodeproj: the `Savour/`
+  "Hello, world!" stubs and the placeholder SavourTests/SavourUITests targets.
+  Unit and UI tests run from the FoodLog scheme.
+- The fasting pagination test now follows `FastingHistory.pageSize` instead of
+  assuming pages of 30.
 - Fixed a blank strip at the bottom of the screen on iOS 27. The native tab
   controller was inset to the safe area, so scrolling content stopped above the
   home indicator. It now fills the screen; UIKit still insets each page. This

@@ -1130,9 +1130,10 @@ final class FoodLogLogicTests: XCTestCase {
         let summary = FastingHistory.summary(of: estimates)
         XCTAssertEqual(summary?.count, 65)
         XCTAssertEqual(summary?.averageDuration ?? 0, (30 * 10 + 35 * 16) * 3_600 / 65.0, accuracy: 0.001)
-        XCTAssertNotEqual(summary?.averageDuration, OvernightFasting.summary(of: Array(estimates.prefix(30)))?.averageDuration)
-        let nextLimit = FastingHistory.nextLimit(current: 30, total: estimates.count)
-        XCTAssertEqual(nextLimit, 60)
+        let page = FastingHistory.pageSize
+        XCTAssertNotEqual(summary?.averageDuration, OvernightFasting.summary(of: Array(estimates.prefix(page)))?.averageDuration)
+        let nextLimit = FastingHistory.nextLimit(current: page, total: estimates.count)
+        XCTAssertEqual(nextLimit, 2 * page)
         XCTAssertEqual(FastingHistory.summary(of: estimates)?.averageDuration, summary?.averageDuration)
         XCTAssertNil(FastingHistory.summary(of: []))
     }

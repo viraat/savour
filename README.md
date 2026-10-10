@@ -66,15 +66,14 @@ the core experience is a neutral record.
 2. Select the `Savour` scheme and an iPhone simulator or your connected iPhone.
 3. Press Run.
 
-The new Savour target uses iOS 27 and the existing app code, Core Data model,
-assets and permissions. Its bundle ID is `tech.buildboring.Savour`, with automatic
-signing configured for team `829WP93FV4`.
+Both app targets require iOS 17 or later. The new Savour target uses the
+existing app code, Core Data model, assets and permissions. Its bundle ID is
+`tech.buildboring.Savour`, with automatic signing configured for team `829WP93FV4`.
 
-App source remains in `FoodLog/` to preserve internal model/storage names. The
-generated `Savour/` template files are retained but excluded from the app build.
+App source remains in `FoodLog/` to preserve internal model/storage names.
 
-The original `FoodLog` scheme remains available for the existing unit and UI
-reliability tests. The new `Savour` scheme includes its newly created test targets. See
+The original `FoodLog` target keeps the old `com.viraat.foodlog` identity and
+hosts the unit and UI reliability tests; run them with the `FoodLog` scheme. See
 [`TESTING.md`](TESTING.md) for the simulator matrix and permission setup.
 
 For installation on a physical iPhone, select the Savour target and check
@@ -167,16 +166,14 @@ else was consumed. There is no Start/End fast control or automatic creation of
 Fasts tab; the existing Core Data model and CSV formats are unchanged.
 The Current row estimates elapsed time since the latest logged non-Drink meal.
 The Avg row includes all completed estimates, independent of the calendar month
-or history pagination. History initially shows 30 rows; View more adds up to 30
+or history pagination. History initially shows 7 rows; View more adds up to 7
 without changing the average. Calendar goal borders include the exact target
 duration (`14h+ goal` by default). This explanation appears once, not on every row.
 
-Journal, Fasts, Patterns, and Settings use native same-row navigation titles:
-`toolbarTitleDisplayMode(.inlineLarge)` on iOS 17 and later, and compact inline
-titles on iOS 16. Titles no longer occupy a separate expanded band below the
-toolbar controls. Journal uses SwiftUI `searchable`; on iOS 17 and
-later its toolbar search button activates the native field, while iOS 16 shows
-the standard search drawer. Statistical count bars use Swift Charts `BarMark`,
+Journal, Fasts, Patterns, and Settings use native same-row navigation titles
+(`toolbarTitleDisplayMode(.inlineLarge)`). Titles no longer occupy a separate
+expanded band below the toolbar controls. Journal uses SwiftUI `searchable`; its
+toolbar search button activates the native field. Statistical count bars use Swift Charts `BarMark`,
 not task-progress indicators, with visible counts and accessible row descriptions.
 
 Food entries stay in the app's local Core Data store. The location button enables

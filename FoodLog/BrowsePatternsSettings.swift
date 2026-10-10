@@ -207,7 +207,7 @@ struct PatternsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
         }
-        .onChange(of: scenePhase) { phase in
+        .onChange(of: scenePhase) { _, phase in
             if phase == .active { calendar = .current; historyCache.invalidate() }
         }
         .onAppear {
@@ -806,13 +806,13 @@ private struct EatingPlacesMap: View {
     let points: [EatingPlacePoint]
     let height: CGFloat
 
-    @State private var region: MKCoordinateRegion
+    @State private var position: MapCameraPosition
     @State private var selectedPointID: String?
 
     init(points: [EatingPlacePoint], height: CGFloat = 205) {
         self.points = points
         self.height = height
-        _region = State(initialValue: Self.region(containing: points))
+        _position = State(initialValue: .region(Self.region(containing: points)))
         _selectedPointID = State(initialValue: points.first?.id)
     }
 
@@ -822,25 +822,25 @@ private struct EatingPlacesMap: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Map(
-                coordinateRegion: $region,
-                interactionModes: [.pan, .zoom],
-                annotationItems: points
-            ) { point in
-                MapAnnotation(coordinate: point.coordinate) {
-                    Button {
-                        selectedPointID = point.id
-                    } label: {
-                        Image(systemName: selectedPointID == point.id ? "mappin.circle.fill" : "mappin.circle")
-                            .font(.system(size: selectedPointID == point.id ? 27 : 23, weight: .semibold))
-                            .foregroundStyle(accentColor)
-                            .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
-                            .frame(width: 44, height: 44)
+            Map(position: $position, interactionModes: [.pan, .zoom]) {
+                ForEach(points) { point in
+                    Annotation(point.displayName, coordinate: point.coordinate) {
+                        Button {
+                            selectedPointID = point.id
+                        } label: {
+                            Image(systemName: selectedPointID == point.id ? "mappin.circle.fill" : "mappin.circle")
+                                .font(.system(size: selectedPointID == point.id ? 27 : 23, weight: .semibold))
+                                .foregroundStyle(accentColor)
+                                .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
+                                .frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(point.displayName)
+                        .accessibilityValue("\(point.count) \(point.count == 1 ? "entry" : "entries")")
+                        .accessibilityIdentifier("eating-place-map-pin")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(point.displayName)
-                    .accessibilityValue("\(point.count) \(point.count == 1 ? "entry" : "entries")")
-                    .accessibilityIdentifier("eating-place-map-pin")
+                    // The selected place is named below the map, as before.
+                    .annotationTitles(.hidden)
                 }
             }
             .frame(height: height)
@@ -860,8 +860,8 @@ private struct EatingPlacesMap: View {
                 }
             }
         }
-        .onChange(of: points.map(\.id)) { _ in
-            region = Self.region(containing: points)
+        .onChange(of: points.map(\.id)) { _, _ in
+            position = .region(Self.region(containing: points))
             if !points.contains(where: { $0.id == selectedPointID }) {
                 selectedPointID = points.first?.id
             }
@@ -1262,7 +1262,7 @@ private struct FoodLogDataSettingsView: View {
             backupTask?.cancel()
             csvTask?.cancel()
         }
-        .onChange(of: scenePhase) { phase in
+        .onChange(of: scenePhase) { _, phase in
             if phase != .active {
                 backupTask?.cancel()
                 csvTask?.cancel()

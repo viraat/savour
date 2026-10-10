@@ -163,7 +163,7 @@ struct FoodLogApp: App {
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
                 Task { await FoodPhotoThumbnailCache.shared.removeAll() }
             }
-            .onChange(of: scenePhase) { phase in
+            .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
                     Task { await reminder.refresh(); await cloudSync.refreshAccount() }
                 }

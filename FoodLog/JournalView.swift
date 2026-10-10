@@ -7,18 +7,9 @@ private struct JournalSearch: ViewModifier {
     @Binding var text: String
     @Binding var isPresented: Bool
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 17.0, *) {
-            content.searchable(text: $text, isPresented: $isPresented,
-                               placement: .navigationBarDrawer, prompt: "Search entries")
-        } else {
-            // iOS 16 has no programmatic search presentation. Keep its native
-            // field discoverable rather than approximating focus with UIKit.
-            content.searchable(text: $text,
-                               placement: .navigationBarDrawer(displayMode: .always),
-                               prompt: "Search entries")
-        }
+        content.searchable(text: $text, isPresented: $isPresented,
+                           placement: .navigationBarDrawer, prompt: "Search entries")
     }
 }
 
@@ -128,14 +119,12 @@ struct JournalView: View {
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
-                if #available(iOS 17.0, *) {
-                    Button {
-                        showingSearch = true
-                    } label: {
-                        Label("Search entries", systemImage: "magnifyingglass")
-                    }
-                    .accessibilityIdentifier("journal-search-button")
+                Button {
+                    showingSearch = true
+                } label: {
+                    Label("Search entries", systemImage: "magnifyingglass")
                 }
+                .accessibilityIdentifier("journal-search-button")
                 mealFilterMenu
             }
         }
@@ -152,7 +141,7 @@ struct JournalView: View {
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
         }
-        .onChange(of: scenePhase) { phase in
+        .onChange(of: scenePhase) { _, phase in
             if phase == .active { calendar = .current; historyCache.invalidate() }
         }
         .sheet(item: $selectedEntry) { entry in

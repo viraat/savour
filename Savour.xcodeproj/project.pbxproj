@@ -73,20 +73,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		398EFE8D3077A16900673B6C /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F00000000000000000000001 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 398EFE7F3077A16800673B6C;
-			remoteInfo = Savour;
-		};
-		398EFE973077A16900673B6C /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F00000000000000000000001 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 398EFE7F3077A16800673B6C;
-			remoteInfo = Savour;
-		};
 		I00000000000000000000001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F00000000000000000000001 /* Project object */;
@@ -105,8 +91,6 @@
 
 /* Begin PBXFileReference section */
 		398EFE803077A16800673B6C /* Savour.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Savour.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		398EFE8C3077A16900673B6C /* SavourTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SavourTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		398EFE963077A16900673B6C /* SavourUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SavourUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B00000000000000000000001 /* FoodLogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogApp.swift; sourceTree = "<group>"; };
 		B00000000000000000000002 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		B00000000000000000000003 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -155,9 +139,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		398EFE813077A16800673B6C /* Savour */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Savour; sourceTree = "<group>"; };
-		398EFE8F3077A16900673B6C /* SavourTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = SavourTests; sourceTree = "<group>"; };
-		398EFE993077A16900673B6C /* SavourUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = SavourUITests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -166,20 +147,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				9A0000000000000000000019 /* ZIPFoundation in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		398EFE893077A16900673B6C /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		398EFE933077A16900673B6C /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -214,9 +181,6 @@
 				C00000000000000000000002 /* FoodLog */,
 				C00000000000000000000004 /* FoodLogTests */,
 				C00000000000000000000005 /* FoodLogUITests */,
-				398EFE813077A16800673B6C /* Savour */,
-				398EFE8F3077A16900673B6C /* SavourTests */,
-				398EFE993077A16900673B6C /* SavourUITests */,
 				C00000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -263,8 +227,6 @@
 				B00000000000000000000022 /* FoodLogTests.xctest */,
 				B00000000000000000000024 /* FoodLogUITests.xctest */,
 				398EFE803077A16800673B6C /* Savour.app */,
-				398EFE8C3077A16900673B6C /* SavourTests.xctest */,
-				398EFE963077A16900673B6C /* SavourUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -314,52 +276,6 @@
 			productName = Savour;
 			productReference = 398EFE803077A16800673B6C /* Savour.app */;
 			productType = "com.apple.product-type.application";
-		};
-		398EFE8B3077A16900673B6C /* SavourTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 398EFE9F3077A16900673B6C /* Build configuration list for PBXNativeTarget "SavourTests" */;
-			buildPhases = (
-				398EFE883077A16900673B6C /* Sources */,
-				398EFE893077A16900673B6C /* Frameworks */,
-				398EFE8A3077A16900673B6C /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				398EFE8E3077A16900673B6C /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				398EFE8F3077A16900673B6C /* SavourTests */,
-			);
-			name = SavourTests;
-			packageProductDependencies = (
-			);
-			productName = SavourTests;
-			productReference = 398EFE8C3077A16900673B6C /* SavourTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		398EFE953077A16900673B6C /* SavourUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 398EFEA23077A16900673B6C /* Build configuration list for PBXNativeTarget "SavourUITests" */;
-			buildPhases = (
-				398EFE923077A16900673B6C /* Sources */,
-				398EFE933077A16900673B6C /* Frameworks */,
-				398EFE943077A16900673B6C /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				398EFE983077A16900673B6C /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				398EFE993077A16900673B6C /* SavourUITests */,
-			);
-			name = SavourUITests;
-			packageProductDependencies = (
-			);
-			productName = SavourUITests;
-			productReference = 398EFE963077A16900673B6C /* SavourUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		E00000000000000000000001 /* FoodLog */ = {
 			isa = PBXNativeTarget;
@@ -441,14 +357,6 @@
 							};
 						};
 					};
-					398EFE8B3077A16900673B6C = {
-						CreatedOnToolsVersion = 27.0;
-						TestTargetID = 398EFE7F3077A16800673B6C;
-					};
-					398EFE953077A16900673B6C = {
-						CreatedOnToolsVersion = 27.0;
-						TestTargetID = 398EFE7F3077A16800673B6C;
-					};
 					E00000000000000000000001 = {
 						CreatedOnToolsVersion = 15.0;
 					};
@@ -482,8 +390,6 @@
 				E00000000000000000000002 /* FoodLogTests */,
 				E00000000000000000000003 /* FoodLogUITests */,
 				398EFE7F3077A16800673B6C /* Savour */,
-				398EFE8B3077A16900673B6C /* SavourTests */,
-				398EFE953077A16900673B6C /* SavourUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -495,20 +401,6 @@
 			files = (
 				9A0000000000000000000017 /* Assets.xcassets in Resources */,
 				9A0000000000000000000018 /* ThirdPartyNotices.txt in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		398EFE8A3077A16900673B6C /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		398EFE943077A16900673B6C /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -569,20 +461,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		398EFE883077A16900673B6C /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		398EFE923077A16900673B6C /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		D00000000000000000000002 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -640,16 +518,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		398EFE8E3077A16900673B6C /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 398EFE7F3077A16800673B6C /* Savour */;
-			targetProxy = 398EFE8D3077A16900673B6C /* PBXContainerItemProxy */;
-		};
-		398EFE983077A16900673B6C /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 398EFE7F3077A16800673B6C /* Savour */;
-			targetProxy = 398EFE973077A16900673B6C /* PBXContainerItemProxy */;
-		};
 		H00000000000000000000001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = E00000000000000000000001 /* FoodLog */;
@@ -679,7 +547,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 0.5.7;
 				PRODUCT_BUNDLE_IDENTIFIER = tech.buildboring.Savour;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -706,7 +574,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 0.5.7;
 				PRODUCT_BUNDLE_IDENTIFIER = tech.buildboring.Savour;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -714,144 +582,6 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Release;
-		};
-		398EFEA03077A16900673B6C /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 829WP93FV4;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = tech.buildboring.SavourTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Savour.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Savour";
-			};
-			name = Debug;
-		};
-		398EFEA13077A16900673B6C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 829WP93FV4;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = tech.buildboring.SavourTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Savour.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Savour";
-			};
-			name = Release;
-		};
-		398EFEA33077A16900673B6C /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 829WP93FV4;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = tech.buildboring.SavourUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Savour;
-			};
-			name = Debug;
-		};
-		398EFEA43077A16900673B6C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 829WP93FV4;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = tech.buildboring.SavourUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Savour;
 			};
 			name = Release;
 		};
@@ -899,7 +629,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -948,7 +678,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -970,7 +700,7 @@
 				INFOPLIST_FILE = FoodLog/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 0.5.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -993,7 +723,7 @@
 				INFOPLIST_FILE = FoodLog/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 0.5.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1010,7 +740,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -1025,7 +755,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -1039,7 +769,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -1053,7 +783,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -1070,24 +800,6 @@
 			buildConfigurations = (
 				398EFE9D3077A16900673B6C /* Debug */,
 				398EFE9E3077A16900673B6C /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		398EFE9F3077A16900673B6C /* Build configuration list for PBXNativeTarget "SavourTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				398EFEA03077A16900673B6C /* Debug */,
-				398EFEA13077A16900673B6C /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		398EFEA23077A16900673B6C /* Build configuration list for PBXNativeTarget "SavourUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				398EFEA33077A16900673B6C /* Debug */,
-				398EFEA43077A16900673B6C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

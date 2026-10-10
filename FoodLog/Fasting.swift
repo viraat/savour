@@ -750,7 +750,7 @@ struct FastSessionsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             calendar = .current
         }
-        .onChange(of: scenePhase) { phase in
+        .onChange(of: scenePhase) { _, phase in
             if phase == .active { calendar = .current; historyCache.invalidate() }
         }
         .sheet(item: $editingSession) { FastSessionEditor(session: $0) }

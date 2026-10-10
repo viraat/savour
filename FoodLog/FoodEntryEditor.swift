@@ -360,7 +360,7 @@ struct FoodEntryEditor: View {
                 }
             }
         }
-        .onChange(of: draftSnapshot) { snapshot in
+        .onChange(of: draftSnapshot) { _, snapshot in
             guard !finished, !closedByUser, !didSaveEntry else { return }
             if scenePhase == .active {
                 draftAutosaver.schedule {
@@ -374,13 +374,13 @@ struct FoodEntryEditor: View {
         .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
             historyCache.invalidate()
         }
-        .onChange(of: scenePhase) { phase in
+        .onChange(of: scenePhase) { _, phase in
             if phase == .active { historyCache.invalidate() }
             if phase != .active, !finished, !closedByUser, !didSaveEntry {
                 _ = persistDraft(draftSnapshot, active: true)
             }
         }
-        .onChange(of: locationSearch.resolvedSelection) { selection in
+        .onChange(of: locationSearch.resolvedSelection) { _, selection in
             guard let selection else { return }
             applyLocationSelection(selection)
             focusedField = nil
@@ -608,7 +608,7 @@ struct FoodEntryEditor: View {
                         .frame(maxWidth: .infinity)
                 }
                 .foodSecondaryActionStyle()
-                .onChange(of: selectedPhotoItem) { item in
+                .onChange(of: selectedPhotoItem) { _, item in
                     guard let item else { return }
                     isLoadingPhoto = true
                     photoMessage = nil
@@ -670,7 +670,7 @@ struct FoodEntryEditor: View {
                         .textInputAutocapitalization(.words)
                         .submitLabel(.done)
                         .focused($focusedField, equals: .companion)
-                        .onChange(of: companionQuery) { contactsSearch.updateQuery($0) }
+                        .onChange(of: companionQuery) { _, query in contactsSearch.updateQuery(query) }
                         .onSubmit(addTypedCompanion)
                 }
 
@@ -845,7 +845,7 @@ struct FoodEntryEditor: View {
                     TextField("Home, restaurant, office…", text: $place)
                         .font(.system(.body, design: .rounded))
                         .focused($focusedField, equals: .place)
-                        .onChange(of: place) { updatedPlace in
+                        .onChange(of: place) { _, updatedPlace in
                             locationSearch.updateQuery(updatedPlace)
                             guard selectedPlaceLabel?.caseInsensitiveCompare(updatedPlace) != .orderedSame else {
                                 return

@@ -316,7 +316,7 @@ struct FoodEditorPhoto: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .accessibilityLabel("Entry photo")
         // A replacement keeps the previous preview visible until it decodes.
-        .onChange(of: data) { _ in unsavedVersion = UUID() }
+        .onChange(of: data) { _, _ in unsavedVersion = UUID() }
         .onDisappear { loaded = nil }
     }
 }

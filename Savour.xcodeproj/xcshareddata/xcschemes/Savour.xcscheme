@@ -20,34 +20,6 @@
                ReferencedContainer = "container:Savour.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "398EFE8B3077A16900673B6C"
-               BuildableName = "SavourTests.xctest"
-               BlueprintName = "SavourTests"
-               ReferencedContainer = "container:Savour.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "398EFE953077A16900673B6C"
-               BuildableName = "SavourUITests.xctest"
-               BlueprintName = "SavourUITests"
-               ReferencedContainer = "container:Savour.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -56,27 +28,6 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "398EFE8B3077A16900673B6C"
-               BuildableName = "SavourTests.xctest"
-               BlueprintName = "SavourTests"
-               ReferencedContainer = "container:Savour.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "398EFE953077A16900673B6C"
-               BuildableName = "SavourUITests.xctest"
-               BlueprintName = "SavourUITests"
-               ReferencedContainer = "container:Savour.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

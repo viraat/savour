@@ -263,13 +263,8 @@ private struct FoodBottomAddAction: ViewModifier {
             .padding(.vertical, 8)
     }
 
-    @ViewBuilder
     private var roundButton: some View {
-        if #available(iOS 17.0, *) {
-            button.buttonBorderShape(.circle)
-        } else {
-            button.buttonBorderShape(.capsule)
-        }
+        button.buttonBorderShape(.circle)
     }
 
     private var button: some View {
@@ -456,13 +451,8 @@ private struct FoodPanelModifier: ViewModifier {
 extension View {
     /// Keep root-page titles on the controls' row, without an expanded title band.
     /// Native inline-large titles retain their leading alignment and prominence.
-    @ViewBuilder
     func foodCompactPageTitle() -> some View {
-        if #available(iOS 17.0, *) {
-            self.toolbarTitleDisplayMode(.inlineLarge)
-        } else {
-            self.navigationBarTitleDisplayMode(.inline)
-        }
+        toolbarTitleDisplayMode(.inlineLarge)
     }
 
     func foodSecondaryActionStyle() -> some View {
