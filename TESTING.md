@@ -192,7 +192,7 @@ available for that opt-in verification.
 Choose an available simulator in Xcode and press **Product → Test**, or run:
 
 ```sh
-xcodebuild -project FoodLog.xcodeproj \
+xcodebuild -project Savour.xcodeproj \
   -scheme FoodLog \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   CODE_SIGNING_ALLOWED=NO test
