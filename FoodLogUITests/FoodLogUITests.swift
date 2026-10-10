@@ -19,8 +19,8 @@ final class FoodLogUITests: XCTestCase {
         journalEntry(containing: "Reliability toast").tap()
         let foodField = app.textFields["food-description"]
         XCTAssertTrue(foodField.waitForExistence(timeout: 2))
+        app.buttons["Reliability toast, added"].tap()
         foodField.tap()
-        foodField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
         foodField.typeText("Edited reliability toast")
         app.buttons["Save"].tap()
         let editedEntry = journalEntry(containing: "edited reliability toast")
@@ -121,12 +121,12 @@ final class FoodLogUITests: XCTestCase {
 
         XCUIDevice.shared.press(.home)
         app.activate()
-        XCTAssertEqual(app.textFields["food-description"].value as? String, "Interrupted dinner")
+        XCTAssertEqual(foodDescription, "Interrupted dinner")
 
         app.terminate()
         launch(resetStore: false)
         XCTAssertTrue(app.navigationBars["New entry"].waitForExistence(timeout: 3))
-        XCTAssertEqual(app.textFields["food-description"].value as? String, "Interrupted dinner")
+        XCTAssertEqual(foodDescription, "Interrupted dinner")
         XCTAssertEqual(app.buttons["Date and time"].value as? String, chosenTime)
         app.buttons["Meal type"].tap()
         app.buttons["Snack"].tap()
@@ -138,7 +138,7 @@ final class FoodLogUITests: XCTestCase {
         waitForEditorDismissal()
         XCTAssertFalse(journalEntry(containing: "Interrupted dinner").exists)
         app.buttons["Add entry"].tap()
-        XCTAssertEqual(app.textFields["food-description"].value as? String, "Interrupted dinner")
+        XCTAssertEqual(foodDescription, "Interrupted dinner")
         app.buttons["Add"].tap()
         XCTAssertTrue(journalEntry(containing: "Interrupted dinner").waitForExistence(timeout: 3))
         app.terminate()
@@ -153,21 +153,21 @@ final class FoodLogUITests: XCTestCase {
         let foodField = app.textFields["food-description"]
         foodField.tap()
         foodField.typeText("Revised ")
-        let editedFood = foodField.value as? String ?? ""
-        XCTAssertTrue(editedFood.contains("Revised"))
+        let editedFood = foodDescription ?? ""
+        XCTAssertTrue(editedFood.contains("Revised"), "Description was \(editedFood)")
         XCTAssertNotEqual(editedFood, "Original draft meal")
 
         app.terminate()
         launch(resetStore: false)
         XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 3))
-        XCTAssertEqual(app.textFields["food-description"].value as? String, editedFood)
+        XCTAssertEqual(foodDescription, editedFood)
         app.buttons["Cancel"].tap()
         app.buttons["Keep draft"].tap()
         waitForEditorDismissal()
         XCTAssertTrue(journalEntry(containing: "Original draft meal").exists)
         XCTAssertFalse(journalEntry(containing: editedFood).exists)
         journalEntry(containing: "Original draft meal").tap()
-        XCTAssertEqual(app.textFields["food-description"].value as? String, editedFood)
+        XCTAssertEqual(foodDescription, editedFood)
         app.buttons["Save"].tap()
         XCTAssertTrue(journalEntry(containing: editedFood).waitForExistence(timeout: 3))
     }
@@ -184,7 +184,7 @@ final class FoodLogUITests: XCTestCase {
         waitForEditorDismissal()
         app.buttons["Add entry"].tap()
         XCTAssertTrue(foodField.waitForExistence(timeout: 3))
-        XCTAssertEqual(foodField.value as? String, "Keep this draft")
+        XCTAssertEqual(foodDescription, "Keep this draft")
         app.buttons["Cancel"].tap()
         app.buttons["Discard draft"].tap()
         let editorDismissed = XCTNSPredicateExpectation(
@@ -193,7 +193,7 @@ final class FoodLogUITests: XCTestCase {
         )
         XCTAssertEqual(XCTWaiter.wait(for: [editorDismissed], timeout: 3), .completed)
         app.buttons["Add entry"].tap()
-        XCTAssertNotEqual(app.textFields["food-description"].value as? String, "Keep this draft")
+        XCTAssertNotEqual(foodDescription, "Keep this draft")
     }
 
     func testDraftIsHiddenBehindDeniedBiometricLock() {
@@ -217,7 +217,7 @@ final class FoodLogUITests: XCTestCase {
         let toastSuggestion = app.buttons["Toast"]
         XCTAssertTrue(toastSuggestion.waitForExistence(timeout: 2))
         toastSuggestion.tap()
-        XCTAssertEqual(foodField.value as? String, "Eggs, Toast")
+        XCTAssertEqual(foodDescription, "Eggs, Toast")
         XCTAssertFalse(app.buttons["Toast"].exists)
     }
 
@@ -314,7 +314,7 @@ final class FoodLogUITests: XCTestCase {
             XCUIDevice.shared.press(.home)
             app.activate()
             XCTAssertTrue(app.navigationBars["New entry"].waitForExistence(timeout: 3))
-            XCTAssertEqual(field.value as? String, "Grace period draft")
+            XCTAssertEqual(foodDescription, "Grace period draft")
             XCTAssertFalse(app.staticTexts["Savour is locked"].exists)
             app.terminate()
         }
@@ -357,7 +357,7 @@ final class FoodLogUITests: XCTestCase {
         capture.lifetime = .keepAlways
         add(capture)
         app.activate()
-        XCTAssertEqual(field.value as? String, "Private draft behind lock")
+        XCTAssertEqual(foodDescription, "Private draft behind lock")
         XCTAssertFalse(app.staticTexts["Savour is locked"].exists)
     }
 
@@ -462,7 +462,7 @@ final class FoodLogUITests: XCTestCase {
             XCTAssertLessThan(last.frame.maxY, addButton.frame.minY - 8)
             last.tap()
             XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 3))
-            XCTAssertEqual(app.textFields["food-description"].value as? String, "Navigation fixture 20")
+            XCTAssertEqual(foodDescription, "Navigation fixture 20")
             app.terminate()
         }
     }
@@ -584,7 +584,7 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(entry.waitForExistence(timeout: 3))
         XCTAssertLessThanOrEqual(entry.frame.maxX, app.frame.maxX - 8)
         entry.tap()
-        XCTAssertEqual(app.textFields["food-description"].value as? String, food)
+        XCTAssertEqual(foodDescription, food)
         app.buttons["Cancel"].tap()
     }
 
@@ -1109,6 +1109,46 @@ final class FoodLogUITests: XCTestCase {
             + (suppliesLockSetting ? [] : ["-foodLogBiometricLockEnabled", "NO"])
             + extraArguments
         app.launch()
+    }
+
+    func testFoodItemsBecomeChipsAndSaveAsCommaSeparatedText() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-suggestions"])
+        app.buttons["Add entry"].tap()
+        let field = app.textFields["food-description"]
+        XCTAssertTrue(field.waitForExistence(timeout: 3))
+        field.tap()
+        field.typeText("Dosa,")
+        XCTAssertTrue(app.buttons["Dosa, added"].waitForExistence(timeout: 2))
+        field.typeText("Coconut chutney\n")
+        XCTAssertTrue(app.buttons["Coconut chutney, added"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.keyboards.firstMatch.exists, "Return keeps the keyboard up for the next item")
+        field.typeText("Sambar")
+        XCTAssertEqual(foodDescription, "Dosa, Coconut chutney, Sambar")
+        let typing = XCTAttachment(screenshot: app.screenshot())
+        typing.name = "Food chips while typing"
+        typing.lifetime = .keepAlways
+        add(typing)
+
+        app.buttons["Dosa, added"].tap()
+        XCTAssertFalse(app.buttons["Dosa, added"].exists)
+        XCTAssertEqual(foodDescription, "Coconut chutney, Sambar")
+        app.buttons["Add"].tap()
+        XCTAssertTrue(journalEntry(containing: "Coconut chutney, Sambar").waitForExistence(timeout: 3))
+
+        journalEntry(containing: "Coconut chutney, Sambar").tap()
+        XCTAssertTrue(app.buttons["Coconut chutney, added"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Sambar, added"].exists)
+        app.textFields["food-description"].tap()
+        let suggestions = XCTAttachment(screenshot: app.screenshot())
+        suggestions.name = "Food chips when editing"
+        suggestions.lifetime = .keepAlways
+        add(suggestions)
+        app.buttons["Cancel"].tap()
+    }
+
+    /// The whole food description: added items plus any item still being typed.
+    private var foodDescription: String? {
+        app.descendants(matching: .any)["food-items"].firstMatch.value as? String
     }
 
     private func addEntry(named food: String) {

@@ -62,6 +62,7 @@
 		F30000000000000000000001 /* FoodCSVPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000002 /* FoodCSVPerformanceTests.swift */; };
 		F40000000000000000000001 /* FoodStoreMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000002 /* FoodStoreMigration.swift */; };
 		F40000000000000000000003 /* FoodStoreMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000004 /* FoodStoreMigrationTests.swift */; };
+		F50000000000000000000011 /* FoodItemListTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000012 /* FoodItemListTests.swift */; };
 		F50000000000000000000001 /* FoodEntryTimeSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000002 /* FoodEntryTimeSelectionTests.swift */; };
 		F60000000000000000000001 /* FoodPhotoThumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000002 /* FoodPhotoThumbnails.swift */; };
 		F60000000000000000000003 /* FoodPhotoThumbnailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000004 /* FoodPhotoThumbnailTests.swift */; };
@@ -128,6 +129,7 @@
 		F30000000000000000000002 /* FoodCSVPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCSVPerformanceTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000002 /* FoodStoreMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodStoreMigration.swift; sourceTree = "<group>"; };
 		F40000000000000000000004 /* FoodStoreMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodStoreMigrationTests.swift; sourceTree = "<group>"; };
+		F50000000000000000000012 /* FoodItemListTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodItemListTests.swift; sourceTree = "<group>"; };
 		F50000000000000000000002 /* FoodEntryTimeSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodEntryTimeSelectionTests.swift; sourceTree = "<group>"; };
 		F60000000000000000000002 /* FoodPhotoThumbnails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPhotoThumbnails.swift; sourceTree = "<group>"; };
 		F60000000000000000000004 /* FoodPhotoThumbnailTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPhotoThumbnailTests.swift; sourceTree = "<group>"; };
@@ -240,6 +242,7 @@
 				F30000000000000000000002 /* FoodCSVPerformanceTests.swift */,
 				F40000000000000000000004 /* FoodStoreMigrationTests.swift */,
 				F50000000000000000000002 /* FoodEntryTimeSelectionTests.swift */,
+				F50000000000000000000012 /* FoodItemListTests.swift */,
 				F60000000000000000000004 /* FoodPhotoThumbnailTests.swift */,
 				F70000000000000000000008 /* FoodCloudSyncTests.swift */,
 			);
@@ -502,6 +505,7 @@
 				F30000000000000000000001 /* FoodCSVPerformanceTests.swift in Sources */,
 				F40000000000000000000003 /* FoodStoreMigrationTests.swift in Sources */,
 				F50000000000000000000001 /* FoodEntryTimeSelectionTests.swift in Sources */,
+				F50000000000000000000011 /* FoodItemListTests.swift in Sources */,
 				F60000000000000000000003 /* FoodPhotoThumbnailTests.swift in Sources */,
 				F70000000000000000000007 /* FoodCloudSyncTests.swift in Sources */,
 			);

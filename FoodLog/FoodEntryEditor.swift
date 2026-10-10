@@ -47,7 +47,8 @@ struct FoodEntryEditor: View {
     let draftKey: FoodEntryDraftKey
     private let baselineDraft: FoodEntryDraft
 
-    @State private var food: String
+    @State private var foodItems: [String]
+    @State private var foodQuery = ""
     @State private var date: Date
     @State private var timeSelection: FoodEntryTimeSelection
     @State private var mealType: String
@@ -92,7 +93,7 @@ struct FoodEntryEditor: View {
         self.draftKey = key
         let initialDate = entry?.wrappedDate ?? Date()
         let baseline = FoodEntryDraft(
-            food: entry?.wrappedFood ?? "",
+            food: FoodItemList.joined(FoodItemParser.items(in: entry?.wrappedFood ?? "")),
             date: initialDate,
             mealType: entry?.wrappedMealType ?? MealTypeSuggestion.suggested(for: initialDate),
             place: entry?.wrappedPlace ?? "",
@@ -123,7 +124,7 @@ struct FoodEntryEditor: View {
         let initial = restored ?? baseline
         _timeSelection = State(initialValue: FoodEntryTimeSelection(isNewEntry: entry == nil && key == .new,
                                                                    hasRestoredDraft: restored != nil))
-        _food = State(initialValue: initial.food)
+        _foodItems = State(initialValue: FoodItemParser.items(in: initial.food))
         _date = State(initialValue: initial.date)
         _mealType = State(initialValue: initial.mealType)
         _place = State(initialValue: initial.place)
@@ -170,8 +171,13 @@ struct FoodEntryEditor: View {
         )
     }
 
+    /// Stored food text: the added items plus anything still being typed.
+    private var food: String {
+        FoodItemList.joined(foodItems + [foodQuery])
+    }
+
     private var canSave: Bool {
-        !food.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !food.isEmpty
     }
 
     private var history: FoodEditorHistory {
@@ -188,7 +194,8 @@ struct FoodEntryEditor: View {
     }
 
     private var suggestions: [String] {
-        history.suggestions.suggestions(mealType: mealType, currentFood: food)
+        history.suggestions.suggestions(mealType: mealType,
+                                        currentFood: FoodItemList.suggestionInput(items: foodItems, query: foodQuery))
     }
 
     private var frequentPeople: [String] {
@@ -430,16 +437,47 @@ struct FoodEntryEditor: View {
                 .font(.system(.title3, design: .rounded).weight(.semibold))
                 .foregroundColor(FoodTheme.secondaryText)
 
-            TextField("e.g. dosa and chutney", text: $food, axis: .vertical)
-                .accessibilityIdentifier("food-description")
-                .font(.system(.title2, design: .rounded).weight(.semibold))
-                .foregroundColor(FoodTheme.ink)
-                .lineLimit(2 ... 5)
-                .textInputAutocapitalization(.sentences)
-                .focused($focusedField, equals: .food)
-                .padding(20)
-                .frame(minHeight: 116, alignment: .topLeading)
-                .foodPanel(cornerRadius: 22)
+            VStack(alignment: .leading, spacing: 12) {
+                if !foodItems.isEmpty {
+                    FoodItemFlowLayout(spacing: 8) {
+                        ForEach(foodItems, id: \.self) { item in
+                            foodItemChip(item)
+                        }
+                    }
+                }
+
+                // Multi-line so Return types a newline, which completes the item
+                // like a comma, instead of submitting and dismissing the keyboard.
+                TextField(foodItems.isEmpty ? "e.g. dosa" : "Add another item", text: $foodQuery, axis: .vertical)
+                    .accessibilityIdentifier("food-description")
+                    .font(.system(.title2, design: .rounded).weight(.semibold))
+                    .foregroundColor(FoodTheme.ink)
+                    .lineLimit(1 ... 3)
+                    .textInputAutocapitalization(.sentences)
+                    .focused($focusedField, equals: .food)
+                    .onChange(of: foodQuery) { _, typed in
+                        // A typed or pasted comma or Return completes the item before it.
+                        let split = FoodItemList.splitTyped(typed)
+                        guard !split.complete.isEmpty || split.remainder != typed else { return }
+                        foodItems = FoodItemList.adding(split.complete, to: foodItems)
+                        foodQuery = split.remainder
+                    }
+
+                if focusedField == .food, !foodQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+                    Text("Return or a comma adds each item")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(FoodTheme.secondaryText)
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, minHeight: 116, alignment: .topLeading)
+            .contentShape(Rectangle())
+            .onTapGesture { focusedField = .food }
+            .foodPanel(cornerRadius: 22)
+            // Tests and VoiceOver read the whole description, not just the field.
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("food-items")
+            .accessibilityValue(food)
 
             if !suggestions.isEmpty && focusedField == .food {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -461,16 +499,56 @@ struct FoodEntryEditor: View {
         }
     }
 
+    private func foodItemChip(_ item: String) -> some View {
+        Button {
+            removeFoodItem(item)
+        } label: {
+            HStack(spacing: 6) {
+                Text(item)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Image(systemName: "xmark")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(FoodTheme.secondaryText)
+            }
+            .font(.system(.body, design: .rounded).weight(.semibold))
+            .foregroundColor(FoodTheme.ink)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(FoodTheme.field, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button("Edit", systemImage: "pencil") { editFoodItem(item) }
+            Button("Remove", systemImage: "xmark", role: .destructive) { removeFoodItem(item) }
+        }
+        .accessibilityLabel("\(item), added")
+        .accessibilityHint("Removes this item")
+        .accessibilityAction(named: "Edit") { editFoodItem(item) }
+    }
+
+    private func applyFoodSuggestion(_ suggestion: String) {
+        foodItems = FoodItemList.adding([suggestion], to: foodItems)
+        foodQuery = ""
+        focusedField = .food
+    }
+
+    private func removeFoodItem(_ item: String) {
+        foodItems.removeAll { $0 == item }
+    }
+
+    /// Moves an item back into the field, keeping anything already typed.
+    private func editFoodItem(_ item: String) {
+        foodItems = FoodItemList.adding([foodQuery], to: foodItems.filter { $0 != item })
+        foodQuery = item
+        focusedField = .food
+    }
+
     /// Reopening an entry reuses its cached preview; picked or recovered
     /// replacement photos are decoded without occupying the shared cache.
     private func savedPhotoVersion(for photoData: Data) -> UUID? {
         guard let entry, photoData == baselineDraft.photoData else { return nil }
         return FoodPhotoVersions.shared.version(for: entry)
-    }
-
-    private func applyFoodSuggestion(_ suggestion: String) {
-        food = FoodSuggestionEngine.replacingCurrentSegment(in: food, with: suggestion)
-        focusedField = .food
     }
 
     private var mealAndTimeSection: some View {
@@ -1169,5 +1247,53 @@ private struct CameraPicker: UIViewControllerRepresentable {
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             parent.isPresented = false
         }
+    }
+}
+
+/// Lays chips out left to right, wrapping onto new rows. A chip wider than the
+/// row is given the full row so its text wraps instead of overflowing.
+private struct FoodItemFlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = arrange(subviews, width: proposal.width ?? .infinity)
+        let width = rows.map(\.width).max() ?? 0
+        let height = rows.map(\.height).reduce(0, +) + spacing * CGFloat(max(rows.count - 1, 0))
+        return CGSize(width: proposal.width ?? width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in arrange(subviews, width: bounds.width) {
+            var x = bounds.minX
+            for (index, size) in zip(row.indices, row.sizes) {
+                subviews[index].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+                x += size.width + spacing
+            }
+            y += row.height + spacing
+        }
+    }
+
+    private struct Row {
+        var indices: [Int] = []
+        var sizes: [CGSize] = []
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+    }
+
+    private func arrange(_ subviews: Subviews, width: CGFloat) -> [Row] {
+        var rows = [Row()]
+        for index in subviews.indices {
+            let size = subviews[index].sizeThatFits(ProposedViewSize(width: width, height: nil))
+            let needed = rows[rows.count - 1].indices.isEmpty ? size.width : rows[rows.count - 1].width + spacing + size.width
+            if needed > width, !rows[rows.count - 1].indices.isEmpty { rows.append(Row()) }
+            var row = rows.removeLast()
+            row.width += (row.indices.isEmpty ? 0 : spacing) + size.width
+            row.height = max(row.height, size.height)
+            row.indices.append(index)
+            row.sizes.append(size)
+            rows.append(row)
+        }
+        return rows.filter { !$0.indices.isEmpty }
     }
 }

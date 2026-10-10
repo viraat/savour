@@ -19,7 +19,7 @@ let localLogicFiles = ["FoodReminder.swift", "FoodLogLogic.swift", "FoodHistoryC
                        "FoodPhotoThumbnails.swift"]
 let testFiles = ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodPerformanceTests.swift",
                  "FoodDraftAutosaveTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift",
-                 "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift", "FoodBackupTests.swift", "FoodCloudSyncTests.swift"]
+                 "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift", "FoodBackupTests.swift", "FoodCloudSyncTests.swift", "FoodItemListTests.swift"]
 
 func excluding(_ sources: [String], from files: [String]) -> [String] {
     files.filter { !sources.contains($0) }
@@ -31,7 +31,8 @@ let performanceSources = ["FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodS
 let draftSources = ["FoodEntryDraftStore.swift"]
 let reminderTests = ["FoodReminderTests.swift"]
 let performanceTests = ["FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift",
-                        "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift"]
+                        "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift",
+                        "FoodItemListTests.swift"]
 let draftTests = ["FoodDraftAutosaveTests.swift"]
 let backupTests = ["FoodBackupTests.swift", "FoodCloudSyncTests.swift"]
 
