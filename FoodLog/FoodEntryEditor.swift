@@ -1036,6 +1036,11 @@ struct FoodEntryEditor: View {
     private func save() {
         let trimmedFood = food.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedFood.isEmpty else { return }
+        if let entry, entry.isDeleted || entry.managedObjectContext == nil {
+            _ = persistDraft(draftSnapshot, active: false)
+            fastingMessage = "This entry was removed on another device. Your changes remain in the draft. Close and reopen the draft to save it as a new entry."
+            return
+        }
 
         let target = entry ?? FoodEntry(context: context)
         if target.id == nil { target.id = UUID() }

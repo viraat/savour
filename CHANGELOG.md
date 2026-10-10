@@ -9,6 +9,15 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Added opt-in private iCloud sync to the new-account Savour target, with account/
+  transfer status in Settings → Your data. Meals, photos, places, people and
+  preserved legacy fast sessions mirror through NSPersistentCloudKitContainer;
+  drafts and preferences stay local. Enable/disable takes effect after restart.
+- Added FoodLogV6 lightweight migration, background remote-history merging,
+  conservative identical-UUID graph coalescing and safe handling of an entry
+  deleted remotely while being edited. Existing store paths, backups and CSV
+  formats remain unchanged. Apple provisioning/real-device verification remain
+  pending; see [iCloud setup](ICLOUD_SYNC.md).
 - Fixed a blank strip at the bottom of the screen on iOS 27. The native tab
   controller was inset to the safe area, so scrolling content stopped above the
   home indicator. It now fills the screen; UIKit still insets each page. This

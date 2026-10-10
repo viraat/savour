@@ -1173,6 +1173,13 @@ private struct FoodLogDataSettingsView: View {
     var body: some View {
         Form {
             Section {
+                NavigationLink("iCloud sync") { FoodCloudSyncSettingsView() }
+                    .accessibilityIdentifier("settings-icloud-sync")
+            } header: {
+                Text("iCloud").foregroundStyle(FoodTheme.secondaryText)
+            }
+
+            Section {
                 Button(action: exportCSV) {
                     HStack {
                         Text(isExportingCSV ? "Preparing CSV…" : "Export CSV")
@@ -1334,7 +1341,7 @@ private struct FoodLogDataSettingsView: View {
             Button("Erase all", role: .destructive, action: eraseAll)
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This removes food entries but keeps fasting records and their times. Export first if you want a food-entry backup.")
+            Text("This removes food entries but keeps fasting records and their times. If iCloud sync is enabled, deletion also syncs to your other devices. Export first if you want a food-entry backup.")
         }
     }
 

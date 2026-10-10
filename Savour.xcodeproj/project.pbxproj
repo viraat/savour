@@ -1,0 +1,1171 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 70;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		9A0000000000000000000001 /* FoodLogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* FoodLogApp.swift */; };
+		9A0000000000000000000002 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002 /* PersistenceController.swift */; };
+		9A0000000000000000000003 /* FoodStoreMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000002 /* FoodStoreMigration.swift */; };
+		9A0000000000000000000004 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000003 /* ContentView.swift */; };
+		9A0000000000000000000005 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000004 /* JournalView.swift */; };
+		9A0000000000000000000006 /* FoodEntryEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000005 /* FoodEntryEditor.swift */; };
+		9A0000000000000000000007 /* BrowsePatternsSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* BrowsePatternsSettings.swift */; };
+		9A0000000000000000000008 /* FoodLog.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* FoodLog.xcdatamodeld */; };
+		9A0000000000000000000009 /* LocationSearchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* LocationSearchModel.swift */; };
+		9A000000000000000000000A /* ContactsSearchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* ContactsSearchModel.swift */; };
+		9A000000000000000000000B /* AppLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* AppLockView.swift */; };
+		9A000000000000000000000C /* MealDefaultTimes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* MealDefaultTimes.swift */; };
+		9A000000000000000000000D /* FoodLogLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000020 /* FoodLogLogic.swift */; };
+		9A000000000000000000000E /* FoodHistoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* FoodHistoryCache.swift */; };
+		9A000000000000000000000F /* FoodPhotoThumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000002 /* FoodPhotoThumbnails.swift */; };
+		9A0000000000000000000010 /* FoodLogCSVImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000025 /* FoodLogCSVImport.swift */; };
+		9A0000000000000000000011 /* Fasting.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000026 /* Fasting.swift */; };
+		9A0000000000000000000012 /* DateTimePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000028 /* DateTimePickerSheet.swift */; };
+		9A0000000000000000000013 /* FoodEntryDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000029 /* FoodEntryDraftStore.swift */; };
+		9A0000000000000000000014 /* FoodReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000030 /* FoodReminder.swift */; };
+		9A0000000000000000000015 /* FoodBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000032 /* FoodBackup.swift */; };
+		9A0000000000000000000016 /* FoodBackupRestore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000033 /* FoodBackupRestore.swift */; };
+		9A0000000000000000000017 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* Assets.xcassets */; };
+		9A0000000000000000000018 /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000034 /* ThirdPartyNotices.txt */; };
+		9A0000000000000000000019 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = P00000000000000000000002 /* ZIPFoundation */; };
+		A00000000000000000000001 /* FoodLogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* FoodLogApp.swift */; };
+		A00000000000000000000002 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002 /* PersistenceController.swift */; };
+		A00000000000000000000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000003 /* ContentView.swift */; };
+		A00000000000000000000004 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000004 /* JournalView.swift */; };
+		A00000000000000000000005 /* FoodEntryEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000005 /* FoodEntryEditor.swift */; };
+		A00000000000000000000006 /* BrowsePatternsSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* BrowsePatternsSettings.swift */; };
+		A00000000000000000000007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* Assets.xcassets */; };
+		A00000000000000000000008 /* FoodLog.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* FoodLog.xcdatamodeld */; };
+		A00000000000000000000009 /* LocationSearchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* LocationSearchModel.swift */; };
+		A0000000000000000000000A /* ContactsSearchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* ContactsSearchModel.swift */; };
+		A0000000000000000000000C /* AppLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* AppLockView.swift */; };
+		A0000000000000000000000D /* MealDefaultTimes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* MealDefaultTimes.swift */; };
+		A0000000000000000000000E /* FoodLogLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000020 /* FoodLogLogic.swift */; };
+		A0000000000000000000000F /* FoodLogLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000021 /* FoodLogLogicTests.swift */; };
+		A00000000000000000000010 /* FoodLogUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000023 /* FoodLogUITests.swift */; };
+		A00000000000000000000011 /* FoodLogCSVImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000025 /* FoodLogCSVImport.swift */; };
+		A00000000000000000000012 /* Fasting.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000026 /* Fasting.swift */; };
+		A00000000000000000000013 /* DateTimePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000028 /* DateTimePickerSheet.swift */; };
+		A00000000000000000000014 /* FoodEntryDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000029 /* FoodEntryDraftStore.swift */; };
+		A00000000000000000000015 /* FoodReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000030 /* FoodReminder.swift */; };
+		A00000000000000000000016 /* FoodReminderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000031 /* FoodReminderTests.swift */; };
+		A00000000000000000000017 /* FoodBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000032 /* FoodBackup.swift */; };
+		A00000000000000000000018 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = P00000000000000000000002 /* ZIPFoundation */; };
+		A00000000000000000000019 /* FoodBackupRestore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000033 /* FoodBackupRestore.swift */; };
+		A0000000000000000000001A /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000034 /* ThirdPartyNotices.txt */; };
+		F10000000000000000000001 /* FoodHistoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* FoodHistoryCache.swift */; };
+		F20000000000000000000001 /* FoodDraftAutosaveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000002 /* FoodDraftAutosaveTests.swift */; };
+		F30000000000000000000001 /* FoodCSVPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000002 /* FoodCSVPerformanceTests.swift */; };
+		F40000000000000000000001 /* FoodStoreMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000002 /* FoodStoreMigration.swift */; };
+		F40000000000000000000003 /* FoodStoreMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000004 /* FoodStoreMigrationTests.swift */; };
+		F50000000000000000000001 /* FoodEntryTimeSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000002 /* FoodEntryTimeSelectionTests.swift */; };
+		F60000000000000000000001 /* FoodPhotoThumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000002 /* FoodPhotoThumbnails.swift */; };
+		F60000000000000000000003 /* FoodPhotoThumbnailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000004 /* FoodPhotoThumbnailTests.swift */; };
+		F70000000000000000000001 /* FoodCloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70000000000000000000002 /* FoodCloudSync.swift */; };
+		F70000000000000000000003 /* FoodCloudSyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70000000000000000000004 /* FoodCloudSyncSettingsView.swift */; };
+		F70000000000000000000005 /* FoodCloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70000000000000000000002 /* FoodCloudSync.swift */; };
+		F70000000000000000000006 /* FoodCloudSyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70000000000000000000004 /* FoodCloudSyncSettingsView.swift */; };
+		F70000000000000000000007 /* FoodCloudSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70000000000000000000008 /* FoodCloudSyncTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		398EFE8D3077A16900673B6C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 398EFE7F3077A16800673B6C;
+			remoteInfo = Savour;
+		};
+		398EFE973077A16900673B6C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 398EFE7F3077A16800673B6C;
+			remoteInfo = Savour;
+		};
+		I00000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E00000000000000000000001;
+			remoteInfo = FoodLog;
+		};
+		I00000000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E00000000000000000000001;
+			remoteInfo = FoodLog;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		398EFE803077A16800673B6C /* Savour.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Savour.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		398EFE8C3077A16900673B6C /* SavourTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SavourTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		398EFE963077A16900673B6C /* SavourUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SavourUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000001 /* FoodLogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogApp.swift; sourceTree = "<group>"; };
+		B00000000000000000000002 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
+		B00000000000000000000003 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B00000000000000000000004 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
+		B00000000000000000000005 /* FoodEntryEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodEntryEditor.swift; sourceTree = "<group>"; };
+		B00000000000000000000006 /* BrowsePatternsSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowsePatternsSettings.swift; sourceTree = "<group>"; };
+		B00000000000000000000007 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B00000000000000000000009 /* FoodLog.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLog.xcdatamodel; sourceTree = "<group>"; };
+		B00000000000000000000010 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B00000000000000000000011 /* FoodLog.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FoodLog.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000012 /* LocationSearchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchModel.swift; sourceTree = "<group>"; };
+		B00000000000000000000013 /* ContactsSearchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsSearchModel.swift; sourceTree = "<group>"; };
+		B00000000000000000000014 /* FoodLogV2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV2.xcdatamodel; sourceTree = "<group>"; };
+		B00000000000000000000015 /* FoodLogV3.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV3.xcdatamodel; sourceTree = "<group>"; };
+		B00000000000000000000017 /* FoodLogV4.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV4.xcdatamodel; sourceTree = "<group>"; };
+		B00000000000000000000018 /* AppLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockView.swift; sourceTree = "<group>"; };
+		B00000000000000000000019 /* MealDefaultTimes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDefaultTimes.swift; sourceTree = "<group>"; };
+		B00000000000000000000020 /* FoodLogLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogLogic.swift; sourceTree = "<group>"; };
+		B00000000000000000000021 /* FoodLogLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogLogicTests.swift; sourceTree = "<group>"; };
+		B00000000000000000000022 /* FoodLogTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FoodLogTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000023 /* FoodLogUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogUITests.swift; sourceTree = "<group>"; };
+		B00000000000000000000024 /* FoodLogUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FoodLogUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000025 /* FoodLogCSVImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogCSVImport.swift; sourceTree = "<group>"; };
+		B00000000000000000000026 /* Fasting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fasting.swift; sourceTree = "<group>"; };
+		B00000000000000000000027 /* FoodLogV5.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV5.xcdatamodel; sourceTree = "<group>"; };
+		B00000000000000000000028 /* DateTimePickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateTimePickerSheet.swift; sourceTree = "<group>"; };
+		B00000000000000000000029 /* FoodEntryDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodEntryDraftStore.swift; sourceTree = "<group>"; };
+		B00000000000000000000030 /* FoodReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodReminder.swift; sourceTree = "<group>"; };
+		B00000000000000000000031 /* FoodReminderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodReminderTests.swift; sourceTree = "<group>"; };
+		B00000000000000000000032 /* FoodBackup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodBackup.swift; sourceTree = "<group>"; };
+		B00000000000000000000033 /* FoodBackupRestore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodBackupRestore.swift; sourceTree = "<group>"; };
+		B00000000000000000000034 /* ThirdPartyNotices.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = ThirdPartyNotices.txt; sourceTree = "<group>"; };
+		F10000000000000000000002 /* FoodHistoryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodHistoryCache.swift; sourceTree = "<group>"; };
+		F20000000000000000000002 /* FoodDraftAutosaveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDraftAutosaveTests.swift; sourceTree = "<group>"; };
+		F30000000000000000000002 /* FoodCSVPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCSVPerformanceTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000002 /* FoodStoreMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodStoreMigration.swift; sourceTree = "<group>"; };
+		F40000000000000000000004 /* FoodStoreMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodStoreMigrationTests.swift; sourceTree = "<group>"; };
+		F50000000000000000000002 /* FoodEntryTimeSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodEntryTimeSelectionTests.swift; sourceTree = "<group>"; };
+		F60000000000000000000002 /* FoodPhotoThumbnails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPhotoThumbnails.swift; sourceTree = "<group>"; };
+		F60000000000000000000004 /* FoodPhotoThumbnailTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPhotoThumbnailTests.swift; sourceTree = "<group>"; };
+		F70000000000000000000002 /* FoodCloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCloudSync.swift; sourceTree = "<group>"; };
+		F70000000000000000000004 /* FoodCloudSyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCloudSyncSettingsView.swift; sourceTree = "<group>"; };
+		F70000000000000000000008 /* FoodCloudSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCloudSyncTests.swift; sourceTree = "<group>"; };
+		F70000000000000000000009 /* FoodLogV6.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = FoodLogV6.xcdatamodel; sourceTree = "<group>"; };
+		F7000000000000000000000A /* Savour.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Savour.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		398EFE813077A16800673B6C /* Savour */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Savour; sourceTree = "<group>"; };
+		398EFE8F3077A16900673B6C /* SavourTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = SavourTests; sourceTree = "<group>"; };
+		398EFE993077A16900673B6C /* SavourUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = SavourUITests; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		398EFE7D3077A16800673B6C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9A0000000000000000000019 /* ZIPFoundation in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		398EFE893077A16900673B6C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		398EFE933077A16900673B6C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000018 /* ZIPFoundation in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C00000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000002 /* FoodLog */,
+				C00000000000000000000004 /* FoodLogTests */,
+				C00000000000000000000005 /* FoodLogUITests */,
+				398EFE813077A16800673B6C /* Savour */,
+				398EFE8F3077A16900673B6C /* SavourTests */,
+				398EFE993077A16900673B6C /* SavourUITests */,
+				C00000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C00000000000000000000002 /* FoodLog */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000001 /* FoodLogApp.swift */,
+				B00000000000000000000003 /* ContentView.swift */,
+				B00000000000000000000004 /* JournalView.swift */,
+				B00000000000000000000005 /* FoodEntryEditor.swift */,
+				B00000000000000000000006 /* BrowsePatternsSettings.swift */,
+				B00000000000000000000002 /* PersistenceController.swift */,
+				F40000000000000000000002 /* FoodStoreMigration.swift */,
+				B00000000000000000000012 /* LocationSearchModel.swift */,
+				B00000000000000000000013 /* ContactsSearchModel.swift */,
+				B00000000000000000000018 /* AppLockView.swift */,
+				B00000000000000000000019 /* MealDefaultTimes.swift */,
+				B00000000000000000000020 /* FoodLogLogic.swift */,
+				F10000000000000000000002 /* FoodHistoryCache.swift */,
+				F60000000000000000000002 /* FoodPhotoThumbnails.swift */,
+				B00000000000000000000025 /* FoodLogCSVImport.swift */,
+				B00000000000000000000026 /* Fasting.swift */,
+				B00000000000000000000028 /* DateTimePickerSheet.swift */,
+				B00000000000000000000029 /* FoodEntryDraftStore.swift */,
+				B00000000000000000000030 /* FoodReminder.swift */,
+				B00000000000000000000032 /* FoodBackup.swift */,
+				B00000000000000000000033 /* FoodBackupRestore.swift */,
+				B00000000000000000000034 /* ThirdPartyNotices.txt */,
+				F70000000000000000000002 /* FoodCloudSync.swift */,
+				F70000000000000000000004 /* FoodCloudSyncSettingsView.swift */,
+				F7000000000000000000000A /* Savour.entitlements */,
+				B00000000000000000000008 /* FoodLog.xcdatamodeld */,
+				B00000000000000000000007 /* Assets.xcassets */,
+				B00000000000000000000010 /* Info.plist */,
+			);
+			path = FoodLog;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000011 /* FoodLog.app */,
+				B00000000000000000000022 /* FoodLogTests.xctest */,
+				B00000000000000000000024 /* FoodLogUITests.xctest */,
+				398EFE803077A16800673B6C /* Savour.app */,
+				398EFE8C3077A16900673B6C /* SavourTests.xctest */,
+				398EFE963077A16900673B6C /* SavourUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000004 /* FoodLogTests */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000021 /* FoodLogLogicTests.swift */,
+				B00000000000000000000031 /* FoodReminderTests.swift */,
+				F20000000000000000000002 /* FoodDraftAutosaveTests.swift */,
+				F30000000000000000000002 /* FoodCSVPerformanceTests.swift */,
+				F40000000000000000000004 /* FoodStoreMigrationTests.swift */,
+				F50000000000000000000002 /* FoodEntryTimeSelectionTests.swift */,
+				F60000000000000000000004 /* FoodPhotoThumbnailTests.swift */,
+				F70000000000000000000008 /* FoodCloudSyncTests.swift */,
+			);
+			path = FoodLogTests;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000005 /* FoodLogUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000023 /* FoodLogUITests.swift */,
+			);
+			path = FoodLogUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		398EFE7F3077A16800673B6C /* Savour */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 398EFE9C3077A16900673B6C /* Build configuration list for PBXNativeTarget "Savour" */;
+			buildPhases = (
+				398EFE7C3077A16800673B6C /* Sources */,
+				398EFE7D3077A16800673B6C /* Frameworks */,
+				398EFE7E3077A16800673B6C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Savour;
+			packageProductDependencies = (
+				P00000000000000000000002 /* ZIPFoundation */,
+			);
+			productName = Savour;
+			productReference = 398EFE803077A16800673B6C /* Savour.app */;
+			productType = "com.apple.product-type.application";
+		};
+		398EFE8B3077A16900673B6C /* SavourTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 398EFE9F3077A16900673B6C /* Build configuration list for PBXNativeTarget "SavourTests" */;
+			buildPhases = (
+				398EFE883077A16900673B6C /* Sources */,
+				398EFE893077A16900673B6C /* Frameworks */,
+				398EFE8A3077A16900673B6C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				398EFE8E3077A16900673B6C /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				398EFE8F3077A16900673B6C /* SavourTests */,
+			);
+			name = SavourTests;
+			packageProductDependencies = (
+			);
+			productName = SavourTests;
+			productReference = 398EFE8C3077A16900673B6C /* SavourTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		398EFE953077A16900673B6C /* SavourUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 398EFEA23077A16900673B6C /* Build configuration list for PBXNativeTarget "SavourUITests" */;
+			buildPhases = (
+				398EFE923077A16900673B6C /* Sources */,
+				398EFE933077A16900673B6C /* Frameworks */,
+				398EFE943077A16900673B6C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				398EFE983077A16900673B6C /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				398EFE993077A16900673B6C /* SavourUITests */,
+			);
+			name = SavourUITests;
+			packageProductDependencies = (
+			);
+			productName = SavourUITests;
+			productReference = 398EFE963077A16900673B6C /* SavourUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		E00000000000000000000001 /* FoodLog */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G00000000000000000000002 /* Build configuration list for PBXNativeTarget "FoodLog" */;
+			buildPhases = (
+				D00000000000000000000002 /* Sources */,
+				D00000000000000000000001 /* Frameworks */,
+				D00000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FoodLog;
+			packageProductDependencies = (
+				P00000000000000000000002 /* ZIPFoundation */,
+			);
+			productName = FoodLog;
+			productReference = B00000000000000000000011 /* FoodLog.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E00000000000000000000002 /* FoodLogTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G00000000000000000000003 /* Build configuration list for PBXNativeTarget "FoodLogTests" */;
+			buildPhases = (
+				D00000000000000000000004 /* Sources */,
+				D00000000000000000000005 /* Frameworks */,
+				D00000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				H00000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = FoodLogTests;
+			productName = FoodLogTests;
+			productReference = B00000000000000000000022 /* FoodLogTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E00000000000000000000003 /* FoodLogUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G00000000000000000000004 /* Build configuration list for PBXNativeTarget "FoodLogUITests" */;
+			buildPhases = (
+				D00000000000000000000007 /* Sources */,
+				D00000000000000000000008 /* Frameworks */,
+				D00000000000000000000009 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				H00000000000000000000002 /* PBXTargetDependency */,
+			);
+			name = FoodLogUITests;
+			productName = FoodLogUITests;
+			productReference = B00000000000000000000024 /* FoodLogUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F00000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					398EFE7F3077A16800673B6C = {
+						CreatedOnToolsVersion = 27.0;
+						SystemCapabilities = {
+							com.apple.BackgroundModes = {
+								enabled = 1;
+							};
+							com.apple.Push = {
+								enabled = 1;
+							};
+							com.apple.iCloud = {
+								enabled = 1;
+							};
+						};
+					};
+					398EFE8B3077A16900673B6C = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 398EFE7F3077A16800673B6C;
+					};
+					398EFE953077A16900673B6C = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 398EFE7F3077A16800673B6C;
+					};
+					E00000000000000000000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					E00000000000000000000002 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = E00000000000000000000001;
+					};
+					E00000000000000000000003 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = E00000000000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = G00000000000000000000001 /* Build configuration list for PBXProject "Savour" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = C00000000000000000000001;
+			packageReferences = (
+				P00000000000000000000001 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+			);
+			productRefGroup = C00000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E00000000000000000000001 /* FoodLog */,
+				E00000000000000000000002 /* FoodLogTests */,
+				E00000000000000000000003 /* FoodLogUITests */,
+				398EFE7F3077A16800673B6C /* Savour */,
+				398EFE8B3077A16900673B6C /* SavourTests */,
+				398EFE953077A16900673B6C /* SavourUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		398EFE7E3077A16800673B6C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9A0000000000000000000017 /* Assets.xcassets in Resources */,
+				9A0000000000000000000018 /* ThirdPartyNotices.txt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		398EFE8A3077A16900673B6C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		398EFE943077A16900673B6C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000007 /* Assets.xcassets in Resources */,
+				A0000000000000000000001A /* ThirdPartyNotices.txt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000009 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		398EFE7C3077A16800673B6C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9A0000000000000000000001 /* FoodLogApp.swift in Sources */,
+				9A0000000000000000000002 /* PersistenceController.swift in Sources */,
+				9A0000000000000000000003 /* FoodStoreMigration.swift in Sources */,
+				9A0000000000000000000004 /* ContentView.swift in Sources */,
+				9A0000000000000000000005 /* JournalView.swift in Sources */,
+				9A0000000000000000000006 /* FoodEntryEditor.swift in Sources */,
+				9A0000000000000000000007 /* BrowsePatternsSettings.swift in Sources */,
+				9A0000000000000000000008 /* FoodLog.xcdatamodeld in Sources */,
+				9A0000000000000000000009 /* LocationSearchModel.swift in Sources */,
+				9A000000000000000000000A /* ContactsSearchModel.swift in Sources */,
+				9A000000000000000000000B /* AppLockView.swift in Sources */,
+				9A000000000000000000000C /* MealDefaultTimes.swift in Sources */,
+				9A000000000000000000000D /* FoodLogLogic.swift in Sources */,
+				9A000000000000000000000E /* FoodHistoryCache.swift in Sources */,
+				9A000000000000000000000F /* FoodPhotoThumbnails.swift in Sources */,
+				9A0000000000000000000010 /* FoodLogCSVImport.swift in Sources */,
+				9A0000000000000000000011 /* Fasting.swift in Sources */,
+				9A0000000000000000000012 /* DateTimePickerSheet.swift in Sources */,
+				9A0000000000000000000013 /* FoodEntryDraftStore.swift in Sources */,
+				9A0000000000000000000014 /* FoodReminder.swift in Sources */,
+				9A0000000000000000000015 /* FoodBackup.swift in Sources */,
+				9A0000000000000000000016 /* FoodBackupRestore.swift in Sources */,
+				F70000000000000000000001 /* FoodCloudSync.swift in Sources */,
+				F70000000000000000000003 /* FoodCloudSyncSettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		398EFE883077A16900673B6C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		398EFE923077A16900673B6C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000001 /* FoodLogApp.swift in Sources */,
+				A00000000000000000000002 /* PersistenceController.swift in Sources */,
+				F40000000000000000000001 /* FoodStoreMigration.swift in Sources */,
+				A00000000000000000000003 /* ContentView.swift in Sources */,
+				A00000000000000000000004 /* JournalView.swift in Sources */,
+				A00000000000000000000005 /* FoodEntryEditor.swift in Sources */,
+				A00000000000000000000006 /* BrowsePatternsSettings.swift in Sources */,
+				A00000000000000000000008 /* FoodLog.xcdatamodeld in Sources */,
+				A00000000000000000000009 /* LocationSearchModel.swift in Sources */,
+				A0000000000000000000000A /* ContactsSearchModel.swift in Sources */,
+				A0000000000000000000000C /* AppLockView.swift in Sources */,
+				A0000000000000000000000D /* MealDefaultTimes.swift in Sources */,
+				A0000000000000000000000E /* FoodLogLogic.swift in Sources */,
+				F10000000000000000000001 /* FoodHistoryCache.swift in Sources */,
+				F60000000000000000000001 /* FoodPhotoThumbnails.swift in Sources */,
+				A00000000000000000000011 /* FoodLogCSVImport.swift in Sources */,
+				A00000000000000000000012 /* Fasting.swift in Sources */,
+				A00000000000000000000013 /* DateTimePickerSheet.swift in Sources */,
+				A00000000000000000000014 /* FoodEntryDraftStore.swift in Sources */,
+				A00000000000000000000015 /* FoodReminder.swift in Sources */,
+				A00000000000000000000017 /* FoodBackup.swift in Sources */,
+				A00000000000000000000019 /* FoodBackupRestore.swift in Sources */,
+				F70000000000000000000005 /* FoodCloudSync.swift in Sources */,
+				F70000000000000000000006 /* FoodCloudSyncSettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A0000000000000000000000F /* FoodLogLogicTests.swift in Sources */,
+				A00000000000000000000016 /* FoodReminderTests.swift in Sources */,
+				F20000000000000000000001 /* FoodDraftAutosaveTests.swift in Sources */,
+				F30000000000000000000001 /* FoodCSVPerformanceTests.swift in Sources */,
+				F40000000000000000000003 /* FoodStoreMigrationTests.swift in Sources */,
+				F50000000000000000000001 /* FoodEntryTimeSelectionTests.swift in Sources */,
+				F60000000000000000000003 /* FoodPhotoThumbnailTests.swift in Sources */,
+				F70000000000000000000007 /* FoodCloudSyncTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000010 /* FoodLogUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		398EFE8E3077A16900673B6C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 398EFE7F3077A16800673B6C /* Savour */;
+			targetProxy = 398EFE8D3077A16900673B6C /* PBXContainerItemProxy */;
+		};
+		398EFE983077A16900673B6C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 398EFE7F3077A16800673B6C /* Savour */;
+			targetProxy = 398EFE973077A16900673B6C /* PBXContainerItemProxy */;
+		};
+		H00000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E00000000000000000000001 /* FoodLog */;
+			targetProxy = I00000000000000000000001 /* PBXContainerItemProxy */;
+		};
+		H00000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E00000000000000000000001 /* FoodLog */;
+			targetProxy = I00000000000000000000002 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		398EFE9D3077A16900673B6C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = FoodLog/Savour.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 12;
+				DEVELOPMENT_TEAM = 829WP93FV4;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FoodLog/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				MARKETING_VERSION = 0.5.7;
+				PRODUCT_BUNDLE_IDENTIFIER = tech.buildboring.Savour;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		398EFE9E3077A16900673B6C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = FoodLog/Savour.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 12;
+				DEVELOPMENT_TEAM = 829WP93FV4;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FoodLog/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				MARKETING_VERSION = 0.5.7;
+				PRODUCT_BUNDLE_IDENTIFIER = tech.buildboring.Savour;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		398EFEA03077A16900673B6C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 829WP93FV4;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = tech.buildboring.SavourTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Savour.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Savour";
+			};
+			name = Debug;
+		};
+		398EFEA13077A16900673B6C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 829WP93FV4;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = tech.buildboring.SavourTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Savour.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Savour";
+			};
+			name = Release;
+		};
+		398EFEA33077A16900673B6C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 829WP93FV4;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = tech.buildboring.SavourUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Savour;
+			};
+			name = Debug;
+		};
+		398EFEA43077A16900673B6C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 829WP93FV4;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = tech.buildboring.SavourUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Savour;
+			};
+			name = Release;
+		};
+		G00000000000000000000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = Z5K7SYFXP9;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		G00000000000000000000012 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = Z5K7SYFXP9;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		G00000000000000000000021 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 12;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FoodLog/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				MARKETING_VERSION = 0.5.7;
+				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		G00000000000000000000022 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 12;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FoodLog/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				MARKETING_VERSION = 0.5.7;
+				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		G00000000000000000000031 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FoodLog.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FoodLog";
+			};
+			name = Debug;
+		};
+		G00000000000000000000032 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FoodLog.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FoodLog";
+			};
+			name = Release;
+		};
+		G00000000000000000000041 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = FoodLog;
+			};
+			name = Debug;
+		};
+		G00000000000000000000042 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.viraat.foodlog.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = FoodLog;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		398EFE9C3077A16900673B6C /* Build configuration list for PBXNativeTarget "Savour" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				398EFE9D3077A16900673B6C /* Debug */,
+				398EFE9E3077A16900673B6C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		398EFE9F3077A16900673B6C /* Build configuration list for PBXNativeTarget "SavourTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				398EFEA03077A16900673B6C /* Debug */,
+				398EFEA13077A16900673B6C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		398EFEA23077A16900673B6C /* Build configuration list for PBXNativeTarget "SavourUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				398EFEA33077A16900673B6C /* Debug */,
+				398EFEA43077A16900673B6C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G00000000000000000000001 /* Build configuration list for PBXProject "Savour" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G00000000000000000000011 /* Debug */,
+				G00000000000000000000012 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G00000000000000000000002 /* Build configuration list for PBXNativeTarget "FoodLog" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G00000000000000000000021 /* Debug */,
+				G00000000000000000000022 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G00000000000000000000003 /* Build configuration list for PBXNativeTarget "FoodLogTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G00000000000000000000031 /* Debug */,
+				G00000000000000000000032 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G00000000000000000000004 /* Build configuration list for PBXNativeTarget "FoodLogUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G00000000000000000000041 /* Debug */,
+				G00000000000000000000042 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		P00000000000000000000001 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.9.20;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		P00000000000000000000002 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = P00000000000000000000001 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+/* Begin XCVersionGroup section */
+		B00000000000000000000008 /* FoodLog.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				B00000000000000000000009 /* FoodLog.xcdatamodel */,
+				B00000000000000000000014 /* FoodLogV2.xcdatamodel */,
+				B00000000000000000000015 /* FoodLogV3.xcdatamodel */,
+				B00000000000000000000017 /* FoodLogV4.xcdatamodel */,
+				B00000000000000000000027 /* FoodLogV5.xcdatamodel */,
+				F70000000000000000000009 /* FoodLogV6.xcdatamodel */,
+			);
+			currentVersion = F70000000000000000000009 /* FoodLogV6.xcdatamodel */;
+			path = FoodLog.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
+	};
+	rootObject = F00000000000000000000001 /* Project object */;
+}
