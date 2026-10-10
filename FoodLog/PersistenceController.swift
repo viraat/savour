@@ -4,9 +4,18 @@ final class PersistenceController {
     static let shared = PersistenceController()
 
     let container: NSPersistentContainer
+    let syncEnabled: Bool
+    private var cloudHistoryMerger: FoodCloudHistoryMerger?
 
     init(inMemory: Bool = false, storeURL: URL? = nil) {
-        container = NSPersistentContainer(name: "FoodLog")
+        syncEnabled = FoodCloudSyncConfiguration.shouldSync(
+            requested: UserDefaults.standard.bool(forKey: FoodCloudSyncConfiguration.enabledKey),
+            bundleID: Bundle.main.bundleIdentifier,
+            isolatedStore: inMemory || storeURL != nil
+        )
+        container = syncEnabled
+            ? NSPersistentCloudKitContainer(name: "FoodLog")
+            : NSPersistentContainer(name: "FoodLog")
 
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
@@ -15,21 +24,13 @@ final class PersistenceController {
         }
         container.persistentStoreDescriptions.first?.shouldAddStoreAsynchronously = false
 
-        container.persistentStoreDescriptions.first?.setOption(
-            true as NSNumber,
-            forKey: NSPersistentHistoryTrackingKey
-        )
-        container.persistentStoreDescriptions.first?.setOption(
-            true as NSNumber,
-            forKey: NSMigratePersistentStoresAutomaticallyOption
-        )
-        container.persistentStoreDescriptions.first?.setOption(
-            true as NSNumber,
-            forKey: NSInferMappingModelAutomaticallyOption
-        )
+        if let description = container.persistentStoreDescriptions.first {
+            FoodCloudSyncConfiguration.configure(description, syncEnabled: syncEnabled)
+        }
 
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        container.viewContext.transactionAuthor = FoodCloudSyncConfiguration.transactionAuthor
 
         container.loadPersistentStores { [weak container] _, error in
             if let error {
@@ -49,7 +50,19 @@ final class PersistenceController {
                 }
             }
         }
-
+        if let cloudContainer = container as? NSPersistentCloudKitContainer {
+            cloudHistoryMerger = FoodCloudHistoryMerger(container: cloudContainer)
+#if DEBUG
+            // Explicit development-only operation. Never run on ordinary launches
+            // or in a TestFlight build; schema promotion is an administrator step.
+            if ProcessInfo.processInfo.arguments.contains("--initialize-cloudkit-schema") {
+                DispatchQueue.global(qos: .utility).async {
+                    do { try cloudContainer.initializeCloudKitSchema(options: []) }
+                    catch { NSLog("Savour could not initialize the development CloudKit schema: %@", error.localizedDescription) }
+                }
+            }
+#endif
+        }
     }
 
     struct MigrationReport: Equatable {

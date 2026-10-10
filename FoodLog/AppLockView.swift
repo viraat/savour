@@ -166,7 +166,7 @@ struct AppLockView<Content: View>: View {
                 becameActive()
             }
         }
-        .onChange(of: scenePhase) { phase in
+        .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
                 lifecycle.becameActive(at: ProcessInfo.processInfo.systemUptime, delay: relockDelay)
@@ -184,7 +184,7 @@ struct AppLockView<Content: View>: View {
                 if lockEnabled { lifecycle.setEnabled(true) }
             }
         }
-        .onChange(of: lockEnabled) { enabled in
+        .onChange(of: lockEnabled) { _, enabled in
             message = nil
             authenticationContext?.invalidate()
             authenticationContext = nil

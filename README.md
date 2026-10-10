@@ -7,11 +7,12 @@ money.
 Current repository release: **0.5.5** (build 10). See the
 [changelog](CHANGELOG.md) and [release notes](RELEASE_NOTES.md).
 
-The installed app is named Savour. The Xcode project, target, and scheme remain
-`FoodLog`; the bundle identifier (`com.viraat.foodlog`), Core Data model/store name,
-draft filenames, and saved preferences are unchanged to preserve upgrade and
-data compatibility. Previously exported FoodLog CSV files remain importable;
-new exports are named `Savour.csv` and use the same format.
+The installed app, Xcode project and new-account target/scheme are named Savour.
+The new target uses `tech.buildboring.Savour`; the original `FoodLog` target and
+`com.viraat.foodlog` identity remain available. Core Data model/store names,
+draft filenames and preference keys stay unchanged. The new bundle ID is a
+separate installation: transfer data with full backup/restore. Previously
+exported FoodLog CSV files remain importable.
 
 The app answers four questions:
 
@@ -55,29 +56,46 @@ the core experience is a neutral record.
 - Optional meal-logging reminders: up to three custom local times each day
 - Native navigation, sheets, bottom toolbars, and iOS 26 Liquid Glass styling
 - Optional automatic biometric app lock, immediate/1-minute/5-minute relocking, and background privacy shielding
-- Fully local Core Data storage with no account required
+- Local-first Core Data storage with no account required for journaling
+- Optional private iCloud sync for saved entries, photos, places, people and
+  preserved legacy fast sessions; drafts and preferences remain local
 
 ## Build
 
-1. Open `FoodLog.xcodeproj` in Xcode 15 or later.
-2. Select the `FoodLog` scheme and an iPhone simulator.
+1. Open `Savour.xcodeproj` in Xcode 27 or later.
+2. Select the `Savour` scheme and an iPhone simulator or your connected iPhone.
 3. Press Run.
 
-Use Xcode 27 or later to build the iOS 27 same-row Add action. Older SDKs retain
-the native bottom-button fallback.
+Both app targets require iOS 17 or later. The new Savour target uses the
+existing app code, Core Data model, assets and permissions. Its bundle ID is
+`tech.buildboring.Savour`, with automatic signing configured for team `829WP93FV4`.
 
-The shared scheme also includes unit and UI reliability tests. See
+App source remains in `FoodLog/` to preserve internal model/storage names.
+
+The original `FoodLog` target keeps the old `com.viraat.foodlog` identity and
+hosts the unit and UI reliability tests; run them with the `FoodLog` scheme. See
 [`TESTING.md`](TESTING.md) for the simulator matrix and permission setup.
 
-For installation on a physical iPhone, select the FoodLog target, open
-Signing & Capabilities, choose your Apple developer team, and change the bundle
-identifier if Xcode asks for a unique one. The deployment target is iOS 16.
+For installation on a physical iPhone, select the Savour target and check
+Signing & Capabilities for your Apple developer account. Xcode must have a valid
+signing certificate and provisioning profile before installing on the device.
+The new bundle ID installs separately from `com.viraat.foodlog`; use full backup
+and restore to carry entries and photos across without deleting the old app.
 
-The FoodLog target uses pinned ZIPFoundation 0.9.20 (MIT) to validate backup
+Both app targets use pinned ZIPFoundation 0.9.20 (MIT) to validate backup
 archives; its license notice is included in the app bundle. It does not use
 Dime's iCloud container, widgets, budgets, or intent extensions. This lightweight
 port does not include Dime's original source; attribution and licensing details
 are retained in `NOTICE` and `LICENSE`.
+
+## iCloud sync
+
+Optional sync is available in the new Savour target under **Settings → Your data
+→ iCloud sync**. It is off by default and changes take effect after restarting
+the app. Entries, photos, places and people use private iCloud storage; drafts
+and preferences remain on-device. Offline logging and backup/restore remain
+available. Apple account provisioning and production schema deployment must be
+completed before live sync/TestFlight; see [iCloud setup and testing](ICLOUD_SYNC.md).
 
 ## Daily reminders
 
@@ -148,16 +166,14 @@ else was consumed. There is no Start/End fast control or automatic creation of
 Fasts tab; the existing Core Data model and CSV formats are unchanged.
 The Current row estimates elapsed time since the latest logged non-Drink meal.
 The Avg row includes all completed estimates, independent of the calendar month
-or history pagination. History initially shows 30 rows; View more adds up to 30
+or history pagination. History initially shows 7 rows; View more adds up to 7
 without changing the average. Calendar goal borders include the exact target
 duration (`14h+ goal` by default). This explanation appears once, not on every row.
 
-Journal, Fasts, Patterns, and Settings use native same-row navigation titles:
-`toolbarTitleDisplayMode(.inlineLarge)` on iOS 17 and later, and compact inline
-titles on iOS 16. Titles no longer occupy a separate expanded band below the
-toolbar controls. Journal uses SwiftUI `searchable`; on iOS 17 and
-later its toolbar search button activates the native field, while iOS 16 shows
-the standard search drawer. Statistical count bars use Swift Charts `BarMark`,
+Journal, Fasts, Patterns, and Settings use native same-row navigation titles
+(`toolbarTitleDisplayMode(.inlineLarge)`). Titles no longer occupy a separate
+expanded band below the toolbar controls. Journal uses SwiftUI `searchable`; its
+toolbar search button activates the native field. Statistical count bars use Swift Charts `BarMark`,
 not task-progress indicators, with visible counts and accessible row descriptions.
 
 Food entries stay in the app's local Core Data store. The location button enables

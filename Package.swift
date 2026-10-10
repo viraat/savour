@@ -10,16 +10,16 @@ let appOnlyFiles = [
     "FoodEntryEditor.swift", "FoodLogApp.swift",
     "FoodLogCSVImport.swift", "Info.plist", "JournalView.swift",
     "LocationSearchModel.swift", "PersistenceController.swift",
-    "Assets.xcassets", "ThirdPartyNotices.txt"
+    "Assets.xcassets", "ThirdPartyNotices.txt", "FoodCloudSyncSettingsView.swift", "Savour.entitlements"
 ]
 // Only the backup target compiles the Core Data model, as a resource.
-let backupFiles = ["FoodBackup.swift", "FoodBackupRestore.swift", "FoodLog.xcdatamodeld"]
+let backupFiles = ["FoodBackup.swift", "FoodBackupRestore.swift", "FoodCloudSync.swift", "FoodLog.xcdatamodeld"]
 let localLogicFiles = ["FoodReminder.swift", "FoodLogLogic.swift", "FoodHistoryCache.swift",
                        "FoodEntryDraftStore.swift", "FoodStoreMigration.swift", "MealDefaultTimes.swift",
                        "FoodPhotoThumbnails.swift"]
 let testFiles = ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodPerformanceTests.swift",
                  "FoodDraftAutosaveTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift",
-                 "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift", "FoodBackupTests.swift"]
+                 "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift", "FoodBackupTests.swift", "FoodCloudSyncTests.swift"]
 
 func excluding(_ sources: [String], from files: [String]) -> [String] {
     files.filter { !sources.contains($0) }
@@ -33,7 +33,7 @@ let reminderTests = ["FoodReminderTests.swift"]
 let performanceTests = ["FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift",
                         "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift"]
 let draftTests = ["FoodDraftAutosaveTests.swift"]
-let backupTests = ["FoodBackupTests.swift"]
+let backupTests = ["FoodBackupTests.swift", "FoodCloudSyncTests.swift"]
 
 let package = Package(
     name: "SavourLocalLogic",
@@ -57,7 +57,7 @@ let package = Package(
                     exclude: excluding(draftTests, from: testFiles), sources: draftTests),
         .target(name: "FoodLogBackup", dependencies: [.product(name: "ZIPFoundation", package: "ZIPFoundation")],
                 path: "FoodLog", exclude: appOnlyFiles + localLogicFiles,
-                sources: ["FoodBackup.swift", "FoodBackupRestore.swift"], resources: [.process("FoodLog.xcdatamodeld")]),
+                sources: ["FoodBackup.swift", "FoodBackupRestore.swift", "FoodCloudSync.swift"], resources: [.process("FoodLog.xcdatamodeld")]),
         .testTarget(name: "FoodLogBackupTests", dependencies: ["FoodLogBackup"], path: "FoodLogTests",
                     exclude: excluding(backupTests, from: testFiles), sources: backupTests)
     ]

@@ -538,7 +538,6 @@ final class FoodLogUITests: XCTestCase {
     }
 
     func testAccessibilityAuditOnPrimaryScreens() throws {
-        guard #available(iOS 17.0, *) else { return }
         for appearance in ["1", "2"] {
             launch(resetStore: true, extraArguments: ["-foodLogAppearance", appearance])
             try auditVisibleUI()
@@ -590,7 +589,6 @@ final class FoodLogUITests: XCTestCase {
     }
 
     func testAccessibilityAuditOnPopulatedJournalAndPatterns() throws {
-        guard #available(iOS 17.0, *) else { return }
         launch(resetStore: true, extraArguments: [
             "--seed-ui-test-map", "--seed-ui-test-suggestions", "-foodLogAppearance", "1"
         ])
@@ -847,7 +845,6 @@ final class FoodLogUITests: XCTestCase {
     }
 
     func testAccessibilityAuditOnGroupedSettings() throws {
-        guard #available(iOS 17.0, *) else { return }
         for appearance in ["1", "2"] {
             launch(resetStore: true, extraArguments: ["--seed-ui-test-map", "-foodLogAppearance", appearance])
             app.tabBars.firstMatch.buttons["Settings"].tap()
@@ -888,7 +885,6 @@ final class FoodLogUITests: XCTestCase {
     }
 
     func testCompactNativeTitlesShareTheJournalControlsRow() {
-        guard #available(iOS 17.0, *) else { return }
         launch(resetStore: true)
         let journalBar = app.navigationBars["Savour"]
         XCTAssertTrue(journalBar.waitForExistence(timeout: 3))

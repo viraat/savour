@@ -1,6 +1,7 @@
 # Savour reliability tests
 
-Savour has two XCTest targets (the project and target names remain `FoodLog`):
+`Savour.xcodeproj` retains the original `FoodLogTests` and `FoodLogUITests`
+reliability targets, in addition to the new-account Savour target's test templates:
 
 - `FoodLogTests` checks parsing, meal suggestions, statistics, default times,
   inline food matching and replacement, CSV validation, import round-trips,
@@ -191,7 +192,7 @@ available for that opt-in verification.
 Choose an available simulator in Xcode and press **Product → Test**, or run:
 
 ```sh
-xcodebuild -project FoodLog.xcodeproj \
+xcodebuild -project Savour.xcodeproj \
   -scheme FoodLog \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   CODE_SIGNING_ALLOWED=NO test
@@ -355,6 +356,23 @@ do not. Memory-warning cache purges cannot be undone by an older pending load.
 Original JPEGs and schema are unchanged, so the first uncached preview still
 reads its original bytes. Camera/Photos acquisition processing is unchanged.
 
+## Savour project and new-account target — 2026-10-08
+
+The project is now `Savour.xcodeproj`. Its shared `Savour` scheme builds the
+complete existing app using `tech.buildboring.Savour`, automatic signing team
+`829WP93FV4`, version 0.5.7/build 12, and the existing Info.plist/permissions.
+Source/resource/framework membership matches the original FoodLog app target,
+including all model versions, existing assets, ZIPFoundation and license notices.
+Generated Hello-world sources are retained but excluded from the app target.
+The original FoodLog target/scheme and signing team are preserved.
+
+Debug `build-for-testing` and unsigned generic iPhone Release build both reported
+success. Built app metadata, Core Data model and license resources were checked.
+No simulator or device was launched, no tests were executed, and certificate or
+provisioning updates were not requested. The new scheme's template test targets
+are not a replacement for the original FoodLog reliability suite. Changing
+bundle ID creates a separate installation; transfer data using backup/restore.
+
 ## Manual device checks
 
 Some system integrations need a real device or direct Simulator interaction:
@@ -407,3 +425,16 @@ Automated tests cover export to a fresh Core Data store, repeat imports,
 legacy CSV, mixed valid and invalid rows, and text with commas, quotes, and line
 breaks. The preview sheet and its import action have UI coverage; the system
 file picker still needs a manual device check.
+## iCloud sync — 2026-10-09
+
+- Feature branch: `codex/icloud-sync`; new-account `Savour` scheme/target only.
+- 127 local SwiftPM regression tests passed, including 12 CloudKit configuration,
+  model, V1–V5 migration, duplicate/photo/relationship integrity and remote-history
+  merge tests. Private local stores only; no iCloud requests or personal data.
+- Unsigned Savour Debug app/test-target compilation and iPhone Release build
+  passed. The original FoodLog reliability test targets also compile. No
+  simulator launch or on-device run was performed.
+- Signed development build blocked by Xcode's "No Accounts" error and a wildcard
+  provisioning profile without iCloud, Push or the requested container.
+- Live two-device sync, account switching and Production/TestFlight still need
+  verification after account provisioning. See [the setup and release gate](ICLOUD_SYNC.md).

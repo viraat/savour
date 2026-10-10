@@ -5,6 +5,7 @@ import UIKit
 struct FoodLogApp: App {
     private let persistence: PersistenceController
     @StateObject private var reminder = FoodDailyReminder.shared
+    @StateObject private var cloudSync = FoodCloudSyncMonitor.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -153,12 +154,19 @@ struct FoodLogApp: App {
                 ContentView()
             }
             .environment(\.managedObjectContext, persistence.container.viewContext)
-            .task { await reminder.refresh() }
+            .task {
+                cloudSync.observe(persistence.container, enabled: persistence.syncEnabled)
+                if persistence.syncEnabled { UIApplication.shared.registerForRemoteNotifications() }
+                await cloudSync.refreshAccount()
+                await reminder.refresh()
+            }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
                 Task { await FoodPhotoThumbnailCache.shared.removeAll() }
             }
-            .onChange(of: scenePhase) { phase in
-                if phase == .active { Task { await reminder.refresh() } }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    Task { await reminder.refresh(); await cloudSync.refreshAccount() }
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
                 if scenePhase == .active { Task { await reminder.refresh() } }
