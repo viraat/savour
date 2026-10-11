@@ -3,6 +3,48 @@
 Savour was previously named FoodLog. Historical releases below retain their
 original name; see [CHANGELOG.md](CHANGELOG.md) for the cumulative release history.
 
+## Savour 0.6.0
+
+Repository release · 11 October 2026 · app version 0.6.0, build 13
+
+A milestone release: Savour moves to its own Xcode project and app identity,
+gains full backups and optional iCloud sync, and changes how food is entered.
+
+- **Food items as chips.** Return, a comma or a suggestion adds an item; tap a
+  chip to remove it or long-press to edit. An empty field suggests the meal's
+  usual items. Items are still stored as comma-separated text, so existing
+  entries, CSV, backups, sync and Patterns are unchanged.
+- **Full backup and restore.** Settings → Your data exports a ZIP with every
+  entry, person and original photo, and restores it without overwriting
+  existing or conflicting records. Use it to move your journal to the new app.
+- **Optional iCloud sync** (off by default) for the new Savour app, using your
+  private iCloud database. Drafts and preferences stay on the device.
+- **New project and identity.** `Savour.xcodeproj` replaces `FoodLog.xcodeproj`.
+  The Savour target uses `tech.buildboring.Savour` (team `829WP93FV4`) and
+  installs alongside the old `com.viraat.foodlog` app, which the FoodLog target
+  still builds. Moving data across is done with backup and restore.
+- **iOS 17 or later is now required.** Deprecated `onChange` and `Map` APIs and
+  the iOS 16 fallbacks were removed; both schemes build without warnings.
+- **Fixes and polish.** On iOS 27 the screen no longer ends in a blank strip
+  above the home indicator. Fasts shows the latest 7 estimates with View more.
+  "Open Savour in Settings" opens Savour's own settings page. The meal-labels
+  setting and the Privacy footer were removed, and the credit and version moved
+  to the bottom of Settings.
+
+Verification: all Mac SwiftPM suites passed, and the unsigned iPhone Release
+build of the Savour scheme succeeded. On an iPhone 18 Pro simulator (iOS 27.0),
+the full unit and UI suites ran on the food-chip changes with 193 passing; the
+remaining failures were all pre-existing (including the known `/dev/null` CSV
+export test and several UI tests that need updating for iOS 27).
+
+**Not yet verified:** live iCloud sync. Xcode had no signed-in account, so the
+CloudKit container, schema and syncing between two devices are untested; see
+`ICLOUD_SYNC.md` before enabling it or shipping to TestFlight. A real backup
+from the old app restored into the new app on a device has also not been tested.
+
+This is a local tagged repository release, not a TestFlight build or App Store
+submission. It has not been pushed.
+
 ## Savour 0.5.7
 
 Repository release · 6 October 2026 · app version 0.5.7, build 12

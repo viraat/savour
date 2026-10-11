@@ -9,6 +9,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes on main.
+
+## 0.6.0 — 2026-10-11
+
+App version 0.6.0 · build 13 · repository tag `v0.6.0`
+
 - Food entry now uses item chips, like companions. Return, a comma or a
   suggestion adds an item; tapping a chip removes it and long-press offers Edit.
   Pasted lists split into chips, half-typed text is kept on save, and an empty
