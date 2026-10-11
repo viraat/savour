@@ -1348,7 +1348,9 @@ private struct FoodLogDataSettingsView: View {
                 }
 #endif
 
-                Button("Erase all entries", role: .destructive) { confirmErase = true }
+                Button(role: .destructive) { confirmErase = true } label: {
+                    Text("Erase all entries").foregroundStyle(FoodTheme.destructive)
+                }
                     .disabled(entries.isEmpty || backupBusy)
                     .accessibilityIdentifier("settings-erase-entries")
             } header: {

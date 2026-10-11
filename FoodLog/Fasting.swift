@@ -261,6 +261,9 @@ private struct FastingMonthCalendar: View {
         .foregroundStyle(FoodTheme.ink)
         .padding(16)
         .foodPanel(cornerRadius: 24)
+        // A container, so its identifier doesn't replace those of the month
+        // buttons and legends inside it.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("fasting-month-calendar")
     }
 
@@ -694,7 +697,8 @@ struct FastSessionsView: View {
                                        detail: "\(estimate.startDate.formatted(date: .omitted, time: .shortened)) → \(estimate.endDate.formatted(date: .omitted, time: .shortened))")
                     }
                         .buttonStyle(.plain)
-                        .accessibilityElement(children: .ignore)
+                        // Label the button itself so it stays one element with
+                        // the button role, rather than a wrapper around it.
                         .accessibilityLabel("\(estimate.endDate.formatted(date: .complete, time: .omitted)), \(FastTimeText.duration(estimate.duration)), last meal \(estimate.startDate.formatted(date: .abbreviated, time: .shortened)), first meal \(estimate.endDate.formatted(date: .abbreviated, time: .shortened))")
                         .accessibilityHint("Shows meal times")
                         .accessibilityIdentifier("fasting-history-\(estimate.day.timeIntervalSince1970)")
