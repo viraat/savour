@@ -9,6 +9,19 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- The Journal's "This week" card shows the week's eating rhythm instead of a
+  logging count: one column per day, a dot per meal at its time, coloured by
+  meal type. Tapping a day scrolls the journal to it.
+- Patterns is organised around Savour's four questions. **When**: a meal-time
+  chart for the range, each meal's usual time and the overnight gaps. **What**:
+  usual items per meal, new foods and the number of different foods. **Where**
+  and **Who**: the map and people, with how often meals were out or shared. A
+  single "N meals over N days" line opens the daily overview.
+- Removed the streak, which conflicted with Savour's no-streaks principle, and
+  the Entries/Days tiles. Pattern calculations live in `FoodPatternInsights`
+  with 11 Mac tests; chart legends and axes use the app's readable grey.
+- The rhythm chart is one VoiceOver element with a spoken summary of each day's
+  meals and times, and the new Overview and All foods rows have 44 pt targets.
 - iOS 27 accessibility fixes: the Fasts calendar is an accessibility container,
   so its legends and day buttons keep their own identifiers; history rows are
   single buttons again for VoiceOver; and "Erase all entries" uses a darker red

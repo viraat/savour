@@ -1043,7 +1043,7 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Previously saved fasting records"].exists)
         XCTAssertTrue(app.staticTexts["12h 0m"].exists)
         app.buttons["Patterns"].tap()
-        XCTAssertTrue(app.staticTexts["FASTS"].exists)
+        XCTAssertTrue(app.staticTexts["WHEN"].exists)
         XCTAssertTrue(app.staticTexts["Average gap"].exists)
         XCTAssertTrue(app.staticTexts["Latest gap"].exists)
     }
@@ -1170,6 +1170,34 @@ final class FoodLogUITests: XCTestCase {
         suggestions.lifetime = .keepAlways
         add(suggestions)
         app.buttons["Cancel"].tap()
+    }
+
+    func testJournalRhythmAndPatternsSectionsWithoutStreak() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-fasting-history", "--seed-ui-test-map"])
+        XCTAssertTrue(app.descendants(matching: .any)["journal-week-rhythm"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["entries logged"].exists)
+        attachScreenshot("Journal week rhythm")
+
+        app.tabBars.firstMatch.buttons["Patterns"].tap()
+        XCTAssertTrue(app.navigationBars["Patterns"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["WHEN"].exists)
+        XCTAssertTrue(app.staticTexts["Average gap"].exists)
+        XCTAssertFalse(app.staticTexts["Streak"].exists)
+        XCTAssertFalse(app.staticTexts["Current streak"].exists)
+        attachScreenshot("Patterns 7 days")
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["WHAT"].exists)
+        attachScreenshot("Patterns 7 days, lower")
+        app.swipeDown()
+        app.buttons["30 days"].tap()
+        attachScreenshot("Patterns 30 days")
+    }
+
+    private func attachScreenshot(_ name: String) {
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
     }
 
     /// The whole food description: added items plus any item still being typed.
