@@ -16,10 +16,11 @@ let appOnlyFiles = [
 let backupFiles = ["FoodBackup.swift", "FoodBackupRestore.swift", "FoodCloudSync.swift", "FoodLog.xcdatamodeld"]
 let localLogicFiles = ["FoodReminder.swift", "FoodLogLogic.swift", "FoodHistoryCache.swift",
                        "FoodEntryDraftStore.swift", "FoodStoreMigration.swift", "MealDefaultTimes.swift",
-                       "FoodPhotoThumbnails.swift"]
+                       "FoodPhotoThumbnails.swift", "FoodPatternInsights.swift"]
 let testFiles = ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodPerformanceTests.swift",
                  "FoodDraftAutosaveTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift",
-                 "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift", "FoodBackupTests.swift", "FoodCloudSyncTests.swift", "FoodItemListTests.swift"]
+                 "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift", "FoodBackupTests.swift", "FoodCloudSyncTests.swift", "FoodItemListTests.swift",
+                 "FoodPatternInsightsTests.swift"]
 
 func excluding(_ sources: [String], from files: [String]) -> [String] {
     files.filter { !sources.contains($0) }
@@ -27,12 +28,12 @@ func excluding(_ sources: [String], from files: [String]) -> [String] {
 
 let reminderSources = ["FoodReminder.swift"]
 let performanceSources = ["FoodLogLogic.swift", "FoodHistoryCache.swift", "FoodStoreMigration.swift",
-                          "MealDefaultTimes.swift", "FoodPhotoThumbnails.swift"]
+                          "MealDefaultTimes.swift", "FoodPhotoThumbnails.swift", "FoodPatternInsights.swift"]
 let draftSources = ["FoodEntryDraftStore.swift"]
 let reminderTests = ["FoodReminderTests.swift"]
 let performanceTests = ["FoodPerformanceTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift",
                         "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift",
-                        "FoodItemListTests.swift"]
+                        "FoodItemListTests.swift", "FoodPatternInsightsTests.swift"]
 let draftTests = ["FoodDraftAutosaveTests.swift"]
 let backupTests = ["FoodBackupTests.swift", "FoodCloudSyncTests.swift"]
 
