@@ -9,6 +9,21 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes on main.
+
+## 0.6.0 — 2026-10-11
+
+App version 0.6.0 · build 13 · repository tag `v0.6.0`
+
+- Food entry now uses item chips, like companions. Return, a comma or a
+  suggestion adds an item; tapping a chip removes it and long-press offers Edit.
+  Pasted lists split into chips, half-typed text is kept on save, and an empty
+  field suggests the meal's usual items. Items are still stored as the existing
+  comma-separated text, so entries, CSV, backups, sync and Patterns are unchanged.
+- Added four Mac tests for item joining, comma/line-break splitting, duplicate
+  handling and suggestion input, and a UI test for adding, removing, saving and
+  reopening chips. UI tests read the full description from `food-items`.
+
 - Added opt-in private iCloud sync to the new-account Savour target, with account/
   transfer status in Settings → Your data. Meals, photos, places, people and
   preserved legacy fast sessions mirror through NSPersistentCloudKitContainer;

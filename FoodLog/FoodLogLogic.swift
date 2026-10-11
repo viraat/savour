@@ -29,6 +29,41 @@ enum FoodItemParser {
     }
 }
 
+/// The editor shows food items as chips but stores the existing comma-separated
+/// text, so entries, CSV, backups, sync and Patterns are unchanged. A comma always
+/// separates items; an item itself can't contain one.
+enum FoodItemList {
+    static func joined(_ items: [String]) -> String {
+        FoodItemParser.items(in: items.joined(separator: ",")).joined(separator: ", ")
+    }
+
+    /// Appends new items, skipping blanks and case-insensitive duplicates.
+    static func adding(_ newItems: [String], to items: [String]) -> [String] {
+        var result = items
+        for item in newItems.flatMap(FoodItemParser.items(in:)) {
+            guard !result.contains(where: { $0.caseInsensitiveCompare(item) == .orderedSame }) else { continue }
+            result.append(item)
+        }
+        return result
+    }
+
+    /// Typed or pasted text up to the last comma or line break is complete; the
+    /// rest is still being typed. "toast, eggs, cof" → (["toast", "eggs"], "cof").
+    static func splitTyped(_ text: String) -> (complete: [String], remainder: String) {
+        guard let last = text.lastIndex(where: { $0 == "," || $0.isNewline }) else { return ([], text) }
+        let completed = text[..<last].split(whereSeparator: { $0 == "," || $0.isNewline }).map(String.init)
+        let remainder = String(text[text.index(after: last)...])
+        return (FoodItemParser.items(in: completed.joined(separator: ",")),
+                String(remainder.drop(while: \.isWhitespace)))
+    }
+
+    /// Suggestion input whose current segment is the in-progress text, with the
+    /// added items excluded from results. Empty text ranks the meal's usual items.
+    static func suggestionInput(items: [String], query: String) -> String {
+        items.isEmpty ? query : (items + [query]).joined(separator: ", ")
+    }
+}
+
 struct FoodSuggestionSource {
     let mealType: String
     let food: String
