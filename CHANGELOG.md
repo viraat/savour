@@ -9,6 +9,17 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- The Journal's "This week" card shows the week's eating rhythm instead of a
+  logging count: one column per day, a dot per meal at its time, coloured by
+  meal type. Tapping a day scrolls the journal to it.
+- Patterns is organised around Savour's four questions. **When**: a meal-time
+  chart for the range, each meal's usual time and the overnight gaps. **What**:
+  usual items per meal, new foods and the number of different foods. **Where**
+  and **Who**: the map and people, with how often meals were out or shared. A
+  single "N meals over N days" line opens the daily overview.
+- Removed the streak, which conflicted with Savour's no-streaks principle, and
+  the Entries/Days tiles. Pattern calculations live in `FoodPatternInsights`
+  with 11 Mac tests; chart legends and axes use the app's readable grey.
 - Erase all entries now collects meal UUIDs once and detaches matching fasting
   links in one pass over a single session fetch, instead of refetching all fasts
   per entry. Recorded fasting times, targets and unrelated links remain intact;

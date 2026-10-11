@@ -21,6 +21,8 @@
 		9A000000000000000000000C /* MealDefaultTimes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* MealDefaultTimes.swift */; };
 		9A000000000000000000000D /* FoodLogLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000020 /* FoodLogLogic.swift */; };
 		9A000000000000000000000E /* FoodHistoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* FoodHistoryCache.swift */; };
+		F70000000000000000000022 /* FoodRhythmChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70000000000000000000021 /* FoodRhythmChart.swift */; };
+		F70000000000000000000032 /* FoodPatternInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70000000000000000000031 /* FoodPatternInsights.swift */; };
 		9A000000000000000000000F /* FoodPhotoThumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000002 /* FoodPhotoThumbnails.swift */; };
 		9A0000000000000000000010 /* FoodLogCSVImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000025 /* FoodLogCSVImport.swift */; };
 		9A0000000000000000000011 /* Fasting.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000026 /* Fasting.swift */; };
@@ -62,8 +64,11 @@
 		F30000000000000000000001 /* FoodCSVPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000002 /* FoodCSVPerformanceTests.swift */; };
 		F40000000000000000000001 /* FoodStoreMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000002 /* FoodStoreMigration.swift */; };
 		F40000000000000000000003 /* FoodStoreMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000004 /* FoodStoreMigrationTests.swift */; };
+		F70000000000000000000042 /* FoodPatternInsightsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70000000000000000000041 /* FoodPatternInsightsTests.swift */; };
 		F50000000000000000000011 /* FoodItemListTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000012 /* FoodItemListTests.swift */; };
 		F50000000000000000000001 /* FoodEntryTimeSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000002 /* FoodEntryTimeSelectionTests.swift */; };
+		F70000000000000000000023 /* FoodRhythmChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70000000000000000000021 /* FoodRhythmChart.swift */; };
+		F70000000000000000000033 /* FoodPatternInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70000000000000000000031 /* FoodPatternInsights.swift */; };
 		F60000000000000000000001 /* FoodPhotoThumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000002 /* FoodPhotoThumbnails.swift */; };
 		F60000000000000000000003 /* FoodPhotoThumbnailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000004 /* FoodPhotoThumbnailTests.swift */; };
 		F70000000000000000000001 /* FoodCloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70000000000000000000002 /* FoodCloudSync.swift */; };
@@ -129,8 +134,11 @@
 		F30000000000000000000002 /* FoodCSVPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCSVPerformanceTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000002 /* FoodStoreMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodStoreMigration.swift; sourceTree = "<group>"; };
 		F40000000000000000000004 /* FoodStoreMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodStoreMigrationTests.swift; sourceTree = "<group>"; };
+		F70000000000000000000041 /* FoodPatternInsightsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPatternInsightsTests.swift; sourceTree = "<group>"; };
 		F50000000000000000000012 /* FoodItemListTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodItemListTests.swift; sourceTree = "<group>"; };
 		F50000000000000000000002 /* FoodEntryTimeSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodEntryTimeSelectionTests.swift; sourceTree = "<group>"; };
+		F70000000000000000000021 /* FoodRhythmChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodRhythmChart.swift; sourceTree = "<group>"; };
+		F70000000000000000000031 /* FoodPatternInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPatternInsights.swift; sourceTree = "<group>"; };
 		F60000000000000000000002 /* FoodPhotoThumbnails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPhotoThumbnails.swift; sourceTree = "<group>"; };
 		F60000000000000000000004 /* FoodPhotoThumbnailTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPhotoThumbnailTests.swift; sourceTree = "<group>"; };
 		F70000000000000000000002 /* FoodCloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCloudSync.swift; sourceTree = "<group>"; };
@@ -204,6 +212,8 @@
 				B00000000000000000000020 /* FoodLogLogic.swift */,
 				F10000000000000000000002 /* FoodHistoryCache.swift */,
 				F60000000000000000000002 /* FoodPhotoThumbnails.swift */,
+				F70000000000000000000031 /* FoodPatternInsights.swift */,
+				F70000000000000000000021 /* FoodRhythmChart.swift */,
 				B00000000000000000000025 /* FoodLogCSVImport.swift */,
 				B00000000000000000000026 /* Fasting.swift */,
 				B00000000000000000000028 /* DateTimePickerSheet.swift */,
@@ -243,6 +253,7 @@
 				F40000000000000000000004 /* FoodStoreMigrationTests.swift */,
 				F50000000000000000000002 /* FoodEntryTimeSelectionTests.swift */,
 				F50000000000000000000012 /* FoodItemListTests.swift */,
+				F70000000000000000000041 /* FoodPatternInsightsTests.swift */,
 				F60000000000000000000004 /* FoodPhotoThumbnailTests.swift */,
 				F70000000000000000000008 /* FoodCloudSyncTests.swift */,
 			);
@@ -452,6 +463,8 @@
 				9A000000000000000000000D /* FoodLogLogic.swift in Sources */,
 				9A000000000000000000000E /* FoodHistoryCache.swift in Sources */,
 				9A000000000000000000000F /* FoodPhotoThumbnails.swift in Sources */,
+				F70000000000000000000032 /* FoodPatternInsights.swift in Sources */,
+				F70000000000000000000022 /* FoodRhythmChart.swift in Sources */,
 				9A0000000000000000000010 /* FoodLogCSVImport.swift in Sources */,
 				9A0000000000000000000011 /* Fasting.swift in Sources */,
 				9A0000000000000000000012 /* DateTimePickerSheet.swift in Sources */,
@@ -483,6 +496,8 @@
 				A0000000000000000000000E /* FoodLogLogic.swift in Sources */,
 				F10000000000000000000001 /* FoodHistoryCache.swift in Sources */,
 				F60000000000000000000001 /* FoodPhotoThumbnails.swift in Sources */,
+				F70000000000000000000033 /* FoodPatternInsights.swift in Sources */,
+				F70000000000000000000023 /* FoodRhythmChart.swift in Sources */,
 				A00000000000000000000011 /* FoodLogCSVImport.swift in Sources */,
 				A00000000000000000000012 /* Fasting.swift in Sources */,
 				A00000000000000000000013 /* DateTimePickerSheet.swift in Sources */,
@@ -506,6 +521,7 @@
 				F40000000000000000000003 /* FoodStoreMigrationTests.swift in Sources */,
 				F50000000000000000000001 /* FoodEntryTimeSelectionTests.swift in Sources */,
 				F50000000000000000000011 /* FoodItemListTests.swift in Sources */,
+				F70000000000000000000042 /* FoodPatternInsightsTests.swift in Sources */,
 				F60000000000000000000003 /* FoodPhotoThumbnailTests.swift in Sources */,
 				F70000000000000000000007 /* FoodCloudSyncTests.swift in Sources */,
 			);

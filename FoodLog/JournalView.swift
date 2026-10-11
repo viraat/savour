@@ -25,7 +25,8 @@ private struct JournalHistory {
     let filtered: [FoodEntry]
     let groups: [EntryDayGroup]
     let thisWeek: [FoodEntry]
-    let mealCounts: [(String, Int)]
+    let weekDays: [Date]
+    let weekRhythm: [FoodPatterns.RhythmPoint]
     let photoEntryIDs: Set<NSManagedObjectID>
 }
 
@@ -64,10 +65,12 @@ struct JournalView: View {
             }
             let interval = calendar.dateInterval(of: .weekOfYear, for: now)
             let week = entries.filter { interval?.contains($0.wrappedDate) ?? true }
-            let counts = Dictionary(grouping: week, by: \.wrappedMealType).mapValues(\.count)
-                .sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
+            let weekStart = interval?.start ?? calendar.startOfDay(for: now)
+            let weekDays = (0 ..< 7).compactMap { calendar.date(byAdding: .day, value: $0, to: weekStart) }
             return JournalHistory(filtered: filtered, groups: groupEntriesByDay(filtered, calendar: calendar),
-                                  thisWeek: week, mealCounts: counts,
+                                  thisWeek: week, weekDays: weekDays,
+                                  weekRhythm: FoodPatterns.rhythm(week.map(\.patternMeal), days: weekDays,
+                                                                  calendar: calendar),
                                   photoEntryIDs: FoodEntryPhotoData.entryIDsWithPhotos(in: context))
         }
     }
@@ -79,13 +82,14 @@ struct JournalView: View {
         mealFilter != "All" || !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private var mealCounts: [(String, Int)] { history.mealCounts }
-
     var body: some View {
         ScrollView(showsIndicators: false) {
+            ScrollViewReader { scroller in
             LazyVStack(alignment: .leading, spacing: 18) {
                 if !isFiltering {
-                    weeklySummary
+                    weeklySummary { day in
+                        withAnimation { scroller.scrollTo(day, anchor: .top) }
+                    }
                 }
 
                 if entries.isEmpty {
@@ -106,12 +110,14 @@ struct JournalView: View {
 
                     ForEach(history.groups) { group in
                         daySection(group)
+                            .id(group.date)
                     }
                 }
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
             .padding(.bottom, 20)
+            }
         }
         .background(FoodTheme.background)
         .navigationTitle("Savour")
@@ -174,59 +180,25 @@ struct JournalView: View {
         )) { Button("OK") { fastingMessage = nil } } message: { Text(fastingMessage ?? "") }
     }
 
-    private var weeklySummary: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            if dynamicTypeSize.isAccessibilitySize {
+    /// The week's eating rhythm rather than a logging count: when each meal
+    /// happened, by meal type. Tapping a day scrolls the journal to it.
+    private func weeklySummary(onSelectDay: @escaping (Date) -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
                 Text("THIS WEEK")
                     .sectionLabel()
-                Text("\(thisWeek.count) \(thisWeek.count == 1 ? "entry" : "entries") logged")
-                    .font(.system(.title3, design: .rounded).weight(.bold))
-                    .foregroundColor(FoodTheme.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                HStack(alignment: .lastTextBaseline) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("THIS WEEK")
-                            .sectionLabel()
-                        Text("\(thisWeek.count)")
-                            .font(.system(.largeTitle, design: .rounded).weight(.bold))
-                            .foregroundColor(FoodTheme.ink)
-                    }
-                    Spacer()
-                    Text(thisWeek.count == 1 ? "entry logged" : "entries logged")
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .foregroundColor(FoodTheme.secondaryText)
-                        .padding(.bottom, 8)
-                }
+                Spacer()
+                Text("\(thisWeek.count) \(thisWeek.count == 1 ? "meal" : "meals")")
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundColor(FoodTheme.secondaryText)
             }
-
-            if mealCounts.isEmpty {
-                Text("Your meal categories will appear here.")
-                    .font(.system(.subheadline, design: .rounded))
-                    .foregroundColor(FoodTheme.ink)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(mealCounts, id: \.0) { item in
-                            let meal = item.0
-                            let count = item.1
-                            HStack(spacing: 6) {
-                                Image(systemName: FoodTheme.symbol(for: meal))
-                                Text(meal)
-                                Text("\(count)")
-                                    .foregroundColor(FoodTheme.ink)
-                            }
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .background(FoodTheme.field, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        }
-                    }
-                }
-            }
+            FoodRhythmChart(points: history.weekRhythm, days: history.weekDays, calendar: calendar,
+                            height: 150, onSelectDay: onSelectDay)
         }
         .padding(18)
         .foodPanel(cornerRadius: 22)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("journal-week-rhythm")
     }
 
     private var emptyState: some View {

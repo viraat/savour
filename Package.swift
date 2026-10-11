@@ -10,7 +10,7 @@ let appOnlyFiles = [
     "FoodEntryEditor.swift", "FoodLogApp.swift",
     "FoodLogCSVImport.swift", "Info.plist", "JournalView.swift",
     "LocationSearchModel.swift", "PersistenceController.swift",
-    "Assets.xcassets", "ThirdPartyNotices.txt", "FoodCloudSyncSettingsView.swift", "Savour.entitlements"
+    "Assets.xcassets", "ThirdPartyNotices.txt", "FoodCloudSyncSettingsView.swift", "Savour.entitlements", "FoodRhythmChart.swift"
 ]
 // Only the backup target compiles the Core Data model, as a resource.
 let backupFiles = ["FoodBackup.swift", "FoodBackupRestore.swift", "FoodCloudSync.swift", "FoodLog.xcdatamodeld"]

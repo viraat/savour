@@ -44,6 +44,20 @@ private struct PatternCacheKey: Equatable {
     let locale: String
 }
 
+/// What the four Patterns sections show for the selected range.
+private struct PatternInsights {
+    let rhythmDays: [Date]
+    let rhythm: [FoodPatterns.RhythmPoint]
+    let typicalWindows: [(mealType: String, window: FoodPatterns.TimeWindow)]
+    let usualItems: [(mealType: String, items: [String])]
+    let distinctFoods: Int
+    let newFoods: [String]
+    let newPlaces: [String]
+    let eatenOut: FoodPatterns.Share
+    let eatenOutBefore: FoodPatterns.Share?
+    let withOthers: FoodPatterns.Share
+}
+
 private struct PatternHistory {
     let selectedEntries: [FoodEntry]
     let overnightEstimates: [OvernightFastEstimate]
@@ -51,7 +65,7 @@ private struct PatternHistory {
     let daysRepresented: Int
     let individualFoodCounts: [(String, Int)]
     let peopleCounts: [(String, Int)]
-    let currentStreak: Int
+    let insights: PatternInsights
     let dailyCounts: [(Date, Int)]
     let mappedPlaces: [EatingPlacePoint]
     let entriesWithoutCoordinates: [FoodEntry]
@@ -110,8 +124,38 @@ struct PatternsView: View {
             let peopleCounts: [(String, Int)] = {
                 frequency(of: selectedEntries.flatMap(\.companionNames))
             }()
-            let currentStreak: Int = {
-                FoodLogStatistics.currentStreak(entryDates: entries.map(\.wrappedDate), relativeTo: now, calendar: calendar)
+            let insights: PatternInsights = {
+                let all = entries.map(\.patternMeal)
+                let selected = selectedEntries.map(\.patternMeal)
+                let today = calendar.startOfDay(for: now)
+                let periodStart = range.rawValue > 0
+                    ? calendar.date(byAdding: .day, value: -(range.rawValue - 1), to: today) : nil
+                // "New" needs earlier history to compare with; "All" has none.
+                let earlier = periodStart.map { start in all.filter { $0.date < start } } ?? []
+                let previous: [PatternMeal]? = periodStart.flatMap { start in
+                    calendar.date(byAdding: .day, value: -range.rawValue, to: start).map { previousStart in
+                        all.filter { $0.date >= previousStart && $0.date < start }
+                    }
+                }
+                let rhythmDays = FoodPatterns.days(endingOn: now, count: range == .week ? 7 : 30, calendar: calendar)
+                let mainMeals = ["Breakfast", "Lunch", "Dinner"]
+                return PatternInsights(
+                    rhythmDays: rhythmDays,
+                    rhythm: FoodPatterns.rhythm(all, days: rhythmDays, calendar: calendar),
+                    typicalWindows: mainMeals.compactMap { meal in
+                        FoodPatterns.typicalWindow(selected, mealType: meal, calendar: calendar).map { (meal, $0) }
+                    },
+                    usualItems: mainMeals.compactMap { meal in
+                        let items = FoodPatterns.usualItems(selected, mealType: meal)
+                        return items.isEmpty ? nil : (meal, items)
+                    },
+                    distinctFoods: FoodPatterns.distinctItemCount(selected),
+                    newFoods: earlier.isEmpty ? [] : FoodPatterns.newItems(in: selected, before: earlier),
+                    newPlaces: earlier.isEmpty ? [] : FoodPatterns.newPlaces(in: selected, before: earlier),
+                    eatenOut: FoodPatterns.eatenOut(selected),
+                    eatenOutBefore: previous.flatMap { $0.isEmpty ? nil : FoodPatterns.eatenOut($0) },
+                    withOthers: FoodPatterns.withOthers(selected)
+                )
             }()
             let dailyCounts: [(Date, Int)] = {
                 Dictionary(
@@ -163,7 +207,7 @@ struct PatternsView: View {
                                   daysRepresented: daysRepresented,
                                   individualFoodCounts: individualFoodCounts,
                                   peopleCounts: peopleCounts,
-                                  currentStreak: currentStreak,
+                                  insights: insights,
                                   dailyCounts: dailyCounts,
                                   mappedPlaces: mappedPlaces,
                                   entriesWithoutCoordinates: entriesWithoutCoordinates,
@@ -176,7 +220,7 @@ struct PatternsView: View {
     private var daysRepresented: Int { history.daysRepresented }
     private var individualFoodCounts: [(String, Int)] { history.individualFoodCounts }
     private var peopleCounts: [(String, Int)] { history.peopleCounts }
-    private var currentStreak: Int { history.currentStreak }
+    private var insights: PatternInsights { history.insights }
     private var dailyCounts: [(Date, Int)] { history.dailyCounts }
     private var mappedPlaces: [EatingPlacePoint] { history.mappedPlaces }
     private var entriesWithoutCoordinates: [FoodEntry] { history.entriesWithoutCoordinates }
@@ -185,16 +229,15 @@ struct PatternsView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
                 rangePicker
-                overnightPatternsCard
+                summaryLine
+                whenSection
+                whatSection
                 eatingPlacesCard
-                summaryCards
-
-                if !individualFoodCounts.isEmpty {
-                    frequencyCard(title: "FOODS NOTED", icon: "fork.knife", items: individualFoodCounts)
-                }
+                shareCaption(whereText)
                 if !peopleCounts.isEmpty {
                     peopleCard
                 }
+                shareCaption(whoText)
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -242,23 +285,74 @@ struct PatternsView: View {
         }
     }
 
-    private var overnightPatternsCard: some View {
-        let estimates = overnightEstimates
-        return VStack(alignment: .leading, spacing: 12) {
-            Label("FASTS", systemImage: "hourglass")
-                .sectionLabel()
-            if let summary = history.overnightSummary, let latest = estimates.first {
+    /// One quiet line instead of logging tiles; opens the daily detail.
+    private var summaryLine: some View {
+        Button {
+            selectedDetail = .overview
+        } label: {
+            HStack(spacing: 6) {
+                Text("\(selectedEntries.count) \(selectedEntries.count == 1 ? "meal" : "meals") over \(daysRepresented) \(daysRepresented == 1 ? "day" : "days")")
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+            }
+            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            .foregroundStyle(FoodTheme.secondaryText)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Overview")
+        .accessibilityValue("\(selectedEntries.count) meals over \(daysRepresented) days")
+        .accessibilityHint("Shows daily activity and summary details")
+    }
+
+    /// When: meal times by day, each meal's usual window, and the overnight gap.
+    private var whenSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Label("WHEN", systemImage: "clock")
+                    .sectionLabel()
+                Spacer()
+                if range == .all {
+                    Text("Last 30 days")
+                        .font(.system(.caption, design: .rounded).weight(.medium))
+                        .foregroundStyle(FoodTheme.secondaryText)
+                }
+            }
+            FoodRhythmChart(points: insights.rhythm, days: insights.rhythmDays, calendar: calendar,
+                            height: range == .week ? 220 : 240)
+
+            if !insights.typicalWindows.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(insights.typicalWindows, id: \.mealType) { item in
+                        HStack(spacing: 10) {
+                            Image(systemName: FoodTheme.symbol(for: item.mealType))
+                                .foregroundStyle(FoodTheme.color(for: item.mealType))
+                                .frame(width: 22)
+                                .accessibilityHidden(true)
+                            Text(item.mealType)
+                            Spacer()
+                            Text(windowText(item.window))
+                                .foregroundStyle(FoodTheme.secondaryText)
+                        }
+                        .font(.system(.subheadline, design: .rounded).weight(.medium))
+                        .accessibilityElement(children: .combine)
+                    }
+                    Text("Usual time: the middle half of logged times.")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(FoodTheme.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
+            Divider()
+            if let summary = history.overnightSummary, let latest = overnightEstimates.first {
                 HStack(alignment: .top, spacing: 16) {
                     overnightMetric("Average gap", duration: summary.averageDuration)
                     overnightMetric("Latest gap", duration: latest.duration)
                 }
-                Text("Range: \(FastTimeText.duration(summary.shortestDuration)) – \(FastTimeText.duration(summary.longestDuration))")
-                    .font(.system(.subheadline, design: .rounded))
-                Text("\(summary.count) \(summary.count == 1 ? "fast" : "fasts")")
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(FoodTheme.secondaryText)
+                .accessibilityIdentifier("overnight-patterns")
             } else {
-                Text("Log meals on consecutive days to see fasting times.")
+                Text("Log meals on consecutive days to see overnight gaps.")
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(FoodTheme.secondaryText)
             }
@@ -267,7 +361,6 @@ struct PatternsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .foodPanel(cornerRadius: 20)
-        .accessibilityIdentifier("overnight-patterns")
     }
 
     private func overnightMetric(_ title: String, duration: TimeInterval) -> some View {
@@ -281,50 +374,107 @@ struct PatternsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var summaryCards: some View {
-        Button {
-            selectedDetail = .overview
-        } label: {
-            Group {
-                if dynamicTypeSize.isAccessibilitySize {
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                        overviewMetric(value: selectedEntries.count, label: "Entries", symbol: "square.and.pencil")
-                        overviewMetric(value: daysRepresented, label: "Days", symbol: "calendar")
-                        overviewMetric(value: peopleCounts.count, label: "People", symbol: "person.2.fill")
-                        overviewMetric(value: currentStreak, label: "Streak", symbol: "flame.fill")
-                    }
-                } else {
-                    HStack(spacing: 0) {
-                        overviewMetric(value: selectedEntries.count, label: "Entries", symbol: "square.and.pencil")
-                        Divider().frame(height: 54)
-                        overviewMetric(value: daysRepresented, label: "Days", symbol: "calendar")
-                        Divider().frame(height: 54)
-                        overviewMetric(value: peopleCounts.count, label: "People", symbol: "person.2.fill")
-                        Divider().frame(height: 54)
-                        overviewMetric(value: currentStreak, label: "Streak", symbol: "flame.fill")
-                    }
+    /// What: the usual items per meal, what's new, and the full list.
+    private var whatSection: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            HStack {
+                Label("WHAT", systemImage: "fork.knife")
+                    .sectionLabel()
+                Spacer()
+                if insights.distinctFoods > 0 {
+                    Text("\(insights.distinctFoods) different \(insights.distinctFoods == 1 ? "food" : "foods")")
+                        .font(.system(.caption, design: .rounded).weight(.medium))
+                        .foregroundStyle(FoodTheme.secondaryText)
                 }
             }
-            .padding(.vertical, 16)
-            .contentShape(Rectangle())
+            if insights.usualItems.isEmpty {
+                Text("Your usual meals will appear here.")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(FoodTheme.secondaryText)
+            } else {
+                ForEach(insights.usualItems, id: \.mealType) { item in
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        Text(item.mealType)
+                            .foregroundStyle(FoodTheme.secondaryText)
+                            .frame(width: 84, alignment: .leading)
+                        Text(item.items.joined(separator: " · "))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .font(.system(.subheadline, design: .rounded).weight(.medium))
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Usual \(item.mealType.lowercased()): \(item.items.joined(separator: ", "))")
+                }
+            }
+            if !insights.newFoods.isEmpty {
+                Text("New: \(insights.newFoods.prefix(3).joined(separator: ", "))\(insights.newFoods.count > 3 ? " and \(insights.newFoods.count - 3) more" : "")")
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(FoodTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if !individualFoodCounts.isEmpty {
+                Button {
+                    selectedDetail = .foods
+                } label: {
+                    HStack {
+                        Text("All foods")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(FoodTheme.secondaryText)
+                    }
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Foods noted")
+                .accessibilityHint("Shows every food and how often it was noted")
+            }
         }
-        .buttonStyle(.plain)
+        .foregroundStyle(FoodTheme.ink)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(17)
         .foodPanel(cornerRadius: 20)
-        .accessibilityLabel("Overview")
-        .accessibilityHint("Shows daily activity and summary details")
     }
 
-    private func overviewMetric(value: Int, label: String, symbol: String) -> some View {
-        VStack(spacing: 5) {
-            Label("\(value)", systemImage: symbol)
-                .font(.system(.title3, design: .rounded).weight(.bold))
-                .foregroundStyle(accentColor)
-            Text(label)
-                .font(.system(.caption2, design: .rounded).weight(.semibold))
+    /// Where: eating out, with the previous period for context, and new places.
+    private var whereText: String? {
+        let share = insights.eatenOut
+        guard share.total > 0 else { return nil }
+        var text = "Out for \(share.count) of \(share.total) meals with a place"
+        if let before = insights.eatenOutBefore, before.total > 0 {
+            text += " (\(before.count) of \(before.total) the \(range == .week ? "week" : "30 days") before)"
+        }
+        if !insights.newPlaces.isEmpty {
+            text += ". New: \(insights.newPlaces.prefix(3).joined(separator: ", "))"
+        }
+        return text + "."
+    }
+
+    /// Who: how often meals were shared.
+    private var whoText: String? {
+        let share = insights.withOthers
+        guard share.total > 0 else { return nil }
+        return "With others for \(share.count) of \(share.total) \(share.total == 1 ? "meal" : "meals")."
+    }
+
+    @ViewBuilder
+    private func shareCaption(_ text: String?) -> some View {
+        if let text {
+            Text(text)
+                .font(.system(.caption, design: .rounded))
                 .foregroundStyle(FoodTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 4)
+                .padding(.top, -6)
         }
-        .frame(maxWidth: .infinity)
+    }
+
+    private func windowText(_ window: FoodPatterns.TimeWindow) -> String {
+        func time(_ minute: Int) -> String {
+            let date = calendar.date(byAdding: .minute, value: minute, to: calendar.startOfDay(for: Date())) ?? Date()
+            return date.formatted(date: .omitted, time: .shortened)
+        }
+        return window.start == window.end ? time(window.start) : "\(time(window.start))–\(time(window.end))"
     }
 
     private var eatingPlacesCard: some View {
@@ -455,40 +605,6 @@ struct PatternsView: View {
         .accessibilityHint("Shows every person and their entry count")
     }
 
-    private func frequencyCard(title: String, icon: String, items: [(String, Int)]) -> some View {
-        Button {
-            selectedDetail = .foods
-        } label: {
-            VStack(alignment: .leading, spacing: 13) {
-                HStack {
-                    Label(title, systemImage: icon)
-                        .sectionLabel()
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(FoodTheme.secondaryText)
-                }
-                ForEach(Array(items.prefix(5)), id: \.0) { item in
-                    HStack {
-                        Text(item.0)
-                            .font(.system(.body, design: .rounded).weight(.medium))
-                            .lineLimit(1)
-                        Spacer()
-                        Text("\(item.1)")
-                            .font(.system(.body, design: .rounded).weight(.bold))
-                            .foregroundColor(FoodTheme.secondaryText)
-                    }
-                }
-            }
-            .padding(17)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .foodPanel(cornerRadius: 20)
-        .accessibilityLabel("Foods noted")
-        .accessibilityHint("Shows all foods noted in this range")
-    }
-
     private var placesEmptyState: some View {
         VStack(spacing: 9) {
             Image(systemName: "mappin.slash")
@@ -555,7 +671,7 @@ struct PatternsView: View {
                 expandedMetric(value: selectedEntries.count, label: "Entries", symbol: "square.and.pencil")
                 expandedMetric(value: daysRepresented, label: "Days", symbol: "calendar")
                 expandedMetric(value: peopleCounts.count, label: "People", symbol: "person.2.fill")
-                expandedMetric(value: currentStreak, label: "Current streak", symbol: "flame.fill")
+                expandedMetric(value: insights.distinctFoods, label: "Different foods", symbol: "fork.knife")
             }
 
             if !dailyCounts.isEmpty {
