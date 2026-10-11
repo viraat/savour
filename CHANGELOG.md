@@ -9,6 +9,15 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- iOS 27 accessibility fixes: the Fasts calendar is an accessibility container,
+  so its legends and day buttons keep their own identifiers; history rows are
+  single buttons again for VoiceOver; and "Erase all entries" uses a darker red
+  in light mode (about 5.7:1 instead of system red's 3.6:1).
+- Updated UI tests for iOS 27: search's Cancel is now "Close", the share sheet's
+  identifier is the system's, native tab frames overlap at their edges, and the
+  edit-draft relaunch test backgrounds the app before a forced kill. Contrast
+  audits excuse only iOS 27's false positives on Liquid Glass toolbar text
+  buttons and findings with no element. All previously failing UI tests pass.
 - Erase all entries now collects meal UUIDs once and detaches matching fasting
   links in one pass over a single session fetch, instead of refetching all fasts
   per entry. Recorded fasting times, targets and unrelated links remain intact;

@@ -292,6 +292,11 @@ enum FoodTheme {
     })
     static let secondaryText = Color(uiColor: .label).opacity(0.75)
     static let outline = Color(uiColor: .separator).opacity(0.35)
+    /// System red is about 3.6:1 on white, below the 4.5:1 text guideline; this
+    /// darker light-mode red is about 5.7:1. Dark mode keeps system red.
+    static let destructive = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark ? .systemRed : UIColor(red: 0.77, green: 0.16, blue: 0.11, alpha: 1)
+    })
     static let fastGoalBorder = Color(uiColor: UIColor { traits in
         UIColor(Color(hex: traits.userInterfaceStyle == .dark ? "D4D8DE" : "777F8A"))
     })
