@@ -1599,7 +1599,7 @@ enum CSVExporter {
         let url = try await context.perform {
             defer { context.reset() }
             if !coordinator.persistentStores.isEmpty,
-               coordinator.persistentStores.allSatisfy({ $0.type == NSSQLiteStoreType }) {
+               coordinator.persistentStores.allSatisfy(supportsQueryGenerations) {
                 try context.setQueryGenerationFrom(.current)
             }
             let request = FoodLogCSVImporter.existingEntriesRequest()
@@ -1615,6 +1615,12 @@ enum CSVExporter {
             try? FileManager.default.removeItem(at: url)
             throw error
         }
+    }
+
+    /// Query generations need an on-disk SQLite store. In-memory SQLite stores
+    /// at /dev/null raise an uncatchable exception, so they export without one.
+    static func supportsQueryGenerations(_ store: NSPersistentStore) -> Bool {
+        store.type == NSSQLiteStoreType && store.url?.path != "/dev/null"
     }
 
     static func fileName(exportedAt: Date, identifier: UUID) -> String {

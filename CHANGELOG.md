@@ -15,6 +15,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
   detachment and deletion still save or roll back together. Added three app-model
   regressions, including 3,000 meals and rollback. These tests compile; all 71
   existing Mac tests and Debug/Release builds passed. No simulator run.
+- CSV export skips the query-generation snapshot for in-memory (`/dev/null`)
+  stores, which raised an uncatchable Core Data exception. App stores are on
+  disk and still export from a snapshot. The export test now uses an on-disk
+  store, and a new test covers in-memory export. The full unit suite and the
+  bulk-erasure tests now pass on the iOS 27 simulator.
+- `imports/` is git-ignored so personal journal CSVs kept there aren't committed.
 
 ## 0.6.0 — 2026-10-11
 

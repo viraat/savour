@@ -509,7 +509,14 @@ final class FoodLogLogicTests: XCTestCase {
 
     @MainActor
     func testAsyncCSVExportUsesSavedEntriesWithoutSavingUnfinishedEdits() async throws {
-        let controller = PersistenceController(inMemory: true)
+        // An on-disk store, like the app's, so the export's query-generation
+        // snapshot is exercised rather than skipped.
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let controller = PersistenceController(storeURL: directory.appendingPathComponent("Export.sqlite"))
+        let store = try XCTUnwrap(controller.container.persistentStoreCoordinator.persistentStores.first)
+        XCTAssertTrue(CSVExporter.supportsQueryGenerations(store))
         let context = controller.container.viewContext
         let entry = FoodEntry(context: context)
         entry.id = UUID()
@@ -533,6 +540,24 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertTrue(context.hasChanges)
         XCTAssertEqual(entry.food, "Unfinished edit")
         XCTAssertTrue(draft.isInserted)
+    }
+
+    @MainActor
+    func testCSVExportFromInMemoryStoreSkipsQueryGenerationInsteadOfCrashing() async throws {
+        let controller = PersistenceController(inMemory: true)
+        let store = try XCTUnwrap(controller.container.persistentStoreCoordinator.persistentStores.first)
+        XCTAssertFalse(CSVExporter.supportsQueryGenerations(store))
+        let context = controller.container.viewContext
+        let entry = FoodEntry(context: context)
+        entry.id = UUID()
+        entry.date = Date(timeIntervalSince1970: 1_700_000_000)
+        entry.food = "In-memory soup"
+        entry.mealType = "Lunch"
+        try context.save()
+        let url = try await CSVExporter.export(from: controller.container.persistentStoreCoordinator)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let rows = try FoodLogCSVDocument.decode(String(contentsOf: url, encoding: .utf8))
+        XCTAssertEqual(rows, [CSVExporter.row(for: entry)])
     }
 
     @MainActor
