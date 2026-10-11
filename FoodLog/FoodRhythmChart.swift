@@ -57,8 +57,6 @@ struct FoodRhythmChart: View {
                       y: .value("Time", plotted(point.minute)))
                 .foregroundStyle(by: .value("Meal", point.mealType))
                 .symbolSize(point.mealType == "Drink" ? 28 : 64)
-                .accessibilityLabel(point.day.formatted(.dateTime.weekday(.wide).day().month()))
-                .accessibilityValue("\(point.mealType), \(timeLabel(point.minute))")
         }
         .chartForegroundStyleScale(domain: mealTypes, range: mealTypes.map(FoodTheme.color(for:)))
         .chartXScale(domain: xDomain)
@@ -114,7 +112,28 @@ struct FoodRhythmChart: View {
             }
         }
         .frame(height: height)
+        // One element with a spoken summary: per-dot elements are narrower than
+        // a usable touch target and slow to step through.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Meal times")
+        .accessibilityValue(spokenSummary)
         .accessibilityIdentifier("food-rhythm-chart")
+    }
+
+    /// "Fri 9 Oct: Breakfast 8:00 AM, Dinner 8:00 PM; …" for days with meals.
+    private var spokenSummary: String {
+        let byDay = Dictionary(grouping: points, by: \.day)
+        return days.compactMap { day -> String? in
+            guard let meals = byDay[day] else { return nil }
+            let times = meals.map { "\($0.mealType) \(spokenTime($0.minute))" }.joined(separator: ", ")
+            return "\(day.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))): \(times)"
+        }
+        .joined(separator: "; ")
+    }
+
+    private func spokenTime(_ minute: Int) -> String {
+        let date = calendar.date(byAdding: .minute, value: minute, to: calendar.startOfDay(for: Date())) ?? Date()
+        return date.formatted(date: .omitted, time: .shortened)
     }
 
     private func timeLabel(_ minute: Int) -> String {

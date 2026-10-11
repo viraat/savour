@@ -20,6 +20,8 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 - Removed the streak, which conflicted with Savour's no-streaks principle, and
   the Entries/Days tiles. Pattern calculations live in `FoodPatternInsights`
   with 11 Mac tests; chart legends and axes use the app's readable grey.
+- The rhythm chart is one VoiceOver element with a spoken summary of each day's
+  meals and times, and the new Overview and All foods rows have 44 pt targets.
 - iOS 27 accessibility fixes: the Fasts calendar is an accessibility container,
   so its legends and day buttons keep their own identifiers; history rows are
   single buttons again for VoiceOver; and "Erase all entries" uses a darker red

@@ -297,9 +297,11 @@ struct PatternsView: View {
             }
             .font(.system(.subheadline, design: .rounded).weight(.semibold))
             .foregroundStyle(FoodTheme.secondaryText)
+            .frame(minHeight: 44, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .padding(.vertical, -8)
         .accessibilityLabel("Overview")
         .accessibilityValue("\(selectedEntries.count) meals over \(daysRepresented) days")
         .accessibilityHint("Shows daily activity and summary details")
@@ -423,6 +425,7 @@ struct PatternsView: View {
                             .foregroundStyle(FoodTheme.secondaryText)
                     }
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .frame(minHeight: 44)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
