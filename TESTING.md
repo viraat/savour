@@ -373,6 +373,19 @@ provisioning updates were not requested. The new scheme's template test targets
 are not a replacement for the original FoodLog reliability suite. Changing
 bundle ID creates a separate installation; transfer data using backup/restore.
 
+## Bulk entry erasure — 2026-10-06
+
+`FastingStore.detachEntries` builds a set of meal UUIDs, fetches sessions once,
+and clears matching start/end identifiers in a single pass. Empty or ID-less
+input does not fetch. Erase all calls it once before deleting meals, within the
+existing save/rollback transaction. Single-entry deletion is unchanged.
+
+Three app-model regressions cover 3,000-meal erasure with active/completed fasts,
+preserved timestamps/targets/identity, unrelated links, empty/nil/duplicate IDs,
+and rolling back links and deletion together. They were compiled, not executed.
+All 71 existing Mac tests passed; Debug app/test compilation and unsigned iPhone
+Release build passed. No simulator was launched.
+
 ## Manual device checks
 
 Some system integrations need a real device or direct Simulator interaction:

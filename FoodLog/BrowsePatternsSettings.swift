@@ -1433,8 +1433,9 @@ private struct FoodLogDataSettingsView: View {
 
     private func eraseAll() {
         do {
-            for entry in Array(entries) {
-                try FastingStore.detachEntry(entry, in: context)
+            let entriesToErase = Array(entries)
+            try FastingStore.detachEntries(entriesToErase, in: context)
+            for entry in entriesToErase {
                 context.delete(entry)
             }
             try context.save()
