@@ -9,6 +9,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes on main.
+
+## 0.6.1 — 2026-10-12
+
+App version 0.6.1 · build 14 · repository tag `v0.6.1`
+
 - iOS 27 accessibility fixes: the Fasts calendar is an accessibility container,
   so its legends and day buttons keep their own identifiers; history rows are
   single buttons again for VoiceOver; and "Erase all entries" uses a darker red
