@@ -105,6 +105,29 @@ enum FastingGoalPreference {
     }
 }
 
+enum FastingAverageWindow: Int, CaseIterable, Identifiable {
+    case week = 7
+    case fortnight = 14
+    case month = 30
+    case all = 0
+
+    static let settingKey = "fastingAverageWindowDays"
+    static let defaultValue = FastingAverageWindow.week
+
+    var id: Int { rawValue }
+    var title: String { self == .all ? "All" : "\(rawValue) days" }
+    var phrase: String { self == .all ? "all completed fasts" : "the last \(rawValue) days" }
+
+    /// Fasts that ended within the window, counting today as its first day.
+    func estimates(_ estimates: [OvernightFastEstimate], now: Date = Date(),
+                   calendar: Calendar = .current) -> [OvernightFastEstimate] {
+        guard self != .all,
+              let start = calendar.date(byAdding: .day, value: 1 - rawValue, to: calendar.startOfDay(for: now))
+        else { return estimates }
+        return estimates.filter { $0.day >= start }
+    }
+}
+
 enum OvernightFasting {
     static func summary(of estimates: [OvernightFastEstimate]) -> OvernightFastSummary? {
         let durations = estimates.map(\.duration)
@@ -630,6 +653,7 @@ struct FastSessionsView: View {
     @State private var displayedMonth = Date()
     @State private var selectedEstimate: OvernightFastEstimate?
     @State private var historyLimit = FastingHistory.pageSize
+    @AppStorage(FastingAverageWindow.settingKey) private var averageWindowDays = FastingAverageWindow.defaultValue.rawValue
 
     @StateObject private var historyCache = FoodHistoryCache<Calendar, FastingHistorySnapshot>()
 
@@ -641,6 +665,19 @@ struct FastSessionsView: View {
     }
 
     private var estimates: [OvernightFastEstimate] { history.estimates }
+
+    private var averageWindow: FastingAverageWindow {
+        FastingAverageWindow(rawValue: averageWindowDays) ?? .defaultValue
+    }
+
+    private var averageSummary: OvernightFastSummary? {
+        FastingHistory.summary(of: averageWindow.estimates(estimates, calendar: calendar))
+    }
+
+    private func averageDetail(count: Int) -> String {
+        let fasts = "\(count) completed \(count == 1 ? "fast" : "fasts")"
+        return averageWindow == .all ? "All \(fasts)" : "Last \(averageWindow.rawValue) days · \(fasts)"
+    }
 
     private var visibleEstimates: [OvernightFastEstimate] {
         Array(estimates.prefix(historyLimit))
@@ -673,9 +710,9 @@ struct FastSessionsView: View {
                 .foregroundStyle(FoodTheme.secondaryText)
             }
             Section {
-                if let summary = history.summary {
+                if let summary = averageSummary {
                     FastHistoryRow(date: "Avg", duration: summary.averageDuration,
-                                   detail: "All \(summary.count) completed \(summary.count == 1 ? "fast" : "fasts")", isSummary: true)
+                                   detail: averageDetail(count: summary.count), isSummary: true)
                         .padding(.vertical, 3)
                         .background(FoodTheme.ink.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                         .overlay {
@@ -684,7 +721,16 @@ struct FastSessionsView: View {
                         }
                         .accessibilityElement(children: .ignore)
                         .accessibilityAddTraits(.isHeader)
-                        .accessibilityLabel("Average fast estimate, \(FastTimeText.duration(summary.averageDuration)), all \(summary.count) completed fasts, independent of the displayed calendar month")
+                        .accessibilityLabel("Average fast estimate, \(FastTimeText.duration(summary.averageDuration)), \(averageDetail(count: summary.count).lowercased()), independent of the displayed calendar month")
+                        .accessibilityIdentifier("fasting-history-average")
+                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                } else if !estimates.isEmpty {
+                    Text("No completed fasts in \(averageWindow.phrase)")
+                        .font(.subheadline)
+                        .foregroundStyle(FoodTheme.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityIdentifier("fasting-history-average")
                         .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
                         .listRowBackground(Color.clear)
@@ -717,7 +763,7 @@ struct FastSessionsView: View {
                     .listRowSeparator(.hidden)
                 }
             } footer: {
-                Text("Estimates use logged meals and exclude drinks. Completed fasts span consecutive days; the average includes all completed fasts, not just the selected month.")
+                Text("Estimates use logged meals and exclude drinks. Completed fasts span consecutive days; the average covers \(averageWindow.phrase), whichever month is shown. Change the period in Settings.")
                     .font(.caption)
                     .foregroundStyle(Color(uiColor: .secondaryLabel))
                     .fixedSize(horizontal: false, vertical: true)
