@@ -1163,6 +1163,23 @@ final class FoodLogLogicTests: XCTestCase {
         XCTAssertNil(FastingHistory.summary(of: []))
     }
 
+    func testFastingAverageWindowKeepsFastsEndingWithinTheLastNDays() {
+        let calendar = Calendar(identifier: .gregorian)
+        let now = date(2026, 10, 12, 9)
+        let estimates = (0..<40).map { index in
+            let day = calendar.date(byAdding: .day, value: -index, to: calendar.startOfDay(for: now))!
+            return OvernightFastEstimate(day: day, startDate: day.addingTimeInterval(-4 * 3_600),
+                                         endDate: day.addingTimeInterval(8 * 3_600))
+        }
+        XCTAssertEqual(FastingAverageWindow.week.estimates(estimates, now: now, calendar: calendar).count, 7)
+        XCTAssertEqual(FastingAverageWindow.fortnight.estimates(estimates, now: now, calendar: calendar).count, 14)
+        XCTAssertEqual(FastingAverageWindow.month.estimates(estimates, now: now, calendar: calendar).count, 30)
+        XCTAssertEqual(FastingAverageWindow.all.estimates(estimates, now: now, calendar: calendar).count, 40)
+        XCTAssertEqual(FastingAverageWindow.defaultValue, .week)
+        XCTAssertEqual(FastingAverageWindow.all.title, "All")
+        XCTAssertEqual(FastingAverageWindow.fortnight.title, "14 days")
+    }
+
     func testFastingGoalLegendIncludesTheExactTargetAndCustomHalfHours() {
         XCTAssertEqual(FastingGoalPreference.legend(hours: 14), "14h+ goal")
         XCTAssertEqual(FastingGoalPreference.legend(hours: 14.5), "14h 30m+ goal")

@@ -9,6 +9,10 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- The Fasts average now covers the last 7 days by default instead of every
+  completed fast. Settings → Fasting → Average over offers 7, 14 or 30 days, or
+  All. The average still ignores the month shown in the calendar, and says so
+  when no fasts ended in the chosen period.
 - The Journal's "This week" card shows the week's eating rhythm instead of a
   logging count: one column per day, a dot per meal at its time, coloured by
   meal type. Tapping a day scrolls the journal to it.

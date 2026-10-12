@@ -922,7 +922,7 @@ final class FoodLogUITests: XCTestCase {
     }
 
     func testFastingAverageDoesNotChangeWhenHistoryExpandsOrCalendarMonthChanges() {
-        launch(resetStore: true, extraArguments: ["--seed-ui-test-fasting-history"])
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-fasting-history", "-fastingAverageWindowDays", "0"])
         app.tabBars.firstMatch.buttons["Fasts"].tap()
         let average = app.descendants(matching: .any)["fasting-history-average"]
         XCTAssertTrue(average.waitForExistence(timeout: 3))
@@ -944,6 +944,14 @@ final class FoodLogUITests: XCTestCase {
         }
         XCTAssertTrue(average.isHittable)
         XCTAssertEqual(average.label, originalLabel)
+    }
+
+    func testFastingAverageDefaultsToTheLastSevenDays() {
+        launch(resetStore: true, extraArguments: ["--seed-ui-test-fasting-history", "-fastingAverageWindowDays", "7"])
+        app.tabBars.firstMatch.buttons["Fasts"].tap()
+        let average = app.descendants(matching: .any)["fasting-history-average"]
+        XCTAssertTrue(average.waitForExistence(timeout: 3))
+        XCTAssertTrue(average.label.contains("last 7 days · 7 completed fasts"), average.label)
     }
 
     func testPatternCountsAreNotExposedAsTaskProgress() {

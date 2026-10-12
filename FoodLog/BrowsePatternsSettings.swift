@@ -1123,6 +1123,7 @@ struct FoodLogSettingsView: View {
     @AppStorage(AppRelockDelay.settingKey) private var relockDelaySeconds = 0
     @AppStorage(FastingGoalPreference.hoursKey) private var fastingGoalHours = FastingGoalPreference.defaultHours
     @AppStorage(FastingGoalPreference.enabledKey) private var fastingGoalEnabled = true
+    @AppStorage(FastingAverageWindow.settingKey) private var fastingAverageWindowDays = FastingAverageWindow.defaultValue.rawValue
     @State private var biometricAvailability = BiometricAuthentication.availability()
 
     var body: some View {
@@ -1150,6 +1151,12 @@ struct FoodLogSettingsView: View {
             }
 
             Section {
+                Picker("Average over", selection: $fastingAverageWindowDays) {
+                    ForEach(FastingAverageWindow.allCases) { window in
+                        Text(window.title).tag(window.rawValue)
+                    }
+                }
+                .accessibilityIdentifier("fasting-average-window")
                 Toggle("Show goal in calendar", isOn: $fastingGoalEnabled)
                     .accessibilityIdentifier("fasting-goal-enabled")
                 if fastingGoalEnabled {
