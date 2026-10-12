@@ -817,9 +817,10 @@ final class FoodLogUITests: XCTestCase {
                 format: "identifier IN %@", ["export-share-sheet", "ActivityListView"]
             )).firstMatch
             XCTAssertTrue(shareSheet.waitForExistence(timeout: 10))
+            // iOS 27 fills in the file caption shortly after the sheet appears.
             XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(
                 format: "label BEGINSWITH %@", "Savour-"
-            )).firstMatch.exists, "The sheet previews the exported file")
+            )).firstMatch.waitForExistence(timeout: 5), "The sheet previews the exported file")
             XCTAssertFalse(app.otherElements["csv-export-progress"].exists)
             let capture = XCTAttachment(screenshot: app.screenshot())
             capture.name = "CSV share sheet on first tap \(iteration + 1)"
