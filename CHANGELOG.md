@@ -9,6 +9,15 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Patterns' When chart keeps one dot per meal for 7 days, but 30 days and All
+  now show one row per meal type: a line from earliest to latest, a bar for
+  the usual middle half and a tick at the median. All uses all history rather
+  than the last 30 days. Drinks are left out of the spread.
+- Removed Patterns' What card (usual items, new foods and the All foods list)
+  and the leftover streak note in Overview. "Different foods" stays in Overview.
+- Settings → Your data groups CSV (Import, Export) and Full backup (Export,
+  Restore) under their own headings, each saying what it includes: CSV has no
+  photos. Erase all entries sits on its own at the bottom.
 - Info.plist declares `ITSAppUsesNonExemptEncryption = NO`, so App Store
   Connect skips the export-compliance question for each build. Savour only uses
   Apple's OS encryption (HTTPS, CloudKit, data protection) and SHA-256 hashes to
