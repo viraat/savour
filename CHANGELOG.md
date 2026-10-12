@@ -9,7 +9,10 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
-No unreleased changes on main.
+- Info.plist declares `ITSAppUsesNonExemptEncryption = NO`, so App Store
+  Connect skips the export-compliance question for each build. Savour only uses
+  Apple's OS encryption (HTTPS, CloudKit, data protection) and SHA-256 hashes to
+  check backup integrity, which are exempt.
 
 ## 0.6.2 — 2026-10-12
 
