@@ -64,36 +64,18 @@ final class FoodPatternInsightsTests: XCTestCase {
         XCTAssertNil(FoodPatterns.typicalWindow(meals, mealType: "Dinner", calendar: calendar))
     }
 
-    func testUsualItemsCountOncePerMealAndGroupCaseInsensitively() {
-        let meals = [
-            meal(1, food: "Rice, rice, Dal"), meal(2, food: "RICE"), meal(3, food: "Café"),
-            meal(4, food: "cafe, Curd"), meal(5, type: "Dinner", food: "Pizza, Pizza")
-        ]
-        XCTAssertEqual(FoodPatterns.usualItems(meals, mealType: "Lunch", limit: 2), ["cafe", "RICE"])
-    }
-
-    func testUsualItemsRecentSpellingTiesAndLimit() {
-        let meals = [
-            meal(1, food: "Toast, Eggs"), meal(2, food: "toast, Tea"), meal(3, food: "Coffee")
-        ]
-        // toast x2 first; then ties at 1: Coffee (day 3), Tea (day 2), Eggs (day 1).
-        XCTAssertEqual(FoodPatterns.usualItems(meals, mealType: "Lunch", limit: 10),
-                       ["toast", "Coffee", "Tea", "Eggs"])
-        XCTAssertEqual(FoodPatterns.usualItems(meals, mealType: "Lunch"), ["toast", "Coffee", "Tea"])
-        XCTAssertEqual(FoodPatterns.usualItems(meals, mealType: "Lunch", limit: 1), ["toast"])
-        XCTAssertEqual(FoodPatterns.usualItems(meals, mealType: "Lunch", limit: 0), [])
-        // Same day tie falls back to alphabetical.
-        let same = [meal(1, 12, food: "Banana, Apple")]
-        XCTAssertEqual(FoodPatterns.usualItems(same, mealType: "Lunch"), ["Apple", "Banana"])
-    }
-
-    func testNewItemsOrderAndDedupe() {
-        let earlier = [meal(1, food: "Rice, Dal")]
-        let period = [
-            meal(6, 20, food: "Pasta, rice"), meal(5, 12, food: "DAL, Idli, Pasta"), meal(7, food: "idli, Soup")
-        ]
-        XCTAssertEqual(FoodPatterns.newItems(in: period, before: earlier), ["Idli", "Pasta", "Soup"])
-        XCTAssertEqual(FoodPatterns.newItems(in: [], before: earlier), [])
+    func testTimeSpreadsSummariseEachMealTypeInOrder() {
+        // Lunch at 11:00 to 15:00 hourly (5 meals): ranks 2, 3 and 4.
+        var meals = (11 ... 15).map { meal($0, $0) }
+        meals += [meal(1, 8, type: "Breakfast"), meal(2, 20, type: "Drink")]
+        let spreads = FoodPatterns.timeSpreads(meals, mealTypes: ["Breakfast", "Lunch", "Dinner"], calendar: calendar)
+        XCTAssertEqual(spreads, [
+            .init(mealType: "Breakfast", count: 1, earliest: 480, lowerQuartile: 480,
+                  median: 480, upperQuartile: 480, latest: 480),
+            .init(mealType: "Lunch", count: 5, earliest: 660, lowerQuartile: 720,
+                  median: 780, upperQuartile: 840, latest: 900)
+        ])
+        XCTAssertEqual(FoodPatterns.timeSpreads([], mealTypes: ["Lunch"], calendar: calendar), [])
     }
 
     func testDistinctItemCount() {

@@ -22,7 +22,6 @@ private enum PatternRange: Int, CaseIterable {
 private enum PatternDetail: String, Identifiable {
     case overview
     case places
-    case foods
     case people
 
     var id: String { rawValue }
@@ -31,7 +30,6 @@ private enum PatternDetail: String, Identifiable {
         switch self {
         case .overview: return "Overview"
         case .places: return "Eating places"
-        case .foods: return "Foods noted"
         case .people: return "People"
         }
     }
@@ -49,9 +47,8 @@ private struct PatternInsights {
     let rhythmDays: [Date]
     let rhythm: [FoodPatterns.RhythmPoint]
     let typicalWindows: [(mealType: String, window: FoodPatterns.TimeWindow)]
-    let usualItems: [(mealType: String, items: [String])]
+    let timeSpreads: [FoodPatterns.TimeSpread]
     let distinctFoods: Int
-    let newFoods: [String]
     let newPlaces: [String]
     let eatenOut: FoodPatterns.Share
     let eatenOutBefore: FoodPatterns.Share?
@@ -63,7 +60,6 @@ private struct PatternHistory {
     let overnightEstimates: [OvernightFastEstimate]
     let overnightSummary: OvernightFastSummary?
     let daysRepresented: Int
-    let individualFoodCounts: [(String, Int)]
     let peopleCounts: [(String, Int)]
     let insights: PatternInsights
     let dailyCounts: [(Date, Int)]
@@ -114,13 +110,6 @@ struct PatternsView: View {
             let daysRepresented: Int = {
                 Set(selectedEntries.map { calendar.startOfDay(for: $0.wrappedDate) }).count
             }()
-            let individualFoodCounts: [(String, Int)] = {
-                frequency(of: selectedEntries.flatMap { entry in
-                    entry.wrappedFood
-                        .split(separator: ",", omittingEmptySubsequences: true)
-                        .map(String.init)
-                })
-            }()
             let peopleCounts: [(String, Int)] = {
                 frequency(of: selectedEntries.flatMap(\.companionNames))
             }()
@@ -137,7 +126,7 @@ struct PatternsView: View {
                         all.filter { $0.date >= previousStart && $0.date < start }
                     }
                 }
-                let rhythmDays = FoodPatterns.days(endingOn: now, count: range == .week ? 7 : 30, calendar: calendar)
+                let rhythmDays = FoodPatterns.days(endingOn: now, count: 7, calendar: calendar)
                 let mainMeals = ["Breakfast", "Lunch", "Dinner"]
                 return PatternInsights(
                     rhythmDays: rhythmDays,
@@ -145,12 +134,10 @@ struct PatternsView: View {
                     typicalWindows: mainMeals.compactMap { meal in
                         FoodPatterns.typicalWindow(selected, mealType: meal, calendar: calendar).map { (meal, $0) }
                     },
-                    usualItems: mainMeals.compactMap { meal in
-                        let items = FoodPatterns.usualItems(selected, mealType: meal)
-                        return items.isEmpty ? nil : (meal, items)
-                    },
+                    // Drinks happen all day, so their spread says little.
+                    timeSpreads: FoodPatterns.timeSpreads(selected, mealTypes: FoodEntryEditor.mealTypes.filter { $0 != "Drink" },
+                                                          calendar: calendar),
                     distinctFoods: FoodPatterns.distinctItemCount(selected),
-                    newFoods: earlier.isEmpty ? [] : FoodPatterns.newItems(in: selected, before: earlier),
                     newPlaces: earlier.isEmpty ? [] : FoodPatterns.newPlaces(in: selected, before: earlier),
                     eatenOut: FoodPatterns.eatenOut(selected),
                     eatenOutBefore: previous.flatMap { $0.isEmpty ? nil : FoodPatterns.eatenOut($0) },
@@ -205,7 +192,6 @@ struct PatternsView: View {
                                   overnightEstimates: overnightEstimates,
                                   overnightSummary: OvernightFasting.summary(of: overnightEstimates),
                                   daysRepresented: daysRepresented,
-                                  individualFoodCounts: individualFoodCounts,
                                   peopleCounts: peopleCounts,
                                   insights: insights,
                                   dailyCounts: dailyCounts,
@@ -218,7 +204,6 @@ struct PatternsView: View {
     private var selectedEntries: [FoodEntry] { history.selectedEntries }
     private var overnightEstimates: [OvernightFastEstimate] { history.overnightEstimates }
     private var daysRepresented: Int { history.daysRepresented }
-    private var individualFoodCounts: [(String, Int)] { history.individualFoodCounts }
     private var peopleCounts: [(String, Int)] { history.peopleCounts }
     private var insights: PatternInsights { history.insights }
     private var dailyCounts: [(Date, Int)] { history.dailyCounts }
@@ -231,7 +216,6 @@ struct PatternsView: View {
                 rangePicker
                 summaryLine
                 whenSection
-                whatSection
                 eatingPlacesCard
                 shareCaption(whereText)
                 if !peopleCounts.isEmpty {
@@ -310,20 +294,16 @@ struct PatternsView: View {
     /// When: meal times by day, each meal's usual window, and the overnight gap.
     private var whenSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Label("WHEN", systemImage: "clock")
-                    .sectionLabel()
-                Spacer()
-                if range == .all {
-                    Text("Last 30 days")
-                        .font(.system(.caption, design: .rounded).weight(.medium))
-                        .foregroundStyle(FoodTheme.secondaryText)
-                }
+            Label("WHEN", systemImage: "clock")
+                .sectionLabel()
+            // A week reads well as dots per day; longer ranges as a spread per meal.
+            if range == .week {
+                FoodRhythmChart(points: insights.rhythm, days: insights.rhythmDays, calendar: calendar, height: 220)
+            } else {
+                FoodTimeSpreadChart(spreads: insights.timeSpreads, calendar: calendar)
             }
-            FoodRhythmChart(points: insights.rhythm, days: insights.rhythmDays, calendar: calendar,
-                            height: range == .week ? 220 : 240)
 
-            if !insights.typicalWindows.isEmpty {
+            if range == .week, !insights.typicalWindows.isEmpty {
                 VStack(spacing: 8) {
                     ForEach(insights.typicalWindows, id: \.mealType) { item in
                         HStack(spacing: 10) {
@@ -374,69 +354,6 @@ struct PatternsView: View {
                 .foregroundStyle(FoodTheme.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// What: the usual items per meal, what's new, and the full list.
-    private var whatSection: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            HStack {
-                Label("WHAT", systemImage: "fork.knife")
-                    .sectionLabel()
-                Spacer()
-                if insights.distinctFoods > 0 {
-                    Text("\(insights.distinctFoods) different \(insights.distinctFoods == 1 ? "food" : "foods")")
-                        .font(.system(.caption, design: .rounded).weight(.medium))
-                        .foregroundStyle(FoodTheme.secondaryText)
-                }
-            }
-            if insights.usualItems.isEmpty {
-                Text("Your usual meals will appear here.")
-                    .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(FoodTheme.secondaryText)
-            } else {
-                ForEach(insights.usualItems, id: \.mealType) { item in
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        Text(item.mealType)
-                            .foregroundStyle(FoodTheme.secondaryText)
-                            .frame(width: 84, alignment: .leading)
-                        Text(item.items.joined(separator: " · "))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .font(.system(.subheadline, design: .rounded).weight(.medium))
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Usual \(item.mealType.lowercased()): \(item.items.joined(separator: ", "))")
-                }
-            }
-            if !insights.newFoods.isEmpty {
-                Text("New: \(insights.newFoods.prefix(3).joined(separator: ", "))\(insights.newFoods.count > 3 ? " and \(insights.newFoods.count - 3) more" : "")")
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(FoodTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if !individualFoodCounts.isEmpty {
-                Button {
-                    selectedDetail = .foods
-                } label: {
-                    HStack {
-                        Text("All foods")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(FoodTheme.secondaryText)
-                    }
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .frame(minHeight: 44)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Foods noted")
-                .accessibilityHint("Shows every food and how often it was noted")
-            }
-        }
-        .foregroundStyle(FoodTheme.ink)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(17)
-        .foodPanel(cornerRadius: 20)
     }
 
     /// Where: eating out, with the previous period for context, and new places.
@@ -661,8 +578,6 @@ struct PatternsView: View {
             overviewDetail
         case .places:
             placesDetail
-        case .foods:
-            rankedDetail(items: individualFoodCounts, showsAvatars: false)
         case .people:
             peopleDetail
         }
@@ -700,11 +615,6 @@ struct PatternsView: View {
                 .padding(17)
                 .foodPanel(cornerRadius: 20)
             }
-
-            Text("A streak counts consecutive days with at least one entry. Today is optional until the day ends.")
-                .font(.system(.footnote, design: .rounded))
-                .foregroundStyle(FoodTheme.secondaryText)
-                .padding(.horizontal, 4)
         }
     }
 
@@ -1306,6 +1216,11 @@ private struct FoodLogDataSettingsView: View {
             }
 
             Section {
+                Button("Import CSV") { isPickingBackup = false; showingFileImporter = true }
+                    .foregroundStyle(.primary)
+                    .disabled(backupBusy)
+                    .accessibilityIdentifier("settings-import-csv")
+
                 Button(action: exportCSV) {
                     HStack {
                         Text(isExportingCSV ? "Preparing CSV…" : "Export CSV")
@@ -1322,6 +1237,19 @@ private struct FoodLogDataSettingsView: View {
                 .accessibilityIdentifier("settings-export-csv")
                 .disabled(backupBusy)
 
+#if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--ui-test-csv-fixture") {
+                    Button("Preview CSV fixture", action: previewCSVFixture)
+                }
+#endif
+            } header: {
+                Text("CSV").foregroundStyle(FoodTheme.secondaryText)
+            } footer: {
+                Text("A spreadsheet of each entry's food, date, time, meal, place, people and note. Photos aren't included; use a full backup to keep them.")
+                    .foregroundStyle(FoodTheme.secondaryText)
+            }
+
+            Section {
                 Button(action: exportFullBackup) {
                     HStack {
                         Text(isExportingBackup ? "Preparing backup…" : "Export full backup")
@@ -1332,11 +1260,6 @@ private struct FoodLogDataSettingsView: View {
                 }
                 .disabled(backupBusy)
                 .accessibilityIdentifier("settings-export-backup")
-
-                Button("Import CSV") { isPickingBackup = false; showingFileImporter = true }
-                    .foregroundStyle(.primary)
-                    .disabled(backupBusy)
-                    .accessibilityIdentifier("settings-import-csv")
 
                 Button {
                     isPickingBackup = true
@@ -1351,23 +1274,19 @@ private struct FoodLogDataSettingsView: View {
                 }
                 .disabled(backupBusy)
                 .accessibilityIdentifier("settings-restore-backup")
+            } header: {
+                Text("Full backup").foregroundStyle(FoodTheme.secondaryText)
+            } footer: {
+                Text("Full backups include photos, places and people. Fasts are recalculated from meal times. Backups aren't encrypted; store them somewhere private.")
+                    .foregroundStyle(FoodTheme.secondaryText)
+            }
 
-#if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--ui-test-csv-fixture") {
-                    Button("Preview CSV fixture", action: previewCSVFixture)
-                }
-#endif
-
+            Section {
                 Button(role: .destructive) { confirmErase = true } label: {
                     Text("Erase all entries").foregroundStyle(FoodTheme.destructive)
                 }
                     .disabled(entries.isEmpty || backupBusy)
                     .accessibilityIdentifier("settings-erase-entries")
-            } header: {
-                Text("Your data").foregroundStyle(FoodTheme.secondaryText)
-            } footer: {
-                Text("Full backups include photos, places and people. Fasts are recalculated from meal times. Backups aren't encrypted; store them somewhere private.")
-                    .foregroundStyle(FoodTheme.secondaryText)
             }
         }
         .formStyle(.grouped)

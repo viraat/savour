@@ -478,7 +478,7 @@ final class FoodLogUITests: XCTestCase {
         app.buttons["Patterns"].tap()
         XCTAssertTrue(app.buttons["Eating places"].waitForExistence(timeout: 3))
 
-        for tile in ["Eating places", "Overview", "Foods noted", "People"] {
+        for tile in ["Eating places", "Overview", "People"] {
             app.buttons[tile].tap()
             XCTAssertTrue(app.navigationBars[tile].waitForExistence(timeout: 3))
             if tile == "Eating places" {
@@ -962,12 +962,7 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["DAYS WITH ENTRIES"].exists)
         XCTAssertEqual(app.progressIndicators.count, 0)
         app.buttons["Done"].tap()
-        app.buttons["Foods noted"].tap()
-        XCTAssertTrue(app.navigationBars["Foods noted"].waitForExistence(timeout: 3))
-        XCTAssertEqual(app.progressIndicators.count, 0)
-        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(
-            format: "label == %@ AND value CONTAINS %@", "Toast", "2"
-        )).firstMatch.exists)
+        XCTAssertFalse(app.buttons["Foods noted"].exists)
     }
 
     func testCurrentFastRestoresOnRelaunchAndRestartsWithNextMeal() {
@@ -1193,12 +1188,16 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Streak"].exists)
         XCTAssertFalse(app.staticTexts["Current streak"].exists)
         attachScreenshot("Patterns 7 days")
-        app.swipeUp()
-        XCTAssertTrue(app.staticTexts["WHAT"].exists)
-        attachScreenshot("Patterns 7 days, lower")
-        app.swipeDown()
+        XCTAssertTrue(app.descendants(matching: .any)["food-rhythm-chart"].exists)
+        XCTAssertFalse(app.staticTexts["WHAT"].exists)
         app.buttons["30 days"].tap()
+        let spread = app.descendants(matching: .any)["food-time-spread-chart"]
+        XCTAssertTrue(spread.waitForExistence(timeout: 3))
+        XCTAssertFalse(app.descendants(matching: .any)["food-rhythm-chart"].exists)
         attachScreenshot("Patterns 30 days")
+        app.buttons["All"].tap()
+        XCTAssertTrue(spread.waitForExistence(timeout: 3))
+        attachScreenshot("Patterns all")
     }
 
     private func attachScreenshot(_ name: String) {

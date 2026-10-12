@@ -44,51 +44,41 @@ enum FoodPatterns {
 
     /// The middle half of this meal type's times: 25th to 75th percentile (nearest rank).
     static func typicalWindow(_ meals: [PatternMeal], mealType: String, calendar: Calendar) -> TimeWindow? {
-        let minutes = meals.filter { $0.mealType == mealType }
-            .map { minuteOfDay($0.date, calendar: calendar) }
-            .sorted()
+        let minutes = sortedMinutes(meals, mealType: mealType, calendar: calendar)
         guard minutes.count >= 3 else { return nil }
-        func percentile(_ p: Double) -> Int {
-            let rank = Int((p * Double(minutes.count)).rounded(.up))
-            return minutes[min(max(rank, 1), minutes.count) - 1]
-        }
-        return TimeWindow(start: percentile(0.25), end: percentile(0.75))
+        return TimeWindow(start: percentile(0.25, of: minutes), end: percentile(0.75, of: minutes))
     }
 
-    /// Most frequent items for a meal type, counting each item once per meal.
-    static func usualItems(_ meals: [PatternMeal], mealType: String, limit: Int = 3) -> [String] {
-        struct Entry { var name: String; var count: Int; var lastUsed: Date }
-        var entries: [String: Entry] = [:]
-        for meal in meals where meal.mealType == mealType {
-            for (itemKey, name) in uniqueItems(in: meal) {
-                if var entry = entries[itemKey] {
-                    entry.count += 1
-                    if meal.date >= entry.lastUsed { entry.name = name; entry.lastUsed = meal.date }
-                    entries[itemKey] = entry
-                } else {
-                    entries[itemKey] = Entry(name: name, count: 1, lastUsed: meal.date)
-                }
-            }
-        }
-        return entries.values.sorted {
-            if $0.count != $1.count { return $0.count > $1.count }
-            if $0.lastUsed != $1.lastUsed { return $0.lastUsed > $1.lastUsed }
-            return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
-        }
-        .prefix(max(limit, 0))
-        .map(\.name)
+    /// How spread out one meal type's times are, in minutes of day.
+    struct TimeSpread: Equatable {
+        let mealType: String
+        let count: Int
+        let earliest: Int
+        let lowerQuartile: Int
+        let median: Int
+        let upperQuartile: Int
+        let latest: Int
     }
 
-    /// Items in `period` never seen in `earlier`, in order of first appearance.
-    static func newItems(in period: [PatternMeal], before earlier: [PatternMeal]) -> [String] {
-        var seen = Set(earlier.flatMap { uniqueItems(in: $0).map(\.key) })
-        var result: [String] = []
-        for meal in period.sorted(by: { $0.date < $1.date }) {
-            for (itemKey, name) in uniqueItems(in: meal) where seen.insert(itemKey).inserted {
-                result.append(name)
-            }
+    /// One spread per meal type with at least one meal, in `mealTypes` order.
+    /// Quartiles and median use the nearest rank, like `typicalWindow`.
+    static func timeSpreads(_ meals: [PatternMeal], mealTypes: [String], calendar: Calendar) -> [TimeSpread] {
+        mealTypes.compactMap { mealType in
+            let minutes = sortedMinutes(meals, mealType: mealType, calendar: calendar)
+            guard let earliest = minutes.first, let latest = minutes.last else { return nil }
+            return TimeSpread(mealType: mealType, count: minutes.count, earliest: earliest,
+                              lowerQuartile: percentile(0.25, of: minutes), median: percentile(0.5, of: minutes),
+                              upperQuartile: percentile(0.75, of: minutes), latest: latest)
         }
-        return result
+    }
+
+    private static func sortedMinutes(_ meals: [PatternMeal], mealType: String, calendar: Calendar) -> [Int] {
+        meals.filter { $0.mealType == mealType }.map { minuteOfDay($0.date, calendar: calendar) }.sorted()
+    }
+
+    private static func percentile(_ p: Double, of sorted: [Int]) -> Int {
+        let rank = Int((p * Double(sorted.count)).rounded(.up))
+        return sorted[min(max(rank, 1), sorted.count) - 1]
     }
 
     /// Number of distinct normalized items across the meals.

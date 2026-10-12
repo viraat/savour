@@ -143,6 +143,132 @@ struct FoodRhythmChart: View {
     }
 }
 
+/// When meals happen over a longer range, as one row per meal type: a line
+/// from the earliest to the latest time, a bar for the usual middle half and a
+/// tick at the median. Dots per meal get too dense beyond a week.
+struct FoodTimeSpreadChart: View {
+    let spreads: [FoodPatterns.TimeSpread]
+    let calendar: Calendar
+
+    private static let hour = 60
+
+    /// 6 am to 10 pm by default, widened to the hour around any earlier or later meal.
+    private var minuteRange: ClosedRange<Int> {
+        let lower = min(spreads.map(\.earliest).min() ?? 6 * Self.hour, 6 * Self.hour) / Self.hour * Self.hour
+        let latest = max(spreads.map(\.latest).max() ?? 22 * Self.hour, 22 * Self.hour)
+        let upper = min(1_440, (latest + Self.hour - 1) / Self.hour * Self.hour)
+        // Half an hour either side keeps the edge hour labels centred on their lines.
+        return max(0, lower - Self.hour / 2) ... min(1_440, max(upper, lower + Self.hour) + Self.hour / 2)
+    }
+
+    private var axisHours: [Int] {
+        stride(from: 0, through: 1_440, by: 6 * Self.hour).filter(minuteRange.contains)
+    }
+
+    var body: some View {
+        if spreads.isEmpty {
+            Text("Meals you log will appear here by time of day.")
+                .font(.system(.subheadline, design: .rounded))
+                .foregroundStyle(FoodTheme.secondaryText)
+                .frame(maxWidth: .infinity, minHeight: 80)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                chart
+                Text("Line: earliest to latest · bar: the middle half · tick: the middle meal")
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(FoodTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityHidden(true)
+            }
+        }
+    }
+
+    private var chart: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(spreads, id: \.mealType) { spread in
+                HStack(spacing: 10) {
+                    Text(spread.mealType)
+                        .font(.system(.caption, design: .rounded).weight(.medium))
+                        .foregroundStyle(FoodTheme.secondaryText)
+                        .frame(width: Self.labelWidth, alignment: .leading)
+                    GeometryReader { geometry in
+                        let x = { (minute: Int) in self.x(minute, width: geometry.size.width) }
+                        let color = FoodTheme.color(for: spread.mealType)
+                        let mid = geometry.size.height / 2
+                        ZStack(alignment: .topLeading) {
+                            Capsule().fill(color.opacity(0.55))
+                                .frame(width: max(2, x(spread.latest) - x(spread.earliest)), height: 2)
+                                .position(x: (x(spread.earliest) + x(spread.latest)) / 2, y: mid)
+                            Capsule().fill(color.opacity(0.85))
+                                .frame(width: max(8, x(spread.upperQuartile) - x(spread.lowerQuartile)), height: 14)
+                                .position(x: (x(spread.lowerQuartile) + x(spread.upperQuartile)) / 2, y: mid)
+                            Capsule().fill(FoodTheme.ink)
+                                .frame(width: 3, height: 22)
+                                .position(x: x(spread.median), y: mid)
+                        }
+                    }
+                    .frame(height: 30)
+                    .background(alignment: .leading) { gridLines }
+                }
+            }
+            HStack(spacing: 10) {
+                Color.clear.frame(width: Self.labelWidth, height: 1)
+                GeometryReader { geometry in
+                    ForEach(axisHours, id: \.self) { minute in
+                        Text(timeLabel(minute))
+                            .font(.system(.caption2, design: .rounded))
+                            .foregroundStyle(FoodTheme.secondaryText)
+                            .fixedSize()
+                            .position(x: x(minute, width: geometry.size.width), y: 8)
+                    }
+                }
+                .frame(height: 16)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Meal times")
+        .accessibilityValue(spokenSummary)
+        .accessibilityIdentifier("food-time-spread-chart")
+    }
+
+    private static let labelWidth: CGFloat = 70
+
+    private func x(_ minute: Int, width: CGFloat) -> CGFloat {
+        let span = CGFloat(minuteRange.upperBound - minuteRange.lowerBound)
+        return CGFloat(minute - minuteRange.lowerBound) / span * width
+    }
+
+    private var gridLines: some View {
+        GeometryReader { geometry in
+            ForEach(axisHours, id: \.self) { minute in
+                Rectangle().fill(FoodTheme.secondaryText.opacity(0.25))
+                    .frame(width: 1)
+                    .position(x: x(minute, width: geometry.size.width), y: geometry.size.height / 2)
+                    .frame(height: geometry.size.height)
+            }
+        }
+    }
+
+    /// "Breakfast, 24 meals: usually 8:00 to 9:00 AM, middle 8:30 AM, earliest 7:00 AM, latest 11:00 AM; …"
+    private var spokenSummary: String {
+        spreads.map { spread in
+            "\(spread.mealType), \(spread.count) \(spread.count == 1 ? "meal" : "meals"): usually \(spokenTime(spread.lowerQuartile)) to \(spokenTime(spread.upperQuartile)), middle \(spokenTime(spread.median)), earliest \(spokenTime(spread.earliest)), latest \(spokenTime(spread.latest))"
+        }
+        .joined(separator: "; ")
+    }
+
+    private func spokenTime(_ minute: Int) -> String {
+        let date = calendar.date(byAdding: .minute, value: minute, to: calendar.startOfDay(for: Date())) ?? Date()
+        return date.formatted(date: .omitted, time: .shortened)
+    }
+
+    private func timeLabel(_ minute: Int) -> String {
+        let date = calendar.date(byAdding: .minute, value: minute % 1_440,
+                                 to: calendar.startOfDay(for: Date())) ?? Date()
+        return minute == 12 * Self.hour ? "Noon" : date.formatted(.dateTime.hour())
+    }
+}
+
 extension FoodEntry {
     /// The Core Data-free form that pattern calculations work on.
     var patternMeal: PatternMeal {
