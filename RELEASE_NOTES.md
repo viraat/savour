@@ -3,6 +3,36 @@
 Savour was previously named FoodLog. Historical releases below retain their
 original name; see [CHANGELOG.md](CHANGELOG.md) for the cumulative release history.
 
+## Savour 0.6.1
+
+Repository release · 12 October 2026 · app version 0.6.1, build 14
+
+A patch release with fixes and iOS 27 test updates on top of 0.6.0.
+
+- **Faster "Erase all entries".** Fasting links are detached in one pass over a
+  single fetch instead of refetching every fast for each meal. Recorded fasts,
+  targets and unrelated links are kept, and the erase still saves or rolls back
+  as a whole.
+- **CSV export fix.** Exporting from an in-memory store no longer raises an
+  uncatchable Core Data exception. App stores are on disk and still export from
+  a consistent snapshot.
+- **iOS 27 accessibility.** The Fasts calendar keeps its legends' and days' own
+  identifiers, history rows are single VoiceOver buttons again, and "Erase all
+  entries" uses a darker red in light mode (about 5.7:1 contrast).
+- **iOS 27 UI tests updated** for the new search Close button, share sheet,
+  overlapping tab frames and relaunch behaviour. `imports/` is git-ignored so
+  personal journal CSVs aren't committed.
+
+Verification: all Mac SwiftPM suites passed and both schemes build. On an
+iPhone 18 Pro simulator (iOS 27.0), the full unit suite and every previously
+failing UI test passed on this code.
+
+**Still not verified:** live iCloud sync and restoring a real backup from the
+old app on a device (see 0.6.0).
+
+This is a local tagged repository release, not a TestFlight build or App Store
+submission. It has not been pushed.
+
 ## Savour 0.6.0
 
 Repository release · 11 October 2026 · app version 0.6.0, build 13
