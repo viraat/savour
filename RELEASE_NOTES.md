@@ -3,6 +3,40 @@
 Savour was previously named FoodLog. Historical releases below retain their
 original name; see [CHANGELOG.md](CHANGELOG.md) for the cumulative release history.
 
+## Savour 0.6.2
+
+Repository release · 12 October 2026 · app version 0.6.2, build 15
+
+A patch release that reworks the Journal's weekly card and the Patterns tab,
+and makes the fasting average cover a recent period.
+
+- **Eating rhythm on the Journal.** "This week" shows one column per day with a
+  dot per meal at its time, coloured by meal type. Tap a day to jump to it.
+- **Patterns by when, what, where and who.** A meal-time chart with each meal's
+  usual time and the overnight gaps; usual, new and different foods; the map
+  and people, with how often meals were out or shared. The streak and the
+  Entries/Days tiles are gone; one "N meals over N days" line opens the overview.
+- **Recent fasting average.** The Fasts average covers the last 7 days by
+  default. Settings → Fasting → Average over offers 7, 14 or 30 days, or All.
+- **Accessibility.** The rhythm chart is a single VoiceOver element that reads
+  each day's meals; chart text uses the app's readable grey; new rows have
+  44 pt targets.
+
+Verification: Mac SwiftPM suites passed. On an iPhone 18 Pro simulator
+(iOS 27.0), the new and affected unit and UI tests passed, including the
+accessibility audits on the Journal and Patterns. The full UI suite was not
+re-run for this release.
+
+**Known issue:** on a hardware keyboard (including a Mac keyboard in the
+Simulator), Return does not add a food chip; the on-screen Return key and a
+comma do.
+
+**Still not verified:** live iCloud sync and restoring a real backup from the
+old app on a device.
+
+This is a local tagged repository release, not a TestFlight build or App Store
+submission. It has not been pushed.
+
 ## Savour 0.6.1
 
 Repository release · 12 October 2026 · app version 0.6.1, build 14

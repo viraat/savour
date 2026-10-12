@@ -9,6 +9,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes on main.
+
+## 0.6.2 — 2026-10-12
+
+App version 0.6.2 · build 15 · repository tag `v0.6.2`
+
 - The Fasts average now covers the last 7 days by default instead of every
   completed fast. Settings → Fasting → Average over offers 7, 14 or 30 days, or
   All. The average still ignores the month shown in the calendar, and says so
