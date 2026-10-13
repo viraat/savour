@@ -3,6 +3,42 @@
 Savour was previously named FoodLog. Historical releases below retain their
 original name; see [CHANGELOG.md](CHANGELOG.md) for the cumulative release history.
 
+## Savour 0.6.3
+
+Repository release · 13 October 2026 · app version 0.6.3, build 16
+
+A patch release that turns Patterns' When chart into a per-meal time spread,
+removes the What card, regroups Settings → Your data, and improves food
+suggestions.
+
+- **Time spreads in Patterns.** For 30 days and All, When shows one row per meal
+  type: a line from earliest to latest, a bar for the usual middle half and a
+  tick at the median. 7 days keeps one dot per meal. All now uses all history.
+- **What card removed.** Patterns no longer has the What card; "Different foods"
+  stays in Overview.
+- **Clearer Your data.** Settings → Your data groups CSV (Import, Export; no
+  photos) and Full backup (Export, Restore). Erase all entries sits on its own.
+- **Better food suggestions.** Items eaten together with those already added
+  come first, after anything matching what you type.
+- **Export compliance.** Info.plist declares ITSAppUsesNonExemptEncryption = NO,
+  so App Store Connect skips the export-compliance question.
+- **Test fix.** The CSV share-sheet UI test waits for iOS 27's file caption.
+
+Verification: Mac SwiftPM suites passed. On an iPhone 18 Pro simulator
+(iOS 27.0), the affected unit and UI tests passed, including the accessibility
+audits on Settings, Journal and Patterns. The full UI suite was not re-run for
+this release.
+
+**Known issue:** on a hardware keyboard (including a Mac keyboard in the
+Simulator), Return does not add a food chip; the on-screen Return key and a
+comma do.
+
+**Still not verified:** live iCloud sync and restoring a real backup from the
+old app on a device.
+
+This is a local tagged repository release, not a TestFlight build or App Store
+submission. It has not been pushed.
+
 ## Savour 0.6.2
 
 Repository release · 12 October 2026 · app version 0.6.2, build 15

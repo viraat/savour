@@ -9,6 +9,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes on main.
+
+## 0.6.3 — 2026-10-13
+
+App version 0.6.3 · build 16 · repository tag `v0.6.3`
+
 - Food suggestions now favour items you've eaten together with the ones
   already added: after "Dosa", "Sambar" and "Chutney" come before breakfast's
   usual toast. Matching what you type still comes first, and with nothing added
