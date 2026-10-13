@@ -82,6 +82,8 @@ enum FoodSuggestionEngine {
         let words: [String]
         var count: Int
         var mealCounts: [String: Int]
+        /// Past meals this item shared with each other item, by item key.
+        var togetherCounts: [String: Int]
         var lastUsed: Date
     }
 
@@ -94,16 +96,23 @@ enum FoodSuggestionEngine {
             for source in sources {
                 let meal = key(for: source.mealType)
                 var countedForEntry = Set<String>()
+                var entryItems: [(key: String, name: String)] = []
                 for item in FoodItemParser.items(in: source.food) {
                     let name = normalizedWhitespace(item)
                     let itemKey = key(for: name)
                     guard countedForEntry.insert(itemKey).inserted else { continue }
+                    entryItems.append((itemKey, name))
+                }
+                for (itemKey, name) in entryItems {
                     var candidate = candidates[itemKey] ?? Candidate(
                         name: name, words: itemKey.split(separator: " ").map(String.init),
-                        count: 0, mealCounts: [:], lastUsed: .distantPast
+                        count: 0, mealCounts: [:], togetherCounts: [:], lastUsed: .distantPast
                     )
                     candidate.count += 1
                     candidate.mealCounts[meal, default: 0] += 1
+                    for other in entryItems where other.key != itemKey {
+                        candidate.togetherCounts[other.key, default: 0] += 1
+                    }
                     candidate.lastUsed = max(candidate.lastUsed, source.date)
                     candidates[itemKey] = candidate
                 }
@@ -116,13 +125,16 @@ enum FoodSuggestionEngine {
             let query = key(for: currentSegment(in: currentFood))
             let selected = Set(FoodItemParser.items(in: currentFood).map(key(for:)))
             let selectedMeal = key(for: mealType)
-            return candidates.compactMap { itemKey, candidate -> (Candidate, Int, Int)? in
+            return candidates.compactMap { itemKey, candidate -> (Candidate, Int, Int, Int)? in
                 guard !selected.contains(itemKey),
                       let match = matchRank(itemKey, words: candidate.words, query: query) else { return nil }
-                return (candidate, match, candidate.mealCounts[selectedMeal, default: 0])
+                let together = selected.reduce(0) { $0 + candidate.togetherCounts[$1, default: 0] }
+                return (candidate, match, candidate.mealCounts[selectedMeal, default: 0], together)
             }
             .sorted {
                 if $0.1 != $1.1 { return $0.1 > $1.1 }
+                // Foods eaten with what's already added come next, then the meal type.
+                if $0.3 != $1.3 { return $0.3 > $1.3 }
                 if ($0.2 > 0) != ($1.2 > 0) { return $0.2 > 0 }
                 if $0.2 != $1.2 { return $0.2 > $1.2 }
                 if $0.0.count != $1.0.count { return $0.0.count > $1.0.count }

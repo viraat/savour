@@ -9,6 +9,10 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+- Food suggestions now favour items you've eaten together with the ones
+  already added: after "Dosa", "Sambar" and "Chutney" come before breakfast's
+  usual toast. Matching what you type still comes first, and with nothing added
+  the ranking is unchanged (meal type, then frequency, then recency).
 - Patterns' When chart keeps one dot per meal for 7 days, but 30 days and All
   now show one row per meal type: a line from earliest to latest, a bar for
   the usual middle half and a tick at the median. All uses all history rather

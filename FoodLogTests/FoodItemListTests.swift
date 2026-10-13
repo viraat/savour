@@ -41,4 +41,27 @@ final class FoodItemListTests: XCTestCase {
         XCTAssertEqual(index.suggestions(mealType: "Breakfast", currentFood: empty).first, "Coffee")
         XCTAssertFalse(index.suggestions(mealType: "Breakfast", currentFood: empty).contains("Toast"))
     }
+
+    func testSuggestionsRankFoodsEatenWithTheAddedItemsFirst() {
+        let index = FoodSuggestionEngine.Index(sources: [
+            FoodSuggestionSource(mealType: "Breakfast", food: "Toast, Coffee"),
+            FoodSuggestionSource(mealType: "Breakfast", food: "Toast, Coffee"),
+            FoodSuggestionSource(mealType: "Breakfast", food: "Toast, Jam"),
+            FoodSuggestionSource(mealType: "Breakfast", food: "Dosa, Sambar"),
+            FoodSuggestionSource(mealType: "Dinner", food: "Dosa, Sambar, Chutney"),
+            FoodSuggestionSource(mealType: "Dinner", food: "Dosa, Chutney")
+        ])
+        // Nothing added: unchanged, the meal's most frequent items lead.
+        XCTAssertEqual(index.suggestions(mealType: "Breakfast", currentFood: "").prefix(2), ["Toast", "Coffee"])
+        // With Dosa added, its companions beat breakfast's usual Toast and Coffee;
+        // tied at two meals each, Sambar's breakfast history puts it first.
+        let afterDosa = FoodItemList.suggestionInput(items: ["Dosa"], query: "")
+        XCTAssertEqual(index.suggestions(mealType: "Breakfast", currentFood: afterDosa).prefix(2), ["Sambar", "Chutney"])
+        // Together counts add up across added items.
+        let afterDosaAndSambar = FoodItemList.suggestionInput(items: ["Dosa", "Sambar"], query: "")
+        XCTAssertEqual(index.suggestions(mealType: "Breakfast", currentFood: afterDosaAndSambar).first, "Chutney")
+        // Typing still decides first: only matches are ranked.
+        let typingC = FoodItemList.suggestionInput(items: ["Toast"], query: "c")
+        XCTAssertEqual(index.suggestions(mealType: "Breakfast", currentFood: typingC).first, "Coffee")
+    }
 }
