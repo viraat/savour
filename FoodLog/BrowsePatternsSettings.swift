@@ -1056,6 +1056,10 @@ struct FoodLogSettingsView: View {
                     FoodReminderSettingsView()
                 }
                 .accessibilityIdentifier("settings-notifications")
+                NavigationLink("Siri & Shortcuts") {
+                    FoodShortcutsSettingsView()
+                }
+                .accessibilityIdentifier("settings-shortcuts")
             } header: {
                 Text("Meals").foregroundStyle(FoodTheme.secondaryText)
             }

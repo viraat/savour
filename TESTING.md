@@ -26,6 +26,42 @@ the UI suite does not depend on a simulator's permission history.
 
 ## Run the automated suite
 
+### Siri and Shortcuts — 2026-10-17
+
+The unsigned Savour simulator build passed. On the dedicated iOS 27 FoodLog QA
+simulator, all 177 unit tests passed, including eight `FoodShortcutsTests` for
+default/explicit dates and categories, blank input, saved fields and structured
+companions, isolation from unsaved editor changes, failed authorization,
+cancellation, and distinct entries on repeated invocations. The targeted
+`testSiriShortcutsSetupIsAvailableInSettings` UI test passed and captures a
+screenshot of the setup page.
+
+Both app targets compile `FoodShortcuts.swift`. The built app's
+`Metadata.appintents/extract.actionsdata` contains Log Food, all seven parameters,
+and three Siri phrases. `root.ssu.yaml` contains English training utterances and
+the Savour application name. `CFBundleDevelopmentRegion` must remain set so
+Xcode can generate that phrase index.
+
+Before release, verify on an iPhone:
+
+- Install and open Savour, then say “Log food in Savour” and answer the food
+  prompt. Confirm exactly one new journal entry, its current time, and category.
+- Build **Dictate Text → Savour / Log Food**, pass the dictated text into Food,
+  and invoke the custom shortcut through Siri. Try an explicit date and Drink.
+- Check operation with Savour closed and backgrounded, and with an unfinished
+  draft. Confirm new entries appear and the draft remains intact.
+- With App lock enabled, verify authentication success saves and cancellation
+  does not. With the device locked, verify iOS requires unlocking first.
+
+Siri speech recognition and real authentication prompts have not been verified
+on a physical device.
+
+Release 0.7.0 (17): the signed generic-iPhone Release archive and App Store
+distribution export passed. The IPA signature, bundle/version, production APNs
+and CloudKit entitlements, and compiled Siri phrase metadata were verified.
+Artifacts and their SHA-256 verification record are in the ignored
+`build/releases/0.7.0/` directory.
+
 ### Release 0.5.5 — 2026-10-04
 
 App version `0.5.5`, build `10`, adds smaller adaptive-gray Fasts footer text and

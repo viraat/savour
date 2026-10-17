@@ -4,7 +4,7 @@ Savour (previously FoodLog) is a deliberately simple, private food journal for i
 Dime's excellent low-friction interaction model, but records food instead of
 money.
 
-Current repository release: **0.5.5** (build 10). See the
+Current repository release: **0.7.0** (build 17). See the
 [changelog](CHANGELOG.md) and [release notes](RELEASE_NOTES.md).
 
 The installed app, Xcode project and new-account target/scheme are named Savour.
@@ -28,6 +28,7 @@ the core experience is a neutral record.
 ## Included in the MVP
 
 - Fast full-screen food entry and editing
+- Siri and Shortcuts food logging, with optional date, category, place, companions, and note
 - Automatic meal-type suggestion based on time of day
 - Configurable breakfast, lunch, and dinner times with five-minute adjustments
 - Breakfast, lunch, dinner, snack, drink, and other categories
@@ -96,6 +97,33 @@ the app. Entries, photos, places and people use private iCloud storage; drafts
 and preferences remain on-device. Offline logging and backup/restore remain
 available. Apple account provisioning and production schema deployment must be
 completed before live sync/TestFlight; see [iCloud setup and testing](ICLOUD_SYNC.md).
+
+## Siri and Shortcuts
+
+After installing this build, open Savour once. Say **“Siri, log food in Savour”**
+and answer **“What did you eat?”**. Siri saves an entry and confirms when it is
+logged. The entry uses the current time and the same meal-type suggestion as
+the food editor.
+
+For a custom shortcut, open **Shortcuts → + → Add Action**, find **Savour → Log
+Food**, and set Food to **Ask Each Time**, a fixed description, or the output of
+**Dictate Text**. Expand the action for optional Date, Meal type, Place,
+Companions, and Note. An empty Date uses the time the shortcut runs; Automatic
+meal type uses that date. Companions accepts a list of individual names. The
+action returns the saved food description for use in subsequent steps.
+
+**Settings → Meals → Siri & Shortcuts** includes a Siri tip and a link to
+Shortcuts. Food is required; blank input is requested again. The device must
+be unlocked, and App lock requires device authentication before saving. Failed
+authentication, cancellation before saving, and save errors do not report
+success. Shortcut entries use the normal journal store and optional iCloud
+sync, independently of unfinished drafts. Free-text places do not receive
+coordinates automatically.
+
+This uses Apple's [App Intents](https://developer.apple.com/documentation/appintents/appintent)
+and [App Shortcuts](https://developer.apple.com/documentation/appintents/appshortcutsprovider)
+APIs. Siri phrase recognition and authentication prompts should also be checked
+on an iPhone; simulator tests cover entry creation and failure paths.
 
 ## Daily reminders
 

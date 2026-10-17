@@ -702,6 +702,18 @@ final class FoodLogUITests: XCTestCase {
         XCTAssertEqual(accent.value as? String, "Blue")
     }
 
+    func testSiriShortcutsSetupIsAvailableInSettings() {
+        launch(resetStore: true)
+        app.buttons["Settings"].tap()
+        openSettingsPage("settings-shortcuts", title: "Siri & Shortcuts")
+        XCTAssertTrue(app.staticTexts["Say “Log food in Savour”, then tell Siri what you ate."].exists)
+        XCTAssertTrue(app.staticTexts["Build your own shortcut"].exists)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Siri and Shortcuts setup"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
     func testNotificationTimeAndEnableSettingPersistAcrossRelaunch() {
         launch(resetStore: true)
         app.tabBars.firstMatch.buttons["Settings"].tap()

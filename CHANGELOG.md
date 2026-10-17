@@ -11,6 +11,17 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 No unreleased changes on main.
 
+## 0.7.0 — 2026-10-17
+
+App version 0.7.0 · build 17 · repository tag `v0.7.0`
+
+- Added **Log Food** to Siri and Shortcuts. Say “Log food in Savour” and provide
+  the food, or build a shortcut with an optional date, meal type, place,
+  companions, and note. Entries default to now and the existing meal suggestion.
+- Added Settings → Meals → Siri & Shortcuts with a Siri tip, Shortcuts link,
+  and setup instructions. Logging requires an unlocked device, respects App
+  lock authentication, and preserves unfinished editor drafts.
+
 ## 0.6.3 — 2026-10-13
 
 App version 0.6.3 · build 16 · repository tag `v0.6.3`

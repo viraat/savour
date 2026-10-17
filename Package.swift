@@ -7,7 +7,7 @@ import PackageDescription
 let appOnlyFiles = [
     "AppLockView.swift", "BrowsePatternsSettings.swift", "ContactsSearchModel.swift",
     "ContentView.swift", "DateTimePickerSheet.swift", "Fasting.swift",
-    "FoodEntryEditor.swift", "FoodLogApp.swift",
+    "FoodEntryEditor.swift", "FoodLogApp.swift", "FoodShortcuts.swift",
     "FoodLogCSVImport.swift", "Info.plist", "JournalView.swift",
     "LocationSearchModel.swift", "PersistenceController.swift",
     "Assets.xcassets", "ThirdPartyNotices.txt", "FoodCloudSyncSettingsView.swift", "Savour.entitlements", "FoodRhythmChart.swift"
@@ -20,7 +20,7 @@ let localLogicFiles = ["FoodReminder.swift", "FoodLogLogic.swift", "FoodHistoryC
 let testFiles = ["FoodLogLogicTests.swift", "FoodReminderTests.swift", "FoodPerformanceTests.swift",
                  "FoodDraftAutosaveTests.swift", "FoodCSVPerformanceTests.swift", "FoodStoreMigrationTests.swift",
                  "FoodEntryTimeSelectionTests.swift", "FoodPhotoThumbnailTests.swift", "FoodBackupTests.swift", "FoodCloudSyncTests.swift", "FoodItemListTests.swift",
-                 "FoodPatternInsightsTests.swift"]
+                 "FoodPatternInsightsTests.swift", "FoodShortcutsTests.swift"]
 
 func excluding(_ sources: [String], from files: [String]) -> [String] {
     files.filter { !sources.contains($0) }

@@ -3,6 +3,34 @@
 Savour was previously named FoodLog. Historical releases below retain their
 original name; see [CHANGELOG.md](CHANGELOG.md) for the cumulative release history.
 
+## Savour 0.7.0
+
+Repository release · 17 October 2026 · app version 0.7.0, build 17
+
+Log food through Siri or a custom shortcut, with the same journal storage and
+optional iCloud sync as entries made in the app.
+
+- **Log Food action.** Say “Log food in Savour” and answer what you ate, or pass
+  text from Dictate Text in a custom shortcut. Food is required; time defaults
+  to now and the meal category follows the existing time-based suggestion.
+- **Optional details.** Custom shortcuts can provide a date, category, place,
+  individual companions, and note. The action returns the saved food text.
+- **Setup in Settings.** Meals → Siri & Shortcuts includes a Siri tip, a link
+  to Shortcuts, and instructions for building a custom shortcut.
+- **Authentication and drafts.** The device must be unlocked. App lock requires
+  authentication before saving; shortcut entries preserve unfinished drafts.
+- **Siri phrase indexing.** The app declares its development language so Xcode
+  generates the English Siri phrase index.
+
+Verification: the Savour simulator build, all 177 iOS unit tests (including eight
+new shortcut tests), and the targeted Siri & Shortcuts setup UI test passed.
+The signed iPhone Release archive and App Store export passed; the exported IPA
+has version 0.7.0 (17), production CloudKit/APNs entitlements, and compiled Siri
+phrase metadata.
+Siri speech recognition and real authentication prompts still require an iPhone
+check. Live iCloud sync and restoring a real backup from the old app on a device
+remain unverified.
+
 ## Savour 0.6.3
 
 Repository release · 13 October 2026 · app version 0.6.3, build 16
