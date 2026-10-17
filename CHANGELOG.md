@@ -9,6 +9,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes on main.
+
+## 0.7.2 — 2026-10-17
+
+App version 0.7.2 · build 19 · repository tag `v0.7.2`
+
 - Fixed Log Food shortcuts failing with an authentication error when App lock is on.
 
 ## 0.7.1 — 2026-10-17

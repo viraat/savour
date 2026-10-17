@@ -3,6 +3,22 @@
 Savour was previously named FoodLog. Historical releases below retain their
 original name; see [CHANGELOG.md](CHANGELOG.md) for the cumulative release history.
 
+## Savour 0.7.2
+
+Repository release · 17 October 2026 · app version 0.7.2, build 19
+
+A patch release that fixes the Log Food shortcut when App lock is on.
+
+- **Shortcut authentication.** With App lock on, Log Food failed with
+  "Authentication was not completed" because Savour tried to show its own Face ID
+  prompt from a background shortcut. The shortcut now relies on iOS: it saves
+  immediately on an unlocked device, and iOS asks for Face ID or the passcode when
+  the device is locked. App lock continues to protect opening the journal.
+- **Diagnostics.** A failed shortcut save logs only the error domain and code.
+
+Verification: 178 iOS unit tests ran (176 passed, 2 skipped). The fix still needs
+an iPhone check with App lock on, both unlocked and locked.
+
 ## Savour 0.7.1
 
 Repository release · 17 October 2026 · app version 0.7.1, build 18
