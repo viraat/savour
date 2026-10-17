@@ -8,6 +8,7 @@ struct FoodCloudSyncSettingsView: View {
 
     private var supported: Bool { Bundle.main.bundleIdentifier == FoodCloudSyncConfiguration.bundleIdentifier }
     private var needsRestart: Bool { requested != monitor.enabledForThisLaunch }
+    private var showsDetails: Bool { supported && requested && monitor.enabledForThisLaunch && !needsRestart }
 
     var body: some View {
         Form {
@@ -21,30 +22,46 @@ struct FoodCloudSyncSettingsView: View {
                 .disabled(!supported)
                 .accessibilityIdentifier("icloud-sync-enabled")
             } footer: {
-                Text("Sync saved meals, photos, places and people between devices signed in to the same iCloud account. Drafts and app preferences stay on this device.")
+                Text("Savour copies your saved meals, photos, places and people to your private iCloud storage. Your other devices that use the same iCloud account get the same data. Drafts and settings stay on this device.")
             }
             Section {
                 LabeledContent("Status", value: supported
                     ? (needsRestart ? "Restart Savour to apply" : monitor.status)
-                    : "Available in the new Savour app")
+                    : "Not available in this version of Savour")
                     .accessibilityIdentifier("icloud-sync-status")
-                if let date = monitor.lastTransfer, !needsRestart, requested {
-                    LabeledContent("Last transfer") { Text(date, format: .dateTime.month().day().hour().minute()) }
+                if showsDetails, let date = monitor.lastTransfer {
+                    LabeledContent("Last sync") {
+                        if Date().timeIntervalSince(date) < 86_400 {
+                            Text(date, format: .relative(presentation: .named))
+                        } else {
+                            Text(date, format: .dateTime.month().day().hour().minute())
+                        }
+                    }
+                    .accessibilityIdentifier("icloud-last-sync")
                 }
-                if let issue = monitor.issue, !needsRestart, requested {
+                if showsDetails, let issue = monitor.issue {
                     Text(issue).foregroundStyle(.secondary)
-                }
-                if requested, !needsRestart {
-                    Button("Check iCloud status") { Task { await monitor.refreshAccount() } }
-                        .disabled(monitor.checkingAccount)
-                        .accessibilityIdentifier("icloud-check-status")
                 }
             } footer: {
                 if needsRestart {
-                    Text("Close Savour from the app switcher, then open it again. Your entries stay on this device. \(requested ? "Existing entries will also sync to iCloud." : "This stops syncing on this device; it doesn't erase the data already in iCloud.")")
+                    Text("To apply this change, close Savour from the app switcher. Then open Savour again. Your entries stay on this device. \(requested ? "Savour then copies your entries to iCloud." : "Your data in iCloud stays. Savour stops sync on this device only.")")
                 } else {
-                    Text("Meals are saved locally first, including when offline. iCloud sync happens automatically and may take a little time. Keep backups for a separate copy of your journal.")
+                    Text("Savour saves your meals on this device first. Savour also works offline. Sync occurs automatically and can take some minutes. Sync is not a backup. To keep a separate copy, make a backup.")
                 }
+            }
+            if showsDetails {
+                Section {
+                    LabeledContent("iCloud account", value: monitor.accountDescription)
+                        .accessibilityIdentifier("icloud-account-status")
+                } footer: {
+                    Text("Savour uses the iCloud account that is signed in on this device. To see or change this account, open the Settings app and tap your name.")
+                }
+            }
+            Section {
+            } header: {
+                Text("If you use more than one device")
+            } footer: {
+                Text("If you change the same entry on two devices before they sync, Savour keeps the most recent change.\nIf you delete an entry on one device, Savour deletes it on all your devices.\nIf you restore the same backup on two devices, Savour removes copies that are the same. Savour keeps copies that are different.")
             }
         }
         .formStyle(.grouped)
@@ -55,17 +72,20 @@ struct FoodCloudSyncSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .font(.body)
         .task { await monitor.refreshAccount() }
-        .alert("Enable iCloud sync?", isPresented: $confirmEnable) {
-            Button("Enable") { requested = true }
+        .alert("Turn on iCloud sync?", isPresented: $confirmEnable) {
+            Button("Turn On") { requested = true }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Your saved entries, including photos and people, will be stored in your private iCloud database and synced with your other devices. Restart Savour to begin. You can keep using Savour offline.")
+            Text("Savour copies your saved entries, photos and people to your private iCloud storage. Your other devices can then get them. To start, close Savour and open it again.")
         }
         .alert("Turn off iCloud sync?", isPresented: $confirmDisable) {
-            Button("Turn off") { requested = false }
+            Button("Turn Off") {
+                requested = false
+                monitor.clearLastTransfer()
+            }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Restart Savour to stop syncing on this device. Your local entries and the copy already in iCloud will not be erased. Other devices can continue syncing.")
+            Text("Sync stops on this device when you open Savour again. Your entries on this device stay. Your data in iCloud stays. Your other devices continue to sync.")
         }
     }
 }

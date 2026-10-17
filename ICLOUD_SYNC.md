@@ -17,9 +17,14 @@ fasting goals and biometric preferences stay local. There is no Savour login.
 
 The app saves to its existing local SQLite store first and remains usable offline.
 Apple controls transfer timing and retries. Status shows account availability,
-active transfers, the last successful transfer in this launch and neutral errors;
-it does not claim that every device is instantly up to date. Checking status
-checks the iCloud account, not a forced upload or download.
+active transfers, the last successful sync time (saved on this device and cleared
+when sync is turned off) and neutral errors; it does not claim that every device
+is instantly up to date. The account status refreshes when the page opens, when
+the app becomes active and when the iCloud account changes. Apps cannot read the
+Apple ID name or email, so Savour only shows whether an iCloud account is signed
+in and points to the Settings app. The page also explains conflicts: the most
+recent synced change wins, deletes propagate, and duplicate repair merges
+identical copies from restored backups while keeping different ones.
 
 Turning sync off stops mirroring at the next launch without deleting the local
 store or purging CloudKit. Other devices may continue syncing. When enabled,
