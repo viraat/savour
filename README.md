@@ -4,7 +4,7 @@ Savour (previously FoodLog) is a deliberately simple, private food journal for i
 Dime's excellent low-friction interaction model, but records food instead of
 money.
 
-Current repository release: **0.7.0** (build 17). See the
+Current repository release: **0.7.1** (build 18). See the
 [changelog](CHANGELOG.md) and [release notes](RELEASE_NOTES.md).
 
 The installed app, Xcode project and new-account target/scheme are named Savour.

@@ -9,6 +9,12 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
+No unreleased changes on main.
+
+## 0.7.1 — 2026-10-17
+
+App version 0.7.1 · build 18 · repository tag `v0.7.1`
+
 - Removed the "Check iCloud status" button; the account status already refreshes automatically.
 - Clearer iCloud sync status: Off, Syncing, Synced, Sync stopped, Waiting to sync and account states.
 - The last sync time is now saved between launches, shown as "Last sync", and cleared when sync is turned off.

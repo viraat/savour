@@ -3,6 +3,27 @@
 Savour was previously named FoodLog. Historical releases below retain their
 original name; see [CHANGELOG.md](CHANGELOG.md) for the cumulative release history.
 
+## Savour 0.7.1
+
+Repository release · 17 October 2026 · app version 0.7.1, build 18
+
+A patch release that makes Settings → Your data → iCloud sync easier to understand.
+
+- **Clearer status.** Status now shows Off, Syncing, Synced, Waiting to sync,
+  Sync stopped, or an iCloud account problem, instead of "iCloud sync enabled".
+- **Last sync.** The time of the last successful sync is kept between launches
+  and cleared when sync is turned off.
+- **Account and conflicts.** A new row shows whether this device is signed in to
+  iCloud, and a new section explains what happens when two devices change,
+  delete, or restore the same entries.
+- **Simpler wording.** The page, alerts, and error messages use short, plain
+  sentences. "iCloud storage is full" is now recognised when CloudKit reports it
+  inside a partial failure.
+- **Removed "Check iCloud status".** Account status already refreshes
+  automatically.
+
+Verification: see the build/releases/0.7.1 verification record.
+
 ## Savour 0.7.0
 
 Repository release · 17 October 2026 · app version 0.7.0, build 17
