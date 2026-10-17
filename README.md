@@ -114,8 +114,8 @@ action returns the saved food description for use in subsequent steps.
 
 **Settings → Meals → Siri & Shortcuts** includes a Siri tip and a link to
 Shortcuts. Food is required; blank input is requested again. The device must
-be unlocked, and App lock requires device authentication before saving. Failed
-authentication, cancellation before saving, and save errors do not report
+be unlocked; iOS asks for Face ID or the passcode when it is locked. Cancellation
+before saving and save errors do not report
 success. Shortcut entries use the normal journal store and optional iCloud
 sync, independently of unfinished drafts. Free-text places do not receive
 coordinates automatically.

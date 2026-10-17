@@ -1,6 +1,5 @@
 import AppIntents
 import CoreData
-import LocalAuthentication
 import SwiftUI
 
 enum ShortcutMealType: String, AppEnum {
@@ -18,12 +17,11 @@ enum ShortcutMealType: String, AppEnum {
 }
 
 enum FoodShortcutError: Error, CustomLocalizedStringResourceConvertible {
-    case emptyFood, authenticationFailed
+    case emptyFood
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .emptyFood: return "Enter the food you ate before logging it."
-        case .authenticationFailed: return "Authentication was not completed. Your food was not logged."
         }
     }
 }
@@ -52,23 +50,9 @@ struct FoodShortcutEntry {
 
 @MainActor
 enum FoodShortcutLogger {
-    static func authenticateIfNeeded() async throws {
-        guard UserDefaults.standard.bool(forKey: BiometricAuthentication.settingKey) else { return }
-        let authentication = LAContext()
-        defer { authentication.invalidate() }
-        do {
-            let success = try await authentication.evaluatePolicy(
-                .deviceOwnerAuthentication, localizedReason: "Log food in your Savour journal"
-            )
-            guard success else { throw FoodShortcutError.authenticationFailed }
-        } catch {
-            throw FoodShortcutError.authenticationFailed
-        }
-    }
-
     @discardableResult
     static func save(_ input: FoodShortcutEntry, in container: NSPersistentContainer,
-                     now: Date = Date(), authorize: () async throws -> Void) async throws -> UUID {
+                     now: Date = Date(), authorize: () async throws -> Void = {}) async throws -> UUID {
         try await authorize()
         try Task.checkCancellation()
         // Never save or roll back the view context: the editor may have unsaved work.
@@ -90,6 +74,8 @@ enum FoodShortcutLogger {
                 try context.save()
                 return id
             } catch {
+                let nsError = error as NSError
+                NSLog("Savour shortcut save failed: %@ %ld", nsError.domain, nsError.code)
                 context.rollback()
                 throw error
             }
@@ -140,8 +126,9 @@ struct LogFoodIntent: AppIntent {
         }
         let input = try FoodShortcutEntry(food: food, date: date, mealType: mealType,
                                           place: place, companions: companions, note: note)
-        try await FoodShortcutLogger.save(input, in: PersistenceController.shared.container,
-                                          authorize: FoodShortcutLogger.authenticateIfNeeded)
+        // `authenticationPolicy` makes iOS authenticate the device owner before `perform()` runs.
+        // LAContext cannot present its own prompt from a background intent, so do not call it here.
+        try await FoodShortcutLogger.save(input, in: PersistenceController.shared.container)
         return .result(value: input.food, dialog: "Food logged in Savour.")
     }
 }
@@ -168,7 +155,7 @@ struct FoodShortcutsSettingsView: View {
             } header: {
                 Text("Log with Siri")
             } footer: {
-                Text("Siri saves the entry at the current time and suggests a meal type. Your device must be unlocked. With App lock enabled, authentication is required before saving.")
+                Text("Siri saves the entry at the current time and suggests a meal type. Your device must be unlocked. iOS asks for Face ID or your passcode when it is locked.")
             }
             Section {
                 Text("In Shortcuts, add Savour’s Log Food action. Supply Food directly, use Ask Each Time, or pass the result of Dictate Text.")
