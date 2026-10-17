@@ -125,6 +125,27 @@ and [App Shortcuts](https://developer.apple.com/documentation/appintents/appshor
 APIs. Siri phrase recognition and authentication prompts should also be checked
 on an iPhone; simulator tests cover entry creation and failure paths.
 
+## TestFlight uploads
+
+Upload an existing signed archive with the API-authenticated release command:
+
+```sh
+python3 scripts/upload-testflight.py build/releases/0.7.0/Savour.xcarchive
+```
+
+The command reads `~/.config/savour-release/app-store-connect.json` with these
+fields: `key_id`, `issuer_id`, `private_key_path`, `team_id`, and `bundle_id`.
+Keep that local configuration and the `.p8` private key outside the repository.
+The uploader checks the archive's app and signing team, keeps its version/build
+number, and passes the API key to Xcode for the App Store Connect upload. It
+does not rely on an interactive Apple Account session. Local signing/keychain
+access and valid signing certificates are still required.
+
+Use `--dry-run` to validate the configuration and archive without uploading;
+`--config` and `--export-path` can override the defaults. Choose the archive for
+the intended release, and avoid uploading a build number already accepted by
+App Store Connect.
+
 ## Daily reminders
 
 Open **Settings → Notifications**. Set a time, then use **Add reminder** for up to

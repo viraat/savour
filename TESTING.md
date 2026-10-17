@@ -62,6 +62,12 @@ and CloudKit entitlements, and compiled Siri phrase metadata were verified.
 Artifacts and their SHA-256 verification record are in the ignored
 `build/releases/0.7.0/` directory.
 
+API upload configuration is kept outside Git in
+`~/.config/savour-release/app-store-connect.json`. The uploader's dry run passed
+against the signed 0.7.0 archive, and separate wrong-app and wrong-team checks
+both rejected the archive before executing Xcode. API authentication was
+verified by reading the Savour app record in App Store Connect.
+
 ### Release 0.5.5 — 2026-10-04
 
 App version `0.5.5`, build `10`, adds smaller adaptive-gray Fasts footer text and
