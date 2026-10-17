@@ -81,13 +81,14 @@ final class FoodShortcutsTests: XCTestCase {
         }
     }
 
-    func testFailedAuthenticationDoesNotInsertAnEntry() async throws {
+    func testFailedAuthorizationDoesNotInsertAnEntry() async throws {
+        struct Denied: Error {}
         let container = PersistenceController(inMemory: true).container
         let input = try FoodShortcutEntry(food: "Toast")
         do {
-            try await FoodShortcutLogger.save(input, in: container) { throw FoodShortcutError.authenticationFailed }
-            XCTFail("Saving must fail when authentication fails")
-        } catch FoodShortcutError.authenticationFailed {
+            try await FoodShortcutLogger.save(input, in: container) { throw Denied() }
+            XCTFail("Saving must fail when authorization fails")
+        } catch is Denied {
             XCTAssertEqual(try container.viewContext.count(for: FoodEntry.fetchRequest()), 0)
         }
     }

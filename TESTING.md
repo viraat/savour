@@ -50,8 +50,9 @@ Before release, verify on an iPhone:
   and invoke the custom shortcut through Siri. Try an explicit date and Drink.
 - Check operation with Savour closed and backgrounded, and with an unfinished
   draft. Confirm new entries appear and the draft remains intact.
-- With App lock enabled, verify authentication success saves and cancellation
-  does not. With the device locked, verify iOS requires unlocking first.
+- With the device locked, verify iOS asks for Face ID or the passcode before the
+  shortcut saves, and that cancelling the prompt saves nothing. Repeat with App
+  lock on and off.
 
 Siri speech recognition and real authentication prompts have not been verified
 on a physical device.
