@@ -233,8 +233,14 @@ final class FoodCloudSyncTests: XCTestCase {
                           userInfo: [NSLocalizedDescriptionKey: "Private note from server"])
         XCTAssertTrue(FoodCloudSyncMonitor.message(for: raw).contains("storage is full"))
         XCTAssertFalse(FoodCloudSyncMonitor.message(for: raw).contains("Private note"))
-        XCTAssertTrue(FoodCloudSyncMonitor.message(for: CKError(.networkUnavailable)).contains("retry automatically"))
-        XCTAssertTrue(FoodCloudSyncMonitor.message(for: nil).contains("saved on this device"))
+        XCTAssertTrue(FoodCloudSyncMonitor.message(for: CKError(.networkUnavailable)).contains("tries again automatically"))
+        XCTAssertTrue(FoodCloudSyncMonitor.message(for: nil).contains("stay on this device"))
+    }
+
+    func testPartialFailureWrappingQuotaExceededIsRecognized() {
+        let inner = NSError(domain: CKErrorDomain, code: CKError.quotaExceeded.rawValue)
+        let wrapped = CKError(.partialFailure, userInfo: [CKPartialErrorsByItemIDKey: ["record": inner]])
+        XCTAssertTrue(FoodCloudSyncMonitor.message(for: wrapped).contains("storage is full"))
     }
 
     private func localMirroringContainer() throws -> (NSPersistentCloudKitContainer, URL) {

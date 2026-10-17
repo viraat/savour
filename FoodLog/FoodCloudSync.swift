@@ -8,6 +8,7 @@ enum FoodCloudSyncConfiguration {
     static let bundleIdentifier = "tech.buildboring.Savour"
     static let containerIdentifier = "iCloud.tech.buildboring.Savour"
     static let transactionAuthor = "Savour.app"
+    static let lastTransferKey = "savourCloudSyncLastTransfer"
 
     // Tests, previews and the old signing identity must never contact iCloud.
     static func shouldSync(requested: Bool, bundleID: String?, isolatedStore: Bool) -> Bool {
@@ -50,7 +51,10 @@ final class FoodCloudSyncMonitor: ObservableObject {
         enabledForThisLaunch = enabled
         activeEvents.removeAll()
         issue = nil
+        lastTransfer = nil
         guard enabled, container is NSPersistentCloudKitContainer else { return }
+        let saved = UserDefaults.standard.double(forKey: FoodCloudSyncConfiguration.lastTransferKey)
+        if saved > 0 { lastTransfer = Date(timeIntervalSince1970: saved) }
         observations.append(NotificationCenter.default.addObserver(
             forName: NSPersistentCloudKitContainer.eventChangedNotification,
             object: container, queue: .main
@@ -64,6 +68,11 @@ final class FoodCloudSyncMonitor: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in await self?.refreshAccount() }
         })
+    }
+
+    func clearLastTransfer() {
+        lastTransfer = nil
+        UserDefaults.standard.removeObject(forKey: FoodCloudSyncConfiguration.lastTransferKey)
     }
 
     func refreshAccount() async {
@@ -88,7 +97,9 @@ final class FoodCloudSyncMonitor: ObservableObject {
             activeEvents.remove(event.identifier)
             if event.succeeded {
                 if event.type == .import || event.type == .export {
-                    lastTransfer = max(lastTransfer ?? .distantPast, event.endDate ?? Date())
+                    let date = max(lastTransfer ?? .distantPast, event.endDate ?? Date())
+                    lastTransfer = date
+                    UserDefaults.standard.set(date.timeIntervalSince1970, forKey: FoodCloudSyncConfiguration.lastTransferKey)
                     issue = nil
                 }
             } else {
@@ -98,31 +109,48 @@ final class FoodCloudSyncMonitor: ObservableObject {
     }
 
     static func message(for error: Error?) -> String {
-        let error = error as NSError?
-        if error?.domain == CKErrorDomain, let code = error.flatMap({ CKError.Code(rawValue: $0.code) }) {
+        if let code = knownCode(in: error as NSError?, depth: 0) {
             switch code {
-            case .quotaExceeded: return "iCloud storage is full. Your meals are still saved on this device."
-            case .notAuthenticated: return "Sign in to iCloud in Settings to resume syncing."
-            case .networkUnavailable, .networkFailure, .serviceUnavailable, .requestRateLimited:
-                return "Waiting for iCloud. Sync will retry automatically."
-            default: break
+            case .quotaExceeded: return "Your iCloud storage is full. Your meals stay on this device."
+            case .notAuthenticated: return "Sign in to iCloud in the Settings app. Then sync starts again."
+            default: return "Savour cannot connect to iCloud now. Sync tries again automatically."
             }
         }
-        return "iCloud couldn't sync. Your meals are still saved on this device."
+        return "Sync did not complete. Your meals stay on this device."
+    }
+
+    private static func knownCode(in error: NSError?, depth: Int) -> CKError.Code? {
+        guard depth < 3, let error, error.domain == CKErrorDomain, let code = CKError.Code(rawValue: error.code) else { return nil }
+        switch code {
+        case .quotaExceeded, .notAuthenticated, .networkUnavailable, .networkFailure, .serviceUnavailable, .requestRateLimited:
+            return code
+        case .partialFailure:
+            let partial = (error as? CKError)?.partialErrorsByItemID?.values.map { $0 as NSError } ?? []
+            let underlying = (error.userInfo[NSUnderlyingErrorKey] as? NSError).map { [$0] } ?? []
+            return (partial + underlying).lazy.compactMap { knownCode(in: $0, depth: depth + 1) }.first
+        default: return nil
+        }
     }
 
     var status: String {
         if !enabledForThisLaunch { return "Off" }
-        if checkingAccount { return "Checking iCloud…" }
+        if checkingAccount { return "Checking iCloud" }
         switch accountStatus {
         case .noAccount: return "Not signed in to iCloud"
-        case .restricted: return "iCloud access is restricted"
-        case .temporarilyUnavailable: return "iCloud is temporarily unavailable"
-        case .couldNotDetermine: return "Waiting for iCloud"
+        case .restricted: return "iCloud is not available on this device"
         case .available:
-            if !activeEvents.isEmpty { return "Syncing…" }
-            return issue == nil ? "iCloud sync enabled" : "Sync paused"
-        @unknown default: return "Waiting for iCloud"
+            if !activeEvents.isEmpty { return "Syncing" }
+            if issue != nil { return "Sync stopped" }
+            return lastTransfer != nil ? "Synced" : "Waiting to sync"
+        default: return "Waiting for iCloud"
+        }
+    }
+
+    var accountDescription: String {
+        switch accountStatus {
+        case .available: return "Signed in"
+        case .noAccount: return "Not signed in"
+        default: return "Unknown"
         }
     }
 }

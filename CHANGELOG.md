@@ -9,7 +9,11 @@ tag mapping is recorded in [release notes](RELEASE_NOTES.md#historical-tag-renum
 
 ## Unreleased
 
-No unreleased changes on main.
+- Removed the "Check iCloud status" button; the account status already refreshes automatically.
+- Clearer iCloud sync status: Off, Syncing, Synced, Sync stopped, Waiting to sync and account states.
+- The last sync time is now saved between launches, shown as "Last sync", and cleared when sync is turned off.
+- Added an iCloud account row and a section that explains how conflicts between devices are resolved.
+- Rewrote the iCloud sync copy and error messages in simpler language. Errors wrapped in a partial failure now show the right message.
 
 ## 0.7.0 — 2026-10-17
 
